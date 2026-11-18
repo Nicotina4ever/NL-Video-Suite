@@ -1,0 +1,11 @@
+#audio-mixer-dialog{width:min(1040px,96vw);max-width:96vw;max-height:92vh;overflow:auto}
+#audio-mixer-dialog>.panelhead{position:sticky;top:-24px;background:var(--panel);z-index:3;padding:8px 0}#audio-mixer-dialog>.actions{position:sticky;bottom:-24px;background:var(--panel);z-index:3;border-top:1px solid var(--line);padding:10px 0}
+#audio-channels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:18px 0}
+#audio-channels fieldset{min-width:0;margin:0;padding:14px;border:1px solid var(--line);border-radius:8px}
+#audio-channels legend{font-weight:650;color:var(--accent)}
+#audio-channels input[type=number],#audio-channels textarea{width:100%;min-width:0}
+#audio-channels textarea{font:12px/1.5 Consolas,monospace}#audio-channels .check{display:flex;gap:8px}
+#audio-routing{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-top:12px}
+.audio-master-controls>details{border-top:1px solid var(--line);padding:12px 0}.audio-master-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:12px 0}.audio-master-controls textarea,.audio-master-controls audio{width:100%}#audio-master-report{white-space:pre-wrap;font-size:12px;line-height:1.6}
+@media(max-width:760px){#audio-channels{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:420px){#audio-channels{grid-template-columns:1fr}}

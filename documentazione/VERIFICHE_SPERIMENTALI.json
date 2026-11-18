@@ -1,0 +1,73 @@
+{
+  "channel": "experimental",
+  "internal_version": "0.7.1",
+  "full_1_0_acceptance": false,
+  "candidate_sha256": "c0c5a609464712c4032fb175509d9ad9f695167ec843420ab556e332b14cbf5c",
+  "full_regression": false,
+  "real_ai_inference_in_these_checks": false,
+  "real_native_export": true,
+  "checks": [
+    {
+      "name": "fmt",
+      "passed": true,
+      "elapsed_seconds": 0.73
+    },
+    {
+      "name": "clippy",
+      "passed": true,
+      "elapsed_seconds": 10.84
+    },
+    {
+      "name": "release",
+      "passed": true,
+      "elapsed_seconds": 50.47
+    },
+    {
+      "name": "project_delete_browser",
+      "passed": true,
+      "elapsed_seconds": 2.25
+    },
+    {
+      "name": "motion_idea_browser",
+      "passed": true,
+      "elapsed_seconds": 5.06
+    },
+    {
+      "name": "workspace_prerequisite",
+      "passed": true,
+      "elapsed_seconds": 3.45
+    }
+  ],
+  "additional_gui": {
+    "passed": true,
+    "checks": [
+      "Comfy prompt handoff without submission",
+      "manual text without inference",
+      "approved scenes unchanged"
+    ]
+  },
+  "rust_units": {
+    "filter": "motion::idea::tests",
+    "passed": 4,
+    "filtered_out": 169
+  },
+  "notes": "Technical evidence only. Mock model; real FFmpeg/Edge. Private media, reports and caches are not distributed. Clean Windows/full-runtime acceptance pending.",
+  "portable_core": {
+    "passed": true,
+    "archive_bytes": 8183236,
+    "archive_sha256": "98e8baf9ee9490bb981dd15c72b9f9d1a894e60f1a6f99c54a99eed06cbf53e1",
+    "same_windows_relocation_with_spaces": true,
+    "full_clean_windows_acceptance": false,
+    "uses_existing_external_ffmpeg": true,
+    "no_python_or_models_bundled": true,
+    "optional_services_offline": true,
+    "real_native_export_seconds": 1.2,
+    "checks": [
+      "Every archive hash verified; executable root follows extraction with spaces; no Python/models/bundled FFmpeg; explicit existing FFmpeg selected, optional services offline",
+      "Real GUI manual idea \u2192 editable layers \u2192 approval \u2192 1.2-second H264/AAC export with no Python/ASR/Ollama/Comfy",
+      "Server stopped using ownership-aware launcher; same package moved to another path with spaces; saved external tool configuration reused; project/timeline/Motion and real output reopened"
+    ],
+    "packaging_unit_tests_passed": 2,
+    "powershell_syntax_passed": true
+  }
+}

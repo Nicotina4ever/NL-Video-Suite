@@ -1,0 +1,4 @@
+Riprendi da sviluppo/roadmap/V1_SESSION_HANDOFF.md e documentazione/STATO_E_ROADMAP_1_0.md.
+La specifica completa unica e sviluppo/roadmap/V1_MASTER_ROADMAP.md.
+Leggi solo i sorgenti pertinenti al prossimo intervento verificabile; preserva stabile, originali, servizi e risultati costosi.
+Test mirati, niente nuovi accumuli Debug/artefatti, nessuna dichiarazione1.0 prima dei gate.
