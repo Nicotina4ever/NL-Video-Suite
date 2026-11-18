@@ -22,7 +22,7 @@ class PackagingPreflight(unittest.TestCase):
                     'models/alignment/italian-xlsr53/pytorch_model.bin']
         for name in package.DIRECTORIES:
             (root / name).mkdir(exist_ok=True)
-        for name in required + list(package.FILES) + ['data/settings.json', 'data/projects/test/.cache/preview.bin']:
+        for name in required + list(package.FILES) + ['data/settings.json', 'data/projects/test/.cache/preview.bin', 'data/desktop-profile/Default/Cookies']:
             path = root / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text('SYNTHETIC FIXTURE', encoding='utf-8')
@@ -40,6 +40,7 @@ class PackagingPreflight(unittest.TestCase):
                 _, with_data = package.preflight(True)
                 self.assertIn(root / 'data/settings.json', with_data)
                 self.assertFalse(any('.cache' in p.parts for p in with_data))
+                self.assertFalse(any('desktop-profile' in p.parts for p in with_data))
                 with self.assertRaisesRegex(RuntimeError, 'Versione attesa'):
                     package.preflight(expected_version='1.0.0')
                 (root / 'app/tools/ffprobe.exe').unlink()

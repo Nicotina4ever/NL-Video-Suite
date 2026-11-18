@@ -54,8 +54,8 @@
   "notes": "Technical evidence only. Mock model; real FFmpeg/Edge. Private media, reports and caches are not distributed. Clean Windows/full-runtime acceptance pending.",
   "portable_core": {
     "passed": true,
-    "archive_bytes": 8183236,
-    "archive_sha256": "98e8baf9ee9490bb981dd15c72b9f9d1a894e60f1a6f99c54a99eed06cbf53e1",
+    "archive_bytes": 8313084,
+    "archive_sha256": "a1936ad4d08c73949e16ad88d705f95e5ddf74073e6c9806ce85019d3943eb04",
     "same_windows_relocation_with_spaces": true,
     "full_clean_windows_acceptance": false,
     "uses_existing_external_ffmpeg": true,
@@ -68,6 +68,10 @@
       "Server stopped using ownership-aware launcher; same package moved to another path with spaces; saved external tool configuration reused; project/timeline/Motion and real output reopened"
     ],
     "packaging_unit_tests_passed": 2,
-    "powershell_syntax_passed": true
+    "powershell_syntax_passed": true,
+    "runtime_identical_to_gui_qa_archive": true,
+    "rust_dependency_notice_packages": 151,
+    "rust_standard_library_notices_included": true,
+    "unsigned_executable": true
   }
 }

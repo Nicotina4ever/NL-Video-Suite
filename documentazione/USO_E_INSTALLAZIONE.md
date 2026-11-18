@@ -6,6 +6,8 @@ L'installazione di sviluppo locale usa `Avvia_NL_Video_Suite.cmd`: scegli Stabil
 
 Il pacchetto GitHub **Experimental Core Windows x64** contiene l'eseguibile avanzato, la GUI incorporata, avvio e guide, non Python/Torch, modelli, FFmpeg, Ollama o ComfyUI. È una distribuzione sperimentale leggera con dipendenze esplicite, non il portable completo1.0. Non introduce una seconda versione del motore e non disabilita funzioni nel codice: segnala i componenti mancanti.
 
+Prerequisiti: Windows x64 e runtime Microsoft Visual C++ x64 compatibile, se non gia presente nel sistema. Il binario sperimentale non e firmato: verifica SHA256 del pacchetto dalla release ufficiale; firma/SmartScreen e Windows pulito sono gate ancora aperti.
+
 1. Scarica lo ZIP della prerelease e verifica SHA256, poi estrai in una cartella scrivibile (anche con spazi). Non eseguire l'EXE dentro lo ZIP.
 2. Per import/export/anteprime native serve FFmpeg e ffprobe. Se sono nel PATH o in `app/tools`, vengono riusati. Altrimenti `Configura_PC.cmd` permette di scegliere un `ffmpeg.exe` già installato nella stessa cartella di `ffprobe.exe`. Il riferimento è locale al pacchetto, nessun PATH globale viene modificato. Puoi ottenere FFmpeg manualmente dalla [pagina ufficiale](https://ffmpeg.org/download.html); nessun componente viene scaricato dalla suite.
 3. Doppio clic su `Avvia_NL_Video_Suite.cmd`. Nel Core si apre direttamente la build sperimentale; non sostituisce alcuna stabile. I progetti nuovi sono in `data/projects`. `Ferma_NL_Video_Suite.cmd` riguarda soltanto questa installazione.
@@ -47,3 +49,9 @@ Per avviare dal clone, dopo il build esegui `sviluppo/target/release/nl-video-su
 Il primo build può richiedere le dipendenze Cargo; `--offline` funziona soltanto se sono già disponibili. Non scarica modelli IA. Leggi il Session Handoff e lo stato operativo prima di lavorare. Non usare una vecchia regressione come certificazione delle modifiche nuove. Alcuni collaudi creativi storici richiedono fixture private: non sono falsamente inclusi nel clone e non devono essere rigenerati per ottenere un numero verde.
 
 Trasferire una tua installazione completa è distinto dal Core pubblico: riusa `app/crea_portable.py --verifica` e crea il pacchetto solo su richiesta esplicita. Il pacchetto completo senza `--con-dati` esclude i tuoi progetti. Il trasferimento dei dati è facoltativo e richiede la suite ferma. Dopo ricollocazione riconfigura riferimenti a servizi, modelli e font esterni; non eliminare la vecchia installazione prima di una riapertura/export verificati.
+
+## Trasferire la sperimentale con tutte le risorse gia disponibili
+
+Per il proprio altroPC, estrai il Core e conserva il suo `app/nl-video-suite.exe` avanzato. Affianca una sola copia delle cartelle `runtime`, `models` e dei modelli opzionali `engines/clipsai/models` dalla tua installazione completa; configura i servizi e i percorsi esterni sul PCdi destinazione. I sorgenti dei bridge/motori sono gia nel Core. Importa i workflow API pertinenti dalla GUI, invece di riutilizzare percorsi assoluti della vecchia macchina. Trasferisci `data/projects` soltanto se vuoi anche i tuoi progetti, con la suite ferma. Non sovrascrivere l'EXE avanzato con la vecchia stabile. Nessun modello viene scaricato da questa operazione.
+
+Il packager completo attuale usa per default l'EXE di `app/`, cioe la stabile dell'installazione locale: non scambiarlo per la distribuzione sperimentale avanzata. Il Corepiu risorse esplicite evita tale ambiguita. Verifica riapertura/preview/export prima di eliminare la vecchia copia. La redistribuzione a terzi del pacchetto completo richiede ancora i gate di licenza e packaging della1.0.

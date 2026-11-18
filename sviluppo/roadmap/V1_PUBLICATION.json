@@ -1,0 +1,35 @@
+{
+  "repository": "https://github.com/Nicotina4ever/NL-Video-Suite",
+  "release_url": "https://github.com/Nicotina4ever/NL-Video-Suite/releases/tag/experimental-2026.11.18",
+  "tag": "experimental-2026.11.18",
+  "source_commit": "ad8fb0cc18afd29d2294a44ee5c46fca63126a3f",
+  "prerelease": true,
+  "public_download_verified": true,
+  "candidate_sha256": "c0c5a609464712c4032fb175509d9ad9f695167ec843420ab556e332b14cbf5c",
+  "assets": [
+    {
+      "name": "NL_Video_Suite-Experimental-2026.11.18-Windows-x64-Core.zip",
+      "bytes": 8313084,
+      "sha256": "a1936ad4d08c73949e16ad88d705f95e5ddf74073e6c9806ce85019d3943eb04",
+      "url": "https://github.com/Nicotina4ever/NL-Video-Suite/releases/download/experimental-2026.11.18/NL_Video_Suite-Experimental-2026.11.18-Windows-x64-Core.zip"
+    },
+    {
+      "name": "NL_Video_Suite-Experimental-2026.11.18-Windows-x64-Core.zip.sha256",
+      "bytes": 127,
+      "sha256": "e69c45d47d870571a4e2ec7c4677398f0a20e381e94e5f54de83c96406d857ae",
+      "url": "https://github.com/Nicotina4ever/NL-Video-Suite/releases/download/experimental-2026.11.18/NL_Video_Suite-Experimental-2026.11.18-Windows-x64-Core.zip.sha256"
+    },
+    {
+      "name": "VERIFICHE_SPERIMENTALI.json",
+      "bytes": 2630,
+      "sha256": "dd5641ee7aa7356cab10bf7b04531f838503875375cb46b2dde15af702da9ff7",
+      "url": "https://github.com/Nicotina4ever/NL-Video-Suite/releases/download/experimental-2026.11.18/VERIFICHE_SPERIMENTALI.json"
+    }
+  ],
+  "runtime_identical_to_gui_qa_archive": true,
+  "rust_notice_packages": 151,
+  "standard_library_notices_included": true,
+  "full_1_0_acceptance": false,
+  "personal_data_uploaded": false,
+  "models_or_python_runtime_uploaded": false
+}

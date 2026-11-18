@@ -43,7 +43,9 @@ def core_package(candidate, output, inventory_only=False):
         files.append((ROOT/name,name))
     for directory in ('licenses','documentazione','sviluppo/bridge'):
         for source in sorted((ROOT/directory).rglob('*')):
-            if source.is_file() and '__pycache__' not in source.parts and source.suffix not in ('.pyc','.log'):
+            # The external verification receipt contains the archive's own SHA;
+            # keep it beside the ZIP rather than creating a self-reference.
+            if source.is_file() and source.name != 'VERIFICHE_SPERIMENTALI.json' and '__pycache__' not in source.parts and source.suffix not in ('.pyc','.log'):
                 files.append((source,source.relative_to(ROOT).as_posix()))
     for source in sorted((ROOT/'engines').rglob('*.py')):
         if 'models' not in source.parts:files.append((source,source.relative_to(ROOT).as_posix()))
@@ -94,7 +96,7 @@ def selected_files(include_data):
         base=ROOT/directory
         if not base.is_dir():raise RuntimeError('Cartella richiesta assente: '+directory)
         for parent,dirs,files in os.walk(base,followlinks=False):
-            dirs[:]=sorted(d for d in dirs if d not in ('__pycache__','.locks','.cache','logs') and not (Path(parent)/d).is_symlink())
+            dirs[:]=sorted(d for d in dirs if d not in ('__pycache__','.locks','.cache','logs','desktop-profile') and not (Path(parent)/d).is_symlink())
             for name in sorted(files):
                 source=Path(parent)/name
                 if name in EXCLUDED_FILES or source.suffix in ('.pyc','.log','.partial'):continue
