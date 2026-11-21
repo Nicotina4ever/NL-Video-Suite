@@ -11,6 +11,21 @@
     pickProjectSummary,
   } from './lib/shell';
   import Splitter from './lib/Splitter.svelte';
+  import Timeline from './lib/Timeline.svelte';
+
+  interface FullProject {
+    id: string;
+    title: string;
+    updated_at: string;
+    timeline: {
+      tracks: { id: string; name: string; kind: string; visible: boolean; locked: boolean }[];
+      clips: {
+        id: string; asset_id: string; track_id: string; start_ms: number;
+        trim_in_ms: number; duration_ms: number; label?: string | null;
+      }[];
+    };
+    assets: { id: string; name: string; kind: string }[];
+  }
 
   interface Health {
     version: string;
@@ -23,6 +38,8 @@
   let health = $state<Health | null>(null);
   let projects = $state<ProjectSummary[]>([]);
   let project = $state<ProjectSummary | null>(null);
+  let full = $state<FullProject | null>(null);
+  let timelineApi = $state<{ seek: (ms: number) => void } | null>(null);
   let layout = $state(loadLayout());
   let status = $state('Pronto.');
   let paletteOpen = $state(false);
@@ -49,10 +66,20 @@
     }
   }
 
-  function selectProject(id: string) {
+  async function selectProject(id: string) {
     rememberProject(id || null);
     project = pickProjectSummary(projects, id || null);
-    status = project ? `Progetto aperto: ${project.title}.` : 'Nessun progetto selezionato.';
+    full = null;
+    if (project) {
+      try {
+        full = await get<FullProject>(`/api/projects/${project.id}`);
+        status = `Progetto aperto: ${project.title} · ${full.timeline.clips.length} clip.`;
+      } catch (error) {
+        status = (error as Error).message;
+      }
+    } else {
+      status = 'Nessun progetto selezionato.';
+    }
   }
 
   async function renameProject() {
@@ -125,7 +152,16 @@
     enabled: () => true,
   });
   commands.register({
+    id: 'playhead.start',
+    label: "Vai all'inizio della timeline",
+    shortcut: 'Home',
+    group: 'Playback',
+    run: () => timelineApi?.seek(0),
+    enabled: () => !!full?.timeline.clips.length,
+  });
+  commands.register({
     id: 'view.theme',
+
     label: 'Passa al tema chiaro/scuro',
     shortcut: 'Ctrl+Shift+D',
     group: 'Vista',
@@ -250,14 +286,21 @@
           <Splitter axis="y" fraction={layout.timelineHeight} label="Altezza timeline" onchange={(v) => (layout.timelineHeight = v)} />
           <section class="panel timeline">
             <h3>Timeline</h3>
-            <p class="muted">
-              {#if project}
-                «{project.title}» · il porting della timeline canvas (filmstrip, waveform, trim, snapping)
-                è il prossimo passo della shell.
-              {:else}
-                Nessuno progetto aperto.
-              {/if}
-            </p>
+            {#if full}
+              <div class="timeline-host">
+                <Timeline
+                  project={full}
+                  exposed={(api) => (timelineApi = api)}
+                  onstatus={(m) => (status = m)}
+                  onupdate={(p) => {
+                    full = p;
+                    status = `Timeline salvata (${p.timeline.clips.length} clip).`;
+                  }}
+                />
+              </div>
+            {:else}
+              <p class="muted">Nessun progetto aperto.</p>
+            {/if}
           </section>
         </div>
       {:else if layout.workspace === 'social'}
@@ -347,6 +390,8 @@
   .monitors { flex: 1; display: flex; gap: 8px; }
   .monitor { flex: 1; border: 1px dashed var(--line-strong); border-radius: 8px; padding: 10px; min-width: 0; }
   .timeline { height: var(--timeline); flex: none; }
+  .timeline-host { position: absolute; inset: 34px 12px 12px; }
+  .timeline { position: relative; }
   .statusbar {
     display: flex; gap: 14px; align-items: center; padding: 0 14px;
     background: var(--bg-raised); border-top: 1px solid var(--line); font-size: 12px;
