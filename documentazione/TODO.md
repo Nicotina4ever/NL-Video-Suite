@@ -24,6 +24,7 @@ Shell Premiere-style: `sviluppo/web-app/src/`.
 - [ ] Drag e rilascio dalla Sorgente alla timeline
 
 ## C. UX Premiere
+- [x] Timeline: timecode, durata totale, zoom slider, «Adatta», snap on/off, chip tracce con visibile/bloccata persistenti
 - [ ] Pannelli dockable / ridimensionabili (oggi solo 2 splitter)
 - [ ] Shortcut completi da `keyboard.md` di FilmCraft (143 comandi, adattati al browser)
 - [ ] Scrub testuale (hot text) nei monitor

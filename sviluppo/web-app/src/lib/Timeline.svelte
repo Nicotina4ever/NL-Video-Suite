@@ -1,6 +1,6 @@
 <script lang="ts">
   import { get, post, put } from './api';
-  import type { AssetInfo, Clip, EditTool, ProjectFull } from './types';
+  import type { AssetInfo, Clip, EditTool, ProjectFull, Track } from './types';
   import { rippleTrim, roll, slip, slide, trackClips } from './editAlgebra';
   import type { AClip, MediaMap } from './editAlgebra';
 
@@ -31,6 +31,7 @@
   let scrollX = $state(0);
   let selected = $state<string | null>(null);
   let mediaTick = $state(0);
+  let snapEnabled = $state(true);
   const posters = new Map<string, HTMLImageElement>();
   const waveforms = new Map<string, { peaks: [number, number][]; bin_ms: number }>();
   const waveformPending = new Set<string>();
@@ -128,6 +129,47 @@
     return ((px + scrollX) / pps) * 1000;
   }
 
+  const durationMs = $derived(
+    project.timeline.clips.reduce((end, c) => Math.max(end, c.start_ms + c.duration_ms), 0),
+  );
+  const orderedTracks = $derived(
+    (['overlay', 'video', 'audio'] as const)
+      .map((kind) => project.timeline.tracks.find((t) => t.kind === kind))
+      .filter((t): t is Track => !!t),
+  );
+  function tc(ms: number): string {
+    const value = Math.max(0, Math.round(ms));
+    const m = Math.floor(value / 60_000);
+    const s = Math.floor((value % 60_000) / 1000);
+    const f = Math.floor((value % 1000) / (1000 / 30));
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}:${String(f).padStart(2, '0')}`;
+  }
+  function fit() {
+    const width = canvas?.clientWidth || 800;
+    const total = durationMs || 10_000;
+    pps = Math.min(600, Math.max(4, (width - 24) / (total / 1000)));
+    scrollX = 0;
+  }
+  async function toggleTrack(trackId: string, key: 'visible' | 'locked') {
+    const timeline = {
+      ...project.timeline,
+      tracks: project.timeline.tracks.map((t) => (t.id === trackId ? { ...t, [key]: !t[key] } : t)),
+    };
+    try {
+      const saved = await put<FullProject>(`/api/projects/${project.id}/timeline`, {
+        timeline,
+        expected_updated_at: project.updated_at,
+      });
+      onupdate(saved);
+      const track = timeline.tracks.find((t) => t.id === trackId);
+      onstatus(
+        `${track?.name ?? 'traccia'}: ${key === 'visible' ? (track?.visible ? 'visibile' : 'nascosta') : track?.locked ? 'bloccata' : 'sbloccata'}.`,
+      );
+    } catch (error) {
+      onstatus(`Traccia non aggiornata: ${(error as Error).message}`);
+    }
+  }
+
   function snapCandidates(): number[] {
     const values = [0, playheadMs];
     for (const c of project.timeline.clips) {
@@ -137,6 +179,7 @@
   }
 
   function snapMs(ms: number): { value: number; snapped: boolean } {
+    if (!snapEnabled) return { value: ms, snapped: false };
     const tolerance = (SNAP / pps) * 1000;
     let best = { value: ms, snapped: false };
     for (const candidate of snapCandidates()) {
@@ -767,6 +810,34 @@
       <span class="muted hint">{tool === 'slip' || tool === 'slide' ? 'trascina il corpo del clip' : 'trascina un bordo del clip'}</span>
     {/if}
   </div>
+  <div class="tools view" role="toolbar" aria-label="Vista, snap e tracce">
+    <span class="tc" aria-label="Tempo della playhead">{tc(playheadMs)}</span>
+    <span class="muted total">/ {tc(durationMs)}</span>
+    <span class="spacer"></span>
+    <label class="inline"><input type="checkbox" bind:checked={snapEnabled} /> Snap</label>
+    <label class="inline zoom">Zoom<input type="range" min="4" max="300" step="1" bind:value={pps} /></label>
+    <button class="tool" onclick={fit} title="Adatta l’intero montaggio alla larghezza">Adatta</button>
+    <span class="tracks">
+      {#each orderedTracks as track (track.id)}
+        <span class="track-chip" class:off={!track.visible} class:locked={track.locked}>
+          <button
+            class="chip-name"
+            title={track.visible ? 'Nascondi traccia' : 'Mostra traccia'}
+            onclick={() => toggleTrack(track.id, 'visible')}
+          >
+            {track.name}
+          </button>
+          <button
+            class="chip-lock"
+            title={track.locked ? 'Sblocca traccia' : 'Blocca traccia'}
+            onclick={() => toggleTrack(track.id, 'locked')}
+          >
+            {track.locked ? '🔒' : '🔓'}
+          </button>
+        </span>
+      {/each}
+    </span>
+  </div>
   <canvas
     class="timeline-canvas"
     class:algebraic={tool !== 'trim'}
@@ -793,6 +864,18 @@
   .tools { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
   .tool { padding: 2px 9px; font-size: 12px; background: transparent; border-color: var(--line); }
   .tool.active { border-color: var(--accent-2); background: rgba(228, 70, 155, 0.16); }
+  .view { font-size: 12px; }
+  .view .spacer { flex: 1; }
+  .view .inline { display: flex; align-items: center; gap: 4px; color: var(--text-dim); }
+  .view .zoom input[type='range'] { width: 96px; }
+  .view .tc { font: 12px Consolas, monospace; color: var(--accent-3); }
+  .view .total { font: 11px Consolas, monospace; }
+  .tracks { display: flex; gap: 4px; }
+  .track-chip { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .track-chip.off { opacity: 0.5; }
+  .track-chip.locked { border-color: var(--warn); }
+  .chip-name, .chip-lock { background: transparent; border: 0; padding: 2px 7px; font-size: 11px; cursor: pointer; color: var(--text); }
+  .chip-lock { border-left: 1px solid var(--line); }
   .reason { font-size: 12px; color: var(--warn); }
   .hint { font-size: 12px; }
   .timeline-canvas { flex: 1; min-height: 0; width: 100%; display: block; border-radius: 8px; }
