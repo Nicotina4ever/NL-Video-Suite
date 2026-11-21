@@ -1,7 +1,7 @@
 {
-  "promoted_at": "2026-11-21T15:26:00.3607976+01:00",
-  "sha256": "ade48793c5bec368e72a9e3f4d82428ee0b853d629d1a5c05cd8d7daec65282a",
+  "promoted_at": "2026-11-21T16:27:35.1466608+01:00",
+  "sha256": "2576e868b463af60c5e0c75a1d66277ed93835b6b62c52e602f286a555d1d9f5",
   "source": "K:\\AI\\NL_Video_Suite\\sviluppo\\target\\release\\nl-video-suite.exe",
-  "proof": "K:\\AI\\NL_Video_Suite\\sviluppo\\tests\\artifacts\\v1-baseline\\20261121T142020Z\\report.json",
+  "proof": "K:\\AI\\NL_Video_Suite\\sviluppo\\tests\\artifacts\\v1-baseline\\20261121T152652Z\\report.json",
   "scope": "ATTENZIONE: il report è mirato (targeted), NON una regressione completa."
 }

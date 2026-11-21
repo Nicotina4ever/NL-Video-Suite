@@ -49,7 +49,7 @@ def core_package(candidate, output, inventory_only=False):
                 files.append((source,source.relative_to(ROOT).as_posix()))
     for source in sorted((ROOT/'engines').rglob('*.py')):
         if 'models' not in source.parts:files.append((source,source.relative_to(ROOT).as_posix()))
-    for name in ('V1_MASTER_ROADMAP.md','V1_SESSION_HANDOFF.md','V1_PROMOTION.md'):
+    for name in ('archivio/V1_MASTER_ROADMAP.md','V1_SESSION_HANDOFF.md','V1_PROMOTION.md'):
         files.append((ROOT/'sviluppo/roadmap'/name,'sviluppo/roadmap/'+name))
     for source,_ in files:
         if not source.is_file() or source.is_symlink() or not source.resolve().is_relative_to(ROOT):raise RuntimeError('File non portabile: '+str(source))
@@ -70,7 +70,7 @@ def core_package(candidate, output, inventory_only=False):
         'Avvia_NL_Video_Suite.cmd':'@echo off\r\ncd /d "%~dp0"\r\npowershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File "%~dp0app\\configura_pc.ps1" -Avvia -Desktop\r\nif errorlevel 1 pause\r\n',
         'Configura_PC.cmd':'@echo off\r\npowershell.exe -NoProfile -STA -ExecutionPolicy Bypass -File "%~dp0app\\configura_pc.ps1"\r\npause\r\n',
         'Ferma_NL_Video_Suite.cmd':'@echo off\r\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0app\\stop.ps1"\r\nif errorlevel 1 pause\r\n',
-        'runtime/README.txt':'Optional Python runtime not included. Configure an existing compatible interpreter; see documentazione/USO_E_INSTALLAZIONE.md.\n',
+        'runtime/README.txt':'Optional Python runtime not included. Configure an existing compatible interpreter; see documentazione/MANUALE.md.\n',
         'models/README.txt':'No model weights included or downloaded. Select existing models explicitly in Settings.\n',
         'workflows/README.txt':'Import your ComfyUI API JSON using the application. No private workflow is bundled.\n',
         'data/settings.json':json.dumps({'comfy_url':'http://127.0.0.1:8188','ollama_url':'http://127.0.0.1:11434','llm_provider':'ollama','llm_model':'','ollama_execution':'auto','legacy_sources':{},'workflow_roots':[],'python_executable':'runtime/python/python.exe','engine_root':'engines','model_cache_root':'models','asr_model_path':'models/asr/faster-whisper-large-v3','alignment_model_path':'models/alignment/italian-xlsr53'},indent=2),

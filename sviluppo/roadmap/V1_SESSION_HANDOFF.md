@@ -1,6 +1,6 @@
 # Session Handoff — restauro 21 novembre 2026
 
-Letto da soli, questo file + [Stato e roadmap operativa](../../documentazione/STATO_E_ROADMAP_1_0.md). La storia precedente (incluso il handoff del 19/11) resta nel git a partire dal tag `restore-base-20261121`; non copiarla di nuovo qui.
+Letto da soli, questo file + [Stato e roadmap operativa](../../documentazione/STATO.md). La storia precedente (incluso il handoff del 19/11) resta nel git a partire dal tag `restore-base-20261121`; non copiarla di nuovo qui.
 
 ## Dove siamo
 

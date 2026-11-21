@@ -1,31 +1,30 @@
-# NL Video Suite · sperimentale avanzata verso 1.0
+# NL Video Suite · editor locale con IA (in restauro verso 1.0)
 
-Suite video locale in italiano: montaggio multitraccia, video lunghi→shorts, sottotitoli, motion graphics editabili, foto/video/musica, copioni e regia assistita con Ollama/API locali e ComfyUI. Quattro workspace condividono libreria, timeline, mixer, job ed export. Manuale utilizzabile senza IA; nessun modello scaricato automaticamente.
+Suite video in italiano: montaggio multitraccia, video lunghi→shorts, sottotitoli, motion graphics editabili, foto/video/musica, copioni e regia assistita con Ollama/API locali e ComfyUI. Versione interna 0.7.1: **non ancora release 1.0 certificata** — stato e limiti sono in `documentazione/STATO.md`, senza promesse.
 
-**Non è ancora la release1.0 stabile.** Il candidato sperimentale mantiene internamente versione0.7.1; stato e limitazioni sono documentati, senza attribuire vecchie regressioni al nuovo codice.
+Due interfacce, uno stato: la **UI completa classica** (`http://127.0.0.1:8088/`) e la **shell nuova stile Premiere** (`/shell/`) servita dallo stesso binario, stessa autorità e stessi dati.
 
-- [Scarica la prerelease Windows x64](https://github.com/Nicotina4ever/NL-Video-Suite/releases).
-- [Avvio, dipendenze e uso](documentazione/USO_E_INSTALLAZIONE.md).
-- [Stato verificato e cosa manca per1.0](documentazione/STATO_E_ROADMAP_1_0.md).
-- [Architettura e sviluppo](documentazione/ARCHITETTURA_E_SVILUPPO.md).
-- [Specifiche complete1.0](sviluppo/roadmap/V1_MASTER_ROADMAP.md) · [Ripresa dal checkpoint](sviluppo/roadmap/V1_SESSION_HANDOFF.md).
+- [Manuale d'uso](documentazione/MANUALE.md)
+- [Stato e prossimo lavoro](documentazione/STATO.md)
+- [Architettura](documentazione/ARCHITETTURA.md)
+- [Specifiche complete e storia](documentazione/archivio/) · [Handoff sessione](sviluppo/roadmap/V1_SESSION_HANDOFF.md)
+- [Prerelease Windows x64](https://github.com/Nicotina4ever/NL-Video-Suite/releases)
 
 ## Avvio
 
-Estrai il pacchetto **Experimental Core**, configura FFmpeg se non già disponibile con `Configura_PC.cmd`, poi fai doppio clic su `Avvia_NL_Video_Suite.cmd`. Il Core contiene l'EXE avanzato e la GUI; runtime Python, FFmpeg e checkpoint non sono inclusi. Riusa componenti già installati oppure installali esplicitamente secondo la guida. Non è presentato come portable completo con ASR già pronto.
-
-Nell'installazione di sviluppo esistente lo stesso launcher permette Stabile/Anteprima aggiornata con dati separati. Il pacchetto pubblico avvia soltanto la sperimentale isolata: non promuove né sovrascrive una stabile.
+1. `Avvia_NL_Video_Suite.cmd` → Stabile o Anteprima (dati e porte separati, binari solo se certificati nei report).
+2. FFmpeg necessario per media: nel PATH o `app/tools`, oppure `Configura_PC.cmd`. Nessun download automatico di modelli/runtime.
+3. Shell: con server attivo apri `http://127.0.0.1:8099/shell/` (anteprima) o `http://127.0.0.1:8088/shell/` (stabile). Per sviluppare la UI: `sviluppo/tools/Avvia_Shell.ps1` (Vite, proxy sul backend; `npm run check|test:algebra|build`).
 
 ## Percorsi frequenti
 
-- Foto→copione: Montaggio→Scrivi dalle foto. Foto/video/musica→sequenza: Crea montaggio.
-- Un'idea animata, non un singolo template: Montaggio→+Aggiungi→Grafica o animazione→proposta→revisione→livelli nativi→approvazione/export.
-- Clip/copertine: Shorts e Social; trascrivi e continua dove serve, o intervalli manuali.
-- Storyboard, personaggi, reference e audio-first: Storie e Regia AI. Import JSON API e Doctor usano la stessa Generazione.
-- Rimozione completa dei file propri di un progetto: Progetti e materiali→Elimina progetto…→inventario→conferma.
+- Lungo→shorts: Trascrizione (con durata reale e nota copertura) → candidati Shorts → approva → assembla 9:16 (confermato).
+- Parole da rivedere: pannello Trascrizione → correzione manuale, oppure «L'IA propone correzioni» (proposte ancorate alla parola esatta; approvi tu una per una).
+- Tradurre: pannello Trascrizione → Traduzione (lingua, copertura esplicita, editing, «revisionata», SRT).
+- Montaggio in shell: V/N/R/Y/U strumenti, C coltello alla playhead, Space/J/K/L riproduzione, Ispettore per i valori della clip.
+- RAM/VRAM sotto pressione: le richieste restano in coda; pulsante «Libera RAM/VRAM» solo su decisione tua (mai interruzioni di lavori altrui).
+- Eliminare: Progetti e materiali → Elimina progetto… → inventario → conferma. Il nome progetto fa nome cartella: «Rinomina progetto…».
 
-## Sorgenti e licenze
+## Licenze
 
-Rust per il server/editor, interfaccia incorporata, FFmpeg per i media, un bridge Python condiviso dove necessario. Il clone non contiene dati personali, grandi asset di test, cache, modelli o runtime. Compila con `cargo build --release --manifest-path sviluppo/Cargo.toml` dopo aver installato Rust/build tools. Il build iniziale può richiedere le dipendenze Cargo, non checkpoint IA.
-
-Il codice della suite è distribuito con [licenza MIT](LICENSE); componenti terzi, modelli e font conservano condizioni proprie. [Distinta componenti](licenses/THIRD_PARTY.md). La redistribuzione completa dei runtime/FFmpeg/modelli richiede verifiche ulteriori ed è un gate aperto della1.0. Il Core non li ridistribuisce.
+Codice suite MIT ([LICENSE](LICENSE)); distincta componenti in [licenses/THIRD_PARTY.md](licenses/THIRD_PARTY.md) — include le note di attribuzione per il pattern di algebra di montaggio studiato da FilmCraft (MIT/Apache-2.0) e l'inventario dipendenze Rust rigenerato. Marchi ArtCraft/FilmCraft, codice egui e codec di quel progetto non sono usati né distribuiti. La redistribuzione completa dei runtime/FFmpeg/modelli resta gate aperto per la 1.0.
