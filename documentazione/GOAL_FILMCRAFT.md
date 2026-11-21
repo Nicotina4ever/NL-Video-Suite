@@ -41,10 +41,15 @@ Regola: una fase = commit con build + test + prova GUI. Nessuna fase a metà.
 - [x] Commit `6b7577a6`
 - [ ] Sync FilmCraft → mirror NL: spostato in F3, dove le chiamate AI lo richiedono; preserva le sezioni NL non note invece di ricostruirle
 
-### F3 — Text panel
+### F3 - Text panel (IN CORSO)
+- [x] Trascrizioni NL importate e visibili nel Text panel (sequence transcript)
+- [x] `transcript.editWord {item,index,text}` con undo/redo
+- [x] Doppio clic sulla parola nel Text panel: modifica inline, Invio salva, Esc annulla
+- [x] `file.syncNlText` scrive `project.synced.json` preservando longform/shorts/sezioni NL
+- [x] Prova GTA6: `pensato` → `CORRETTO`, 377 parole timeline, 3.545 parole mirror, sezioni identiche
+- [x] Screenshot `documentazione/prove/f3-text/text-panel.png`, commit `0133016c`
 - [ ] ASR selezionabile (Whisper / Qwen / WhisperX)
-- [ ] Correzione inline, Invio/Esc, autosave
-- [ ] Traduzioni
+- [ ] Traduzioni EN/ES
 
 ### F4 — Montaggio AI
 - [ ] Longform/shorts come comandi in Clip/Sequence
