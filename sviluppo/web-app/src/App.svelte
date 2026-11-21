@@ -16,6 +16,7 @@
   import Program from './lib/Program.svelte';
   import Sorgente from './lib/Sorgente.svelte';
   import Inspector from './lib/Inspector.svelte';
+  import Shorts from './lib/Shorts.svelte';
   import type { ProjectFull } from './lib/types';
 
 
@@ -259,6 +260,11 @@
     }
   }
 
+  function onSeekEvent(event: Event) {
+    const ms = (event as CustomEvent<number>).detail;
+    if (Number.isFinite(ms)) playheadMs = Math.max(0, ms);
+  }
+
   $effect(() => {
     void (async () => {
       await refreshHealth();
@@ -267,9 +273,11 @@
     })();
     const healthTimer = setInterval(refreshHealth, 15000);
     window.addEventListener('keydown', onWindowKeydown);
+    window.addEventListener('nl-seek', onSeekEvent);
     return () => {
       clearInterval(healthTimer);
       window.removeEventListener('keydown', onWindowKeydown);
+      window.removeEventListener('nl-seek', onSeekEvent);
     };
   });
 </script>
@@ -432,7 +440,18 @@
           </section>
         </div>
       {:else if layout.workspace === 'social'}
-        <section class="panel"><h2>Shorts e Social</h2><p class="muted">Candidati, copertine e consegne: pannello in arrivo dalla UI attuale.</p></section>
+        <section class="panel full">
+          <h2>Shorts e Social</h2>
+          {#if full}
+            <Shorts
+              project={full}
+              onstatus={(m) => (status = m)}
+              onupdate={(p) => (full = p)}
+            />
+          {:else}
+            <p class="muted">Apri un progetto.</p>
+          {/if}
+        </section>
       {:else}
         <section class="panel"><h2>Storie e Regia AI</h2><p class="muted">Storia, reference e generazione: pannello in arrivo dalla UI attuale.</p></section>
       {/if}
@@ -509,10 +528,8 @@
   .legacy { color: var(--text-dim); font-size: 12px; padding: 6px; text-decoration: none; }
   .legacy:hover { color: var(--accent); }
   .workspace { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 10px; gap: 10px; }
-  .panel {
-    background: var(--bg-panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px;
-    min-height: 0; overflow: auto;
-  }
+  .panel { background: var(--bg-panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; min-height: 0; overflow: auto; }
+  .panel.full { flex: 1; display: flex; flex-direction: column; }
   .panel h2, .panel h3 { margin: 0 0 8px; font-size: 14px; }
   .edit-grid { flex: 1; display: flex; flex-direction: column; min-height: 0; gap: 0; }
   .monitors { flex: 1; display: flex; gap: 8px; }
