@@ -36,8 +36,28 @@ pub struct Memory {
     pub total_bytes: u64,
     pub available_bytes: u64,
 }
+/// Unit-test binary only: OS memory is never probed inside `cargo test`.
+/// Admission is injected so the suite is deterministic on any machine; the
+/// production build compiles this away and probes the real OS. Tests that
+/// need a specific value set `TEST_AVAILABLE_RAM` (0 keeps the default).
+#[cfg(test)]
+pub(crate) static TEST_AVAILABLE_RAM: std::sync::atomic::AtomicU64 =
+    std::sync::atomic::AtomicU64::new(0);
+#[cfg(test)]
+fn test_memory() -> Option<Memory> {
+    let injected = TEST_AVAILABLE_RAM.load(std::sync::atomic::Ordering::Relaxed);
+    let available_bytes = if injected > 0 { injected } else { 64 << 30 };
+    Some(Memory {
+        total_bytes: available_bytes.saturating_add(64 << 30),
+        available_bytes,
+    })
+}
 #[cfg(windows)]
 pub fn memory() -> Option<Memory> {
+    #[cfg(test)]
+    if let Some(injected) = test_memory() {
+        return Some(injected);
+    }
     #[repr(C)]
     struct Status {
         length: u32,
@@ -77,6 +97,10 @@ pub fn memory() -> Option<Memory> {
 }
 #[cfg(not(windows))]
 pub fn memory() -> Option<Memory> {
+    #[cfg(test)]
+    if let Some(injected) = test_memory() {
+        return Some(injected);
+    }
     None
 }
 pub fn admit(available: u64, estimate: u64, policy: &Policy) -> anyhow::Result<()> {
