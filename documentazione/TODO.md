@@ -24,6 +24,12 @@ Shell Premiere-style: `sviluppo/web-app/src/`.
 - [ ] Drag e rilascio dalla Sorgente alla timeline
 
 ## C. UX Premiere
+- [x] Reframe 9:16: rilevamento volto CPU + `preferred_fit` onorato (crop sicuro oppure 16:9 su sfondo sfocato)
+- [x] Maschere social TikTok/Reels/Shorts allineate alla composizione 9:16
+- [x] Controlli sfondo (sfocatura, luminosità, intensità) nell’ispettore clip
+- [ ] Promuovere il layout `human-editor` a unica UI: 4 zone fisse, pannelli a schede, niente strumenti quotidiani dentro `<details>`
+- [ ] Portare nella classica i pezzi migliori della shell (timeline canvas, griglia media, pannello sottotitoli)
+- [ ] Decidere il destino della shell Svelte: laboratorio o ritiro dopo la parità
 - [x] Timeline: timecode, durata totale, zoom slider, «Adatta», snap on/off, chip tracce con visibile/bloccata persistenti
 - [ ] Pannelli dockable / ridimensionabili (oggi solo 2 splitter)
 - [ ] Shortcut completi da `keyboard.md` di FilmCraft (143 comandi, adattati al browser)

@@ -110,7 +110,8 @@ pub async fn javascript() -> impl IntoResponse {
             [
                 include_str!("../web/job_ui.js"),
                 include_str!("../web/creative_ui.js"),
-                include_str!("../web/resource_ui.js")
+                include_str!("../web/resource_ui.js"),
+                include_str!("../web/social_kit.js")
             ]
             .join("\n")
         ),
