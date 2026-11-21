@@ -69,6 +69,7 @@ export const WORKSPACES: Workspace[] = [
   { id: 'edit', label: 'Montaggio', shortcut: 'Alt+2' },
   { id: 'social', label: 'Shorts e Social', shortcut: 'Alt+3' },
   { id: 'story', label: 'Storie e Regia AI', shortcut: 'Alt+4' },
+  { id: 'subtitles', label: 'Sottotitoli', shortcut: 'Alt+6' },
   { id: 'classic', label: 'Classica · tutti i pannelli', shortcut: 'Alt+5' },
 ];
 

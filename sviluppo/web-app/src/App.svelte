@@ -20,6 +20,7 @@
   import Inspector from './lib/Inspector.svelte';
   import Shorts from './lib/Shorts.svelte';
   import Media from './lib/Media.svelte';
+  import Subtitles from './lib/Subtitles.svelte';
 
 
   interface Health {
@@ -184,6 +185,14 @@
     shortcut: 'Alt+4',
     group: 'Workspace',
     run: () => { layout.workspace = 'story'; },
+    enabled: () => true,
+  });
+  commands.register({
+    id: 'workspace.subtitles',
+    label: 'Vai a Sottotitoli',
+    shortcut: 'Alt+6',
+    group: 'Workspace',
+    run: () => { layout.workspace = 'subtitles'; },
     enabled: () => true,
   });
   commands.register({
@@ -500,6 +509,15 @@
               onstatus={(m) => (status = m)}
               onupdate={(p) => (full = p)}
             />
+          {:else}
+            <p class="muted">Apri un progetto.</p>
+          {/if}
+        </section>
+      {:else if layout.workspace === 'subtitles'}
+        <section class="panel full">
+          <h2>Sottotitoli</h2>
+          {#if full}
+            <Subtitles project={full} onstatus={(m) => (status = m)} />
           {:else}
             <p class="muted">Apri un progetto.</p>
           {/if}

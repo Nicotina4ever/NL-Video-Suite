@@ -12,7 +12,7 @@ Shell Premiere-style: `sviluppo/web-app/src/`.
 
 ## B. Shell: pannelli mancanti (port dalla classica, uno per commit)
 - [x] Project browser con miniature, selezione, «+ Timeline» e drag-to-timeline (`Media.svelte`)
-- [ ] Sottotitoli (`subtitle_studio.js`)
+- [x] Sottotitoli (`Subtitles.svelte`: elenco cue, testo, tempi, approvazione, stile, manuale, split/merge, export SRT/VTT/ASS/JSON)
 - [ ] Motion studio (`motion_studio.js`, `motion_paths.js`, `motion_typography.js`, `motion_svg.js`, `motion_groups.js`, `motion_idea.js`, `motion_ranking.js`, `motion_presets.js`, `motion_images.js`, `motion_layer_timeline.js`)
 - [ ] Mixer audio (`audio_mixer.js`, `audio_master_ui.js`)
 - [ ] Regia / narrative (`narrative*.js`, `narrative_audio_first.js`, `narrative_library.js`, `narrative_preflight.js`, `narrative_assistant.js`)
