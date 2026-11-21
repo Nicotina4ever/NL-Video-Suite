@@ -6,6 +6,7 @@ const {spawn,execFileSync}=require('node:child_process');
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const assert=require('node:assert/strict'),http=require('node:http'),net=require('node:net');
 const root=path.resolve(__dirname,'../..'),sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const {projectDir}=require('./project_folder.cjs');
 async function port(){const socket=net.createServer();await new Promise(r=>socket.listen(0,'127.0.0.1',r));const p=socket.address().port;await new Promise(r=>socket.close(r));return p;}
 
 async function main(){
@@ -41,11 +42,11 @@ async function main(){
   for(let i=0;i<200;i++){try{await request('/api/projects');break;}catch{await sleep(50);}}
   const project=await request('/api/projects','POST',{title:'Collaudo percorso guidato',aspect_ratio:'16:9'}),prefix='/api/projects/'+project.id;
   await waitJob(await request(prefix+'/assets','POST',{path:source}));const p=await request(prefix),asset=p.assets[0];
-  const cache=path.join(data,'projects',project.id,'analysis',asset.id);fs.mkdirSync(cache,{recursive:true});
+  const cache=path.join(projectDir(data,project.id),'analysis',asset.id);fs.mkdirSync(cache,{recursive:true});
   const words=Array.from({length:48},(_,i)=>({start:i*.5,end:i*.5+.45,word:i%8===7?'microfono.':'voce'}));
   const transcript={language:'it',duration:25,segments:[{start:0,end:24,text:'Una voce al microfono'}],words};
   const script="import os,sys,json,pathlib;os.environ['CLIPSAI_WHISPER_MODEL']=str(pathlib.Path('models/asr/faster-whisper-large-v3').resolve());sys.path.insert(0,str(pathlib.Path('engines/clipsai').resolve()));import motore;v,w,p=sys.argv[1:];x=json.loads(p);x['_fingerprint']=motore.video_fingerprint(v);x['_signature']=motore._cache_signature('it');pathlib.Path(w,pathlib.Path(v).stem+'_trascrizione.json').write_text(json.dumps(x),encoding='utf-8')";
-  execFileSync(python,['-c',script,path.join(data,'projects',project.id,'assets',asset.file_name),cache,JSON.stringify(transcript)],{cwd:root,windowsHide:true});
+  execFileSync(python,['-c',script,path.join(projectDir(data,project.id),'assets',asset.file_name),cache,JSON.stringify(transcript)],{cwd:root,windowsHide:true});
   browser=await chromium.launch({channel:'msedge',headless:true});const page=await browser.newPage({viewport:{width:1500,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(id=>localStorage.setItem('nl-project',id),project.id);await page.goto(base);await navigate(page,'pipeline');
   await page.waitForFunction(()=>document.querySelector('#flow-asset').options.length===1);

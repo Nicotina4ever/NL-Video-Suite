@@ -132,7 +132,7 @@ pub(crate) fn recover_pending(root: &FsPath) -> anyhow::Result<()> {
     let intent: Intent = store::read_json(&path)?;
     anyhow::ensure!(
         intent.integrity == intent.checksum()
-            && root.file_name().and_then(|s| s.to_str()) == Some(&intent.project.id.to_string()),
+            && store::directory_project_id(root) == Some(intent.project.id),
         "Ripristino pendente non valido, file conservato"
     );
     anyhow::ensure!(

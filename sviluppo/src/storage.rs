@@ -1,5 +1,5 @@
 //! Conservative, suite-scoped maintenance. External model discovery is read-only.
-use crate::{model::JobStatus, ApiError, AppState};
+use crate::{model::JobStatus, store, ApiError, AppState};
 use axum::{extract::State, Json};
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use serde::{Deserialize, Serialize};
@@ -192,7 +192,13 @@ fn category_for(relative: &Path, analysis: bool) -> Option<&'static str> {
     if p.len() == 2 && p[0] == "logs" && p[1].ends_with(".log") {
         return Some("old_logs");
     }
-    if p.len() >= 5 && p[0] == "projects" && Uuid::parse_str(&p[1]).is_ok() {
+    if p.len() >= 5
+        && p[0] == "projects"
+        && (Uuid::parse_str(&p[1]).is_ok()
+            || p[1].rsplit_once("--").is_some_and(|(_, id)| {
+                [8, 12, 16, 32].contains(&id.len()) && id.chars().all(|c| c.is_ascii_hexdigit())
+            }))
+    {
         if p[2] == ".cache" && ["previews", "text-metrics"].contains(&p[3].as_str()) {
             return Some("previews");
         }
@@ -329,7 +335,7 @@ fn build_preview(data: &Path, analysis: bool) -> anyhow::Result<PreviewResponse>
                 {
                     break;
                 }
-                if Uuid::parse_str(&entry.file_name().to_string_lossy()).is_err()
+                if store::directory_project_id(&entry.path()).is_none()
                     || reject_links(&entry.path()).is_err()
                 {
                     continue;

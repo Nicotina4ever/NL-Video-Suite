@@ -3,6 +3,7 @@
 // Edge, Pillow metadata, common timeline and named snapshots. NOT artistic QA.
 const {chromium}=require('playwright'),{spawn,execFileSync}=require('node:child_process');
 const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),net=require('node:net'),assert=require('node:assert/strict'),crypto=require('node:crypto');
+const {projectDir}=require('./project_folder.cjs');
 const root=path.resolve(__dirname,'../..'),sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function until(fn,ok=Boolean,label='wait',ms=150000){let v;const end=Date.now()+ms;while(Date.now()<end){v=await fn();if(ok(v))return v;await sleep(100);}throw Error(label+': '+JSON.stringify(v));}
 (async()=>{
@@ -37,7 +38,7 @@ async function until(fn,ok=Boolean,label='wait',ms=150000){let v;const end=Date.
  const done=async(job,success=true)=>{job=await until(()=>api('/api/jobs/'+job.id),j=>['succeeded','failed','interrupted'].includes(j.status),'native job');if(success)assert.equal(job.status,'succeeded',job.message);return job;};
  try{
   await boot();let p=await api('/api/projects','POST',{title:'Large album structural fixture',aspect_ratio:'16:9'},201),prefix='/api/projects/'+p.id;report.project_id=p.id;report.data=data;await stop();
-  const dir=path.join(data,'projects',p.id),assets=path.join(dir,'assets');
+  const dir=projectDir(data,p.id),assets=path.join(dir,'assets');
   execFileSync(path.join(root,'runtime/python/python.exe'),['-c',"from PIL import Image,ImageDraw; import sys,os\nfor i in range(121):\n im=Image.new('RGB',(320,180),((i*17)%256,(i*37)%256,(i*61)%256)); ImageDraw.Draw(im).text((20,30),'STRUCTURAL FIXTURE '+str(i),fill='white'); im.save(os.path.join(sys.argv[1],str(i)+'.jpg'))",assets],{windowsHide:true});
   p.assets=Array.from({length:121},(_,i)=>({id:crypto.randomUUID(),name:'Synthetic '+i,kind:'image',file_name:i+'.jpg',source_path:'synthetic-fixture-not-personal-original',imported_at:new Date().toISOString(),media:{width:320,height:180,duration_ms:null,frame_rate:null,has_audio:false}}));
   p.montage.album={protagonist:'',confirmed_facts:'No identity, relationships or dates confirmed.',style:'Editable test, not artistic evidence',recording_script:'',photos:Object.fromEntries(p.assets.map((a,i)=>[a.id,{chapter:i<60?'First USER chapter':'Second USER chapter',favorite:i%11===0,mandatory:i===120,excluded:false,note:'User fixture annotation '+i}]))};

@@ -2,6 +2,7 @@
 // Actual HTTP/queue/Python bridge, explicitly synthetic Qwen cache + simulated LLM.
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),net=require('node:net'),http=require('node:http'),assert=require('node:assert/strict'),{spawn,execFileSync}=require('node:child_process');
 const root=path.resolve(__dirname,'../..'),sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const {projectDir}=require('./project_folder.cjs');
 async function until(fn,p=Boolean){for(let i=0;i<600;i++){const v=await fn();if(p(v))return v;await sleep(100);}throw Error('timeout');}
 (async()=>{
  const work=fs.mkdtempSync(path.join(os.tmpdir(),'nl-asr-guided-')),data=path.join(work,'data'),out=path.join(__dirname,'artifacts/asr-guided',new Date().toISOString().replace(/[:.]/g,'-'));fs.mkdirSync(data);fs.mkdirSync(out,{recursive:true});
@@ -16,7 +17,7 @@ async function until(fn,p=Boolean){for(let i=0;i<600;i++){const v=await fn();if(
   const source=path.join(__dirname,'artifacts/v1-authentic-neon-fc6a58d3/data/projects/962b8dbe-3ce5-403a-9a73-b558bf83ce5d/assets/first-six-seconds.mp4');const imported=await api(prefix+'/assets','POST',{path:source},202);assert.equal((await until(()=>api('/api/jobs/'+imported.id),j=>['failed','succeeded'].includes(j.status))).status,'succeeded');let project=await api(prefix);const asset=project.assets[0];
   const model=path.join(work,'test-model.gguf'),aligner=path.join(work,'test-aligner.gguf');fs.writeFileSync(model,'GGUF');fs.writeFileSync(aligner,'GGUF');const cfg={schema_version:1,runner:path.join(root,'app/tools/ffprobe.exe'),model,aligner,threads:4,chunk_seconds:30};await api('/api/v1/asr/providers','PUT',cfg);
   let catalog=await api('/api/v1/asr/catalog');await api('/api/v1/asr/catalog','PUT',{expected_revision:catalog.revision,action:'default',id:'qwen-configured'});
-  const config=path.join(work,'config.json');fs.writeFileSync(config,JSON.stringify(cfg));report.seed=JSON.parse(execFileSync(path.join(root,'runtime/python/python.exe'),['-B',path.join(__dirname,'seed_qwen_fixture.py'),root,path.join(data,'projects',p.id),path.join(data,'projects',p.id,'assets',asset.file_name),config],{cwd:root,encoding:'utf8'}));
+  const config=path.join(work,'config.json');fs.writeFileSync(config,JSON.stringify(cfg));report.seed=JSON.parse(execFileSync(path.join(root,'runtime/python/python.exe'),['-B',path.join(__dirname,'seed_qwen_fixture.py'),root,projectDir(data,p.id),path.join(projectDir(data,p.id),'assets',asset.file_name),config],{cwd:root,encoding:'utf8'}));
   const flow=await api(prefix+'/flows','POST',{asset_id:asset.id,operation:'clips'},202);const done=await until(()=>api('/api/jobs/'+flow.analysis_job.id),j=>['succeeded','failed'].includes(j.status));assert.equal(done.status,'succeeded',done.message);assert(done.result._nl_asr_chain.asr_job_id);assert.equal(done.result._nl_asr_chain.profile_id,'qwen-configured');assert(calls>0);
   project=await api(prefix);assert.equal(project.transcripts.length,1);assert.equal(project.transcript_metadata[project.transcripts[0].id].engine,'qwen3_asr_cpp');assert.equal(project.transcript_metadata[project.transcripts[0].id].fixture_simulated_cache,true);
   const asr=await api('/api/jobs/'+done.result._nl_asr_chain.asr_job_id);assert.equal(asr.result.cache_hit,true);

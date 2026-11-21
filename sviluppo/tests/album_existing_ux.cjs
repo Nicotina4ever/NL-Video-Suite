@@ -2,6 +2,7 @@
 // Read-only UI QA on the retained authentic demo. No inference, export or copy
 // of its media. Edits/biography stay untouched; only filter/details UI changes.
 const {chromium}=require('playwright'),{spawn}=require('node:child_process'),fs=require('node:fs'),path=require('node:path'),net=require('node:net'),assert=require('node:assert/strict'),crypto=require('node:crypto');
+const {projectDir}=require('./project_folder.cjs');
 const root=path.resolve(__dirname,'../..'),sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function until(fn,ok=Boolean){let v;for(let n=0;n<300;n++){v=await fn();if(ok(v))return v;await sleep(100);}throw Error('timeout '+JSON.stringify(v));}
 (async()=>{
@@ -24,6 +25,6 @@ async function until(fn,ok=Boolean){let v;for(let n=0;n<300;n++){v=await fn();if
   const card=page.locator('[data-album-asset]').first();await card.locator('.album-extra').evaluate(e=>e.open=true);assert.equal(await card.locator('[data-album-field="protagonist_confirmed"]').isChecked(),false);await card.scrollIntoViewIfNeeded();await page.screenshot({path:path.join(out,'authentic-inspection.png')});
   await page.locator('#album-order').selectOption('date');assert((await page.locator('#album-photos').textContent()).includes('Data di scatto sconosciuta'));await page.setViewportSize({width:1024,height:640});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2));await page.screenshot({path:path.join(out,'authentic-1024.png')});
   assert.deepEqual(writes,[]);assert.deepEqual(errors,[]);report.checks=['Authentic photographs in compact gallery; details reachable; unknown identity and client role retained','Confirmed-date gallery sorting never invents capture dates','No album/planner inference or export requested, no project editing; 1024px no horizontal overflow'];report.passed=true;
- }catch(e){report.error=e.stack;throw e;}finally{await browser?.close();if(native?.exitCode===null){native.kill();await new Promise(r=>native.once('exit',r));}report.project_bytes_unchanged=fs.readFileSync(projectFile).equals(before);if(!report.project_bytes_unchanged)report.passed=false;fs.writeFileSync(path.join(out,'report.json'),JSON.stringify(report,null,2));}
+ }catch(e){report.error=e.stack;throw e;}finally{await browser?.close();if(native?.exitCode===null){native.kill();await new Promise(r=>native.once('exit',r));}report.project_bytes_unchanged=fs.readFileSync(path.join(projectDir(data,receipt.project_id),'project.json')).equals(before);if(!report.project_bytes_unchanged)report.passed=false;fs.writeFileSync(path.join(out,'report.json'),JSON.stringify(report,null,2));}
  assert(report.passed);console.log('PASS album_existing_ux '+out);
 })().catch(e=>{console.error(e);process.exitCode=1;});

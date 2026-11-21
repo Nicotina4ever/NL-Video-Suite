@@ -1,29 +1,51 @@
-# Session Handoff — 18 novembre 2026
+# Session Handoff - 19 novembre 2026
 
 ## Stato da cui riprendere
 
 Leggi prima questo file e [Stato e roadmap operativa](../../documentazione/STATO_E_ROADMAP_1_0.md). La specifica completa unica è [V1_MASTER_ROADMAP.md](V1_MASTER_ROADMAP.md). Non ricominciare audit o pipeline già realizzati.
 
-Candidato `sviluppo/target/release/nl-video-suite-ideas.exe`, SHA256 `c0c5a609464712c4032fb175509d9ad9f695167ec843420ab556e332b14cbf5c`; 6/6mirati +1GUI aggiuntiva sullo stesso hash e4unit MotionIdea PASS,169filtrati. Versione0.7.1, NON1.0. Non esiste una nuova regressione generale. Prova nuovo LLM simulata, exportMP4 reale. Progetti personali/stabile/originali intatti.
+**Candidato certificato:** `sviluppo/target/release/nl-video-suite-context.exe`
+**SHA256:** `f8856961baa4a952383972e5bb643cbbef2960fa8976ebee0910a22372909b87`
+Versione 0.7.1, NON 1.0. Apri con `sviluppo/tools/Avvia_Anteprima_Creativa.ps1`: il launcher sceglie automaticamente l'EXE più recente con report di verifica e hash corrispondenti.
 
-## Lavoro corrente
+## Verifiche eseguite su questo candidato
 
-Pulizia completata delle11cartelle temporanee workspace-flow: tests46→circa4,00GiB logici, spostamento in da_eliminare. Altre47cartelle obsolete(384MiB) spostate; deduplicata copia Gemini2identica con timestamp preservato(1,368GiB liberabili dopo svuotamento quarantena). Corretto cleanup standalone del test, anche link master su errore; niente nuova regressione, inferenza o renderlungo per la pulizia. Cache e inferenze autentiche indispensabili conservate. Non ricreare Debug o copie massicce.
+- `cargo fmt --check` PASS.
+- `cargo clippy --release --offline --all-targets -- -D warnings` PASS.
+- `cargo test --release --bin nl-video-suite` **179 PASS, 0 FAIL**.
+- Baseline mirata `20261119T004021Z` PASS: `longform_chapters` + `project_delete_browser`, SHA del report uguale all'EXE. Nessuna inferenza reale: LLM simulato, FFmpeg/Edge reali.
+- `longform_chapters` copre digest deterministico, sintesi LLM in cache, pannello Panoramica, cache argomenti v3, capitoli/evidenze, export MP4 36 s.
+- `project_delete_browser` copre avvio, migrazione cartelle leggibili, cancellazione progetto e conservazione dell'originale.
 
-Documentazione consolidata in README + tre guide (uso, stato, architettura) + specifica completa + questo handoff. I vecchi rapporti non certificano nuovo codice; archivio locale privato in `sviluppo/archivio/documentazione_20261118`, non richiesto per compilare. Report privati in tests/artifacts non inclusi nel clone; non rigenerarli per ricostruire lo stato.
+## Lavoro completato
 
-**Pubblicazione sperimentale completata:** sorgenti su https://github.com/Nicotina4ever/NL-Video-Suite, storia remota preservata (primo push55af9bb→ad8fb0c). Prerelease `experimental-2026.11.18` con CoreWindowsx64, checksum e verificaJSON. Ricevuta completa `V1_PUBLICATION.json`: ZIP8.313.084byte, SHA256 `a1936ad4d08c73949e16ad88d705f95e5ddf74073e6c9806ce85019d3943eb04`, download PUBBLICO riletto e verificato. Nessun dato personale/Python/checkpoint caricato.
+1. **Compilazione ripristinata**: import `store` in `storage.rs`; `edit_versions::production::recover_pending` non dipende più dal nome cartella UUID ma da `.project-id`.
+2. **Cartelle riconoscibili**: `<uuid>` → `<Titolo>--<id breve>` con marcatore `.project-id`, ricevuta `data/project-folders-migration.json` e rollback automatico se il marcatore non si scrive. I nuovi progetti nascono già con nome leggibile.
+3. **Duplicati non bloccanti**: vince `updated_at` più recente; la copia viene saltata, mai sovrascritta, e segnalata in `data/project-folder-issues.json` + `data_warnings` in `/api/health`.
+4. **Trascrizione completa e navigabile**: durata sorgente, inizio/fine parlato, intervallo della pagina, pulsanti Inizio/Fine testo e nota esplicita quando il parlato finisce prima del file.
+5. **Contesto dell'intero video**: digest deterministico sempre presente (durata, parlato, copertura, capitoli, parole chiave, apertura/chiusura) + una sintesi LLM opzionale, salvata in `analysis/longform-overview` e con fallback al solo digest se il modello non è disponibile. Cache argomenti aggiornata a `contextual-topics-v3`.
+6. **Test adattati**: 30 file in `sviluppo/tests/` risolvono il progetto tramite `projectDir`/`firstProjectId` (`sviluppo/tests/project_folder.cjs`) invece di assumere `projects/<uuid>`.
 
-CoreQA PASS `core-portable/2026-11-18T20-33-15-380Z`: manifest, nientePython/modelli, servizi offline, FFmpeg esterno scelto, GUI→MP4reale1,2s→stop proprietario→spostamento con spazi→riapertura. Packager2unit/sintassiPS PASS; profili browser esclusi dagli archivi personali. Ultimo aggiornamento ZIP aggiunge guide/avvisi Rust(151pacchetti+standard library), i19file EXE/PS/Python sono byte-identici al pacchetto GUI collaudato: niente rerender/inferenza per i testi. Prime prove fallite per attesa pipe del launcher sincrono e namespace Windows nel test, corrette; non chiamarle difetti dell'app. La GUI export ricostruisce i link da basename, non dichiarare persi i file dopo ricollocazione dal solo output_paths assoluto.
+## Verifica sul progetto reale (dati migrati)
 
-Avvio Core in finestra app Edge già installato, nessun Electron o runtime nuovo. Finestra desktop interattiva/Windows pulito ancora da accettare, contenutoGUI testato Edge headless. Core senza FFmpeg/Python/pesi: Media richiede FFmpeg; per tutte le risorse sul proprio altroPC affiancare runtime/models/modelliAST gia disponibili e conservare l'EXE avanzato del Core. Non confondere packager completo(default app/stabile) con Core sperimentale. Redistribuzione full e promozione1.0 restano bloccate dai gate. Stabile localeSHA61442816 invariata.
+"Mi ficco in GTA" (`sviluppo/anteprima_creativa/data`): file 24:28.77, parlato 0:00.00 → 24:27.01, 3048 parole, 170 segmenti, ultimi 1,75 s senza testo. Nessun ASR rilanciato.
 
-Pulizia finale: tests circa4.001GiB logici rispetto ai46iniziali;11cartelle workspace-flow +47cartelle obsolete +2CoreQA falliti spostati in da_eliminare. DedupGemini1,368GiB con SHA/timestamp conservati; inferenze/raw/proxy/exportlungo e fixture necessarie intatti. In quarantena circa1.568GiB effettivamente liberabili dopo svuotamento MANUALE; non dire gia liberati. Debug assente. Prossima sessione NON rifare pulizia, pubblicazione, CoreQA o inferenze esistenti per ricostruire lo stato.
+Il 19/11/2026 il candidato è stato avviato sui dati reali dell'Anteprima: migrazione eseguita e tracciata in `data/project-folders-migration.json` (`Trailer--82f391db`, `Progetto Compleanno Elita--9dc2860a`, `Mi ficco in GTA--b64f74d2`), nessun duplicato, `data_warnings` vuoto. Verifica UI headless sul progetto reale: `#lf-total` = "3048 parole · sorgente 24:28.77 · parlato 0:00.00 → 24:27.01", nota "gli ultimi 0:01.75 del file non hanno testo", pagina "1–200 di 3048 · 0:00.00 → 1:17.09", pannello Panoramica con digest (copertura 99%, parole chiave, apertura reale) e zero errori JS.
 
-## Dopo la pubblicazione
+## Limiti dichiarati
 
-1. Accettazione UX e prova semantica reale del nuovo assistente grafico con modello già installato quando risorse libere. Non scaricare o fermare altri processi.
-2. Audio-first: reference/master e28shot già pianificati; preflight→un solo shot reale compatibile→revisione→timeline/export. Non generare tutti gli shot.
-3. QA audiovisiva/narrativa/ITEN indipendente, parità residuale e recovery/performance, licenze e portable completo; poi congelamento e regressione finale prima di promozione autorizzata.
+- Nessuna regressione generale nuova; la baseline è mirata. `browser.cjs` resta obsoleto rispetto alla UI corrente (import spostato in `#editor-import`, `#render` non visibile nella vista compatta): è un debito di test preesistente, non un difetto introdotto qui.
+- Migrazione dati reali eseguita solo sul data-dir dell'Anteprima (`sviluppo/anteprima_creativa/data`), reversibile con la ricevuta `project-folders-migration.json`. Gli altri data-dir restano UUID e migreranno al primo avvio del candidato. Progetti, stabile e originali non sono stati toccati.
+- Nessun test GPU, nessuna inferenza ASR/LLM reale, nessun render lungo: Topaz Video era in esecuzione.
+- La promozione 1.0 e la redistribuzione restano bloccate dai gate esistenti. Stabile locale SHA `61442816` invariata.
 
-Gemini2~58min già trascritto6143parole135blocchi, exportlungo+3short e shotmap63candidati/14finestre disponibili localmente. Album8foto reali/demo33,7s e121asset sintetici già collaudati. W3 tecnico chiuso, ascolto umano aperto. Non ripetere tali elaborazioni o le inferenze precedenti.
+## Prove rimandate (da fare quando Topaz Video è terminato)
+
+1. Sintesi LLM reale sul progetto "Mi ficco in GTA" con modello già installato, verificando cache e fallback.
+2. Accettazione GUI completa del candidato con dati reali migrati (apertura, chiusura, riapertura, cancellazione).
+3. Regressione generale `v1_baseline.py` completa, inclusi i test browser da riallineare alla UI corrente.
+4. Solo se richiesto: export lunghi e test audio/video pesanti.
+
+## Dopo questo lavoro
+
+Restano i gate noti: QA audiovisiva/narrativa indipendente, parità residua, recovery/performance, licenze, portable completo, congelamento e regressione finale prima di qualunque promozione autorizzata. Non ripetere pubblicazione, CoreQA o inferenze già esistenti. Deduplicazione Gemini 1,368 GiB e quarantena `da_eliminare` restano da svuotare manualmente; non dire già liberate.

@@ -47,9 +47,12 @@ pub struct DeleteRequest {
     confirmation: String,
 }
 
-fn roots(id: Uuid, jobs: &[Job]) -> Vec<PathBuf> {
+fn roots(data: &Path, id: Uuid, jobs: &[Job]) -> Vec<PathBuf> {
     let mut paths = vec![
-        PathBuf::from("projects").join(id.to_string()),
+        store::project_dir(data, id)
+            .strip_prefix(data)
+            .expect("project inside data")
+            .to_path_buf(),
         PathBuf::from("previews").join(id.to_string()),
     ];
     for job in jobs.iter().filter(|j| j.project_id == Some(id)) {
@@ -80,7 +83,7 @@ fn inventory(
 ) -> anyhow::Result<(Vec<storage::CacheFile>, Vec<PathBuf>)> {
     let mut files = vec![];
     let mut directories = vec![];
-    let mut stack = roots(id, jobs)
+    let mut stack = roots(data, id, jobs)
         .into_iter()
         .map(|p| data.join(p))
         .collect::<Vec<_>>();
@@ -248,9 +251,8 @@ fn execute(data: &Path, p: &Project, plan: &Plan, jobs: &[Job]) -> anyhow::Resul
         &marker,
         &json!({"project_id":p.id,"state":"deleting","at":Utc::now()}),
     )?;
-    let record = PathBuf::from("projects")
-        .join(p.id.to_string())
-        .join("project.json");
+    let project_root = store::project_dir(data, p.id);
+    let record = project_root.strip_prefix(data)?.join("project.json");
     let mut result = Removal {
         complete: false,
         deleted_files: 0,
@@ -271,7 +273,6 @@ fn execute(data: &Path, p: &Project, plan: &Plan, jobs: &[Job]) -> anyhow::Resul
             result.deleted_bytes += f.bytes;
         }
     }
-    let project_root = store::project_dir(data, p.id);
     let mut sorted = plan.directories.clone();
     sorted.sort_by_key(|p| std::cmp::Reverse(p.components().count()));
     for relative in &sorted {

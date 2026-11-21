@@ -4,14 +4,15 @@
 const {chromium}=require('playwright');
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'../..'),base='http://127.0.0.1:8088';
+const {projectDir}=require('./project_folder.cjs');
 const projectId='b3b6d29f-56de-402e-8890-e89944d4a984';
 const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
 async function main(){
- const record=path.join(root,'data/projects',projectId,'project.json');
+ const record=path.join(projectDir(path.join(root,'data'),projectId),'project.json');
  const before=hash(record),project=JSON.parse(fs.readFileSync(record,'utf8'));
  assert(project.timeline.clips.length>0,'Test requires existing user project; never create a timeline silently');
  const video=project.assets.find(a=>a.id===project.timeline.clips[0].asset_id);assert(video?.kind==='video');
- const media=path.join(root,'data/projects',projectId,'assets',video.file_name),sourceHash=hash(media);
+ const media=path.join(projectDir(path.join(root,'data'),projectId),'assets',video.file_name),sourceHash=hash(media);
  const browser=await chromium.launch({channel:'msedge',headless:true});
  try{
   const page=await browser.newPage({viewport:{width:1550,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));

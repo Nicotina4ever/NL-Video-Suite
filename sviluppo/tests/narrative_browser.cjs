@@ -6,6 +6,7 @@ const {spawn,execFileSync}=require('node:child_process');
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const assert=require('node:assert/strict'),http=require('node:http'),net=require('node:net');
 const root=path.resolve(__dirname,'../..'),artifacts=path.join(__dirname,'artifacts');
+const {projectDir}=require('./project_folder.cjs');
 const ffmpeg=path.join(root,'app/tools/ffmpeg.exe'),ffprobe=path.join(root,'app/tools/ffprobe.exe');
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function until(fn,test,label,timeout=25000){const end=Date.now()+timeout;let value;while(Date.now()<end){value=await fn();if(test(value))return value;await delay(100);}throw Error(label+': '+JSON.stringify(value));}
@@ -37,7 +38,7 @@ async function main(){
   await page.locator('#title').fill('Produzione narrativa · prova sintetica');await page.locator('#create-form button').first().click();
   await page.waitForFunction(()=>document.querySelector('#notice').textContent==='Progetto creato.');
   const pid=await page.locator('#projects').inputValue(),prefix=base+'/api/projects/'+pid;
-  assert(!fs.existsSync(path.join(data,'projects',pid,'narrative.json')),'Opening NLE must not create a narrative');
+  assert(!fs.existsSync(path.join(projectDir(data,pid),'narrative.json')),'Opening NLE must not create a narrative');
   const get=async tail=>{const r=await page.request.get(prefix+tail);assert(r.ok());return r.json();};
   for(const file of [source,voice]){
    const r=await page.request.post(prefix+'/assets',{data:{path:file}});assert.equal(r.status(),202);

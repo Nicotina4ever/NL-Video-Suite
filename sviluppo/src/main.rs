@@ -198,6 +198,7 @@ struct Health {
     llm_provider: model::LlmProvider,
     installation_root: PathBuf,
     data_dir: PathBuf,
+    data_warnings: Vec<String>,
 }
 
 #[tokio::main]
@@ -223,6 +224,16 @@ async fn main() -> anyhow::Result<()> {
     })?;
     std::fs::write(data_dir.join("server.pid"), std::process::id().to_string())?;
     let config = store::load_or_create_config(&data_dir)?;
+    match store::migrate_project_folders(&data_dir) {
+        Ok(items) if !items.is_empty() => {
+            tracing::info!(
+                "{} cartelle progetto rinominate in modo leggibile (ricevuta in data/project-folders-migration.json)",
+                items.len()
+            );
+        }
+        Ok(_) => {}
+        Err(error) => tracing::warn!("Migrazione cartelle progetto non completata: {error}"),
+    }
     let projects = store::load_projects(&data_dir)?;
     let mut reconciled = false;
     let jobs = store::load_jobs(&data_dir)?
@@ -432,6 +443,10 @@ async fn main() -> anyhow::Result<()> {
         .route(
             "/api/v1/projects/{id}/longform/rough-cut",
             post(longform_analysis::rough_cut),
+        )
+        .route(
+            "/api/v1/projects/{id}/longform/{asset}/overview",
+            post(longform_analysis::overview),
         )
         .route(
             "/api/v1/projects/{id}/longform/chapters/{format}",
@@ -889,6 +904,7 @@ async fn health(State(state): State<AppState>) -> Json<Health> {
         llm_provider: config.llm_provider,
         installation_root: std::env::current_dir().unwrap_or_default(),
         data_dir: runtime::native_path(&state.data_dir),
+        data_warnings: store::folder_issues(&state.data_dir),
     })
 }
 

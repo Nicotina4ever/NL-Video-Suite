@@ -5,12 +5,13 @@ const {chromium}=require('playwright');
 const {spawn,execFileSync}=require('node:child_process');
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),net=require('node:net'),assert=require('node:assert/strict'),crypto=require('node:crypto');
 const root=path.resolve(__dirname,'../..'),dir=path.join(__dirname,'artifacts/v1-authentic-longform'),sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const {projectDir}=require('./project_folder.cjs');
 async function until(fn,p=Boolean,ms=30000){const end=Date.now()+ms;let v;while(Date.now()<end){v=await fn();if(p(v))return v;await sleep(500);}throw Error('Timeout: '+JSON.stringify(v));}
 async function hash(file){const h=crypto.createHash('sha256');for await(const b of fs.createReadStream(file))h.update(b);return h.digest('hex');}
 async function main(){
  assert(process.argv.includes('--authentic'),'Explicit authentic test required');
  const asr=JSON.parse(fs.readFileSync(path.join(dir,'report.json'))),editing=JSON.parse(fs.readFileSync(path.join(dir,'editing-resume-report.json')));assert(asr.passed&&editing.passed);
- const data=path.join(dir,'data'),file=path.join(data,'projects',asr.project_id,'project.json'),fixture=JSON.parse(fs.readFileSync(file));
+ const data=path.join(dir,'data'),file=path.join(projectDir(data,asr.project_id),'project.json'),fixture=JSON.parse(fs.readFileSync(file));
  // This is a disposable test project. Change its output ratio, never a personal project.
  assert.equal(fixture.id,asr.project_id);assert(file.startsWith(path.join(root,'sviluppo/tests/artifacts/')));
  fixture.aspect_ratio='16:9';fixture.timeline.clips=fixture.timeline.clips.filter(c=>fixture.clip_origins[c.id]?.producer==='longform');

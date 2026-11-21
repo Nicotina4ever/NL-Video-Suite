@@ -2,6 +2,7 @@
 // Existing authentic media and observations reused; simulated provider by
 // default. --real does one opt-in text pass, never vision/ASR/render or approval.
 const {chromium}=require('playwright'),{spawn,execFileSync}=require('node:child_process'),fs=require('node:fs'),path=require('node:path'),http=require('node:http'),net=require('node:net'),assert=require('node:assert/strict');
+const {firstProjectId}=require('./project_folder.cjs');
 const root=path.resolve(__dirname,'../..'),sleep=ms=>new Promise(r=>setTimeout(r,ms)),real=process.argv.includes('--real');
 async function until(fn,ok=Boolean,label='wait',ms=240000){let v;const end=Date.now()+ms;while(Date.now()<end){v=await fn();if(ok(v))return v;await sleep(100);}throw Error(label+': '+JSON.stringify(v));}
 (async()=>{
@@ -12,7 +13,7 @@ async function until(fn,ok=Boolean,label='wait',ms=240000){let v;const end=Date.
  const config=JSON.parse(fs.readFileSync(path.join(data,'settings.json')));config.ollama_url=real?'http://127.0.0.1:11434':'http://127.0.0.1:'+fake.address().port;config.llm_model=real?'qwen3.5:9b':'fixture';config.role_llm_models={...config.role_llm_models,story:config.llm_model};config.resources={profile:'cpu_first',reserve_ram_mib:1536,llm_threads:4};fs.writeFileSync(path.join(data,'settings.json'),JSON.stringify(config));
  const report={passed:false,real_ai_inference:real,reused_authentic_vision:!scale,human_artistic_acceptance:false,new_render:false,checks:[],data};
  if(real){const ps=await(await fetch(config.ollama_url+'/api/ps')).json();assert.equal(ps.models.length,0,'shared Ollama must be idle, never unload');const tags=await(await fetch(config.ollama_url+'/api/tags')).json();assert(tags.models.some(m=>m.name===config.llm_model));report.admission={ollama_ps:ps,model:config.llm_model};}
- const pid=fs.readdirSync(path.join(data,'projects'))[0],prefix='/api/projects/'+pid;report.project_id=pid;report.synthetic_media=scale;
+ const pid=firstProjectId(data),prefix='/api/projects/'+pid;report.project_id=pid;report.synthetic_media=scale;
  const socket=net.createServer();await new Promise(r=>socket.listen(0,'127.0.0.1',r));const port=socket.address().port;await new Promise(r=>socket.close(r));const base='http://127.0.0.1:'+port;
  const exe=path.resolve(process.argv[2]||path.join(root,'sviluppo/target/release/nl-video-suite-planner.exe'));let native,browser,page,logs='';
  const api=async(url,m='GET',b,status=200)=>{const r=await fetch(base+url,{method:m,headers:b?{'Content-Type':'application/json'}:{},body:b?JSON.stringify(b):undefined}),v=await r.json();assert.equal(r.status,status,JSON.stringify(v));return v;};

@@ -105,6 +105,9 @@ pub async fn view(
         .unwrap_or_default();
     let search = q.search.unwrap_or_default().to_lowercase();
     let total = all.len();
+    // Explicit facts for the editor: the media may be longer than the speech.
+    let text_start_ms = all.iter().map(|w| w.start_ms).min().unwrap_or(0);
+    let text_end_ms = all.iter().map(|w| w.end_ms).max().unwrap_or(0);
     let filtered = all
         .into_iter()
         .filter(|w| {
@@ -122,6 +125,10 @@ pub async fn view(
         .skip(q.offset)
         .take(q.limit.unwrap_or(200).clamp(1, 500))
         .collect::<Vec<_>>();
+    // Visible interval of this page, so the UI never has to guess it.
+    let page_start_ms = words.iter().map(|w| w.start_ms).min().unwrap_or(0);
+    let page_end_ms = words.iter().map(|w| w.end_ms).max().unwrap_or(0);
+    let digest = transcript.map(|t| crate::longform_analysis::digest(&p, t));
     let duration = source(&p, asset)?
         .media
         .as_ref()
@@ -134,7 +141,7 @@ pub async fn view(
         vec![]
     };
     Ok(Json(
-        json!({"schema_version":1,"state":p.longform,"project_updated_at":p.updated_at,"asset_id":asset,"transcript_id":transcript.map(|t|t.id),"words":words,"total_words":total,"matched_words":matches,"offset":q.offset,"mapping":mapping,"metadata":meta}),
+        json!({"schema_version":2,"state":p.longform,"project_updated_at":p.updated_at,"asset_id":asset,"transcript_id":transcript.map(|t|t.id),"words":words,"total_words":total,"matched_words":matches,"offset":q.offset,"duration_ms":duration,"text_start_ms":text_start_ms,"text_end_ms":text_end_ms,"page_start_ms":page_start_ms,"page_end_ms":page_end_ms,"digest":digest,"mapping":mapping,"metadata":meta}),
     ))
 }
 #[derive(Deserialize)]
