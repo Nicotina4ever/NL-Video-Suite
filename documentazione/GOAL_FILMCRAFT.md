@@ -8,11 +8,12 @@ Regola: una fase = commit con build + test + prova GUI. Nessuna fase a metà.
 
 ## Board
 
-### F0 — Build & baseline (IN CORSO)
+### F0 - Build & baseline (COMPLETATO)
 - [x] Fork locale `filmcraft-nl` da 0.20.1 (git pulito, 34 MB)
-- [ ] `cargo build --release -p filmcraft` (in background)
-- [ ] Avvio GUI + baseline test
-- [ ] Se manca rete: vendor delle 44 dipendenze git
+- [x] `cargo build --release -p filmcraft` (6m45s)
+- [x] Avvio GUI + screenshot (`documentazione/prove/f0-filmcraft/`)
+- [x] Test engine: 920 passati, 0 falliti, 3 ignorati
+- [x] Test UI: 367 passati, 0 falliti, 1 ignorato
 
 ### F7 — Guardrail (COMPLETATO)
 - [x] Via `guard_ram`/VRAM dall'ammissione LLM
@@ -20,9 +21,15 @@ Regola: una fase = commit con build + test + prova GUI. Nessuna fase a metà.
 - [x] ComfyUI offline = nessun blocco (non può esserci overlap)
 - [x] Test: 64 MiB di RAM riportata non bloccano una richiesta LLM loopback; 193 test verdi
 
-### F1 — Identità NL
-- [ ] Nome/versione/About/icona = NL Video Suite
-- [ ] Crediti FilmCraft (MIT/Apache) + `THIRD_PARTY`
+### F1 — Identità NL (COMPLETATO)
+- [x] Nome/titolo/APP_ID = NL Video Suite; versione 2.0.0; About e menu nativi aggiornati
+- [x] Icona NL (mic + waveform) da `LogoMioBozza.svg`: SVG, PNG, ICO, ICNS, hicolor
+- [x] Palette NL in `theme.rs`: viola #7531fe, magenta #c42b86, ciano #8ff0ff
+- [x] Wordmark NL chiaro/scuro con sidecar e righe ATTRIBUTION
+- [x] Rimossi i marchi ArtCraft dal fork (file, link Discord e crediti di marca)
+- [x] Metadati export (AAF/OMF/MXF/DPX/MCC/STL) e cartella dati = NL Video Suite
+- [x] Build release (79,9 MB), avvio, screenshot About/UI e icona exe
+- [x] Commit `0845ee6a`
 
 ### F2 — Ponte progetto
 - [ ] Adapter `project.json` NL → progetto FilmCraft
@@ -37,6 +44,8 @@ Regola: una fase = commit con build + test + prova GUI. Nessuna fase a metà.
 ### F4 — Montaggio AI
 - [ ] Longform/shorts come comandi in Clip/Sequence
 - [ ] Risultati nel Project panel
+- [ ] Refinement confini su parola + silenzio (da AutoClip, reimplementato)
+- [ ] Hook verificabile + reason nel candidato
 
 ### F5 — Visual AI
 - [ ] Reframe 9:16 + sfondo sfocato in Effect Controls
