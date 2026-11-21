@@ -56,6 +56,8 @@ Regola: una fase = commit con build + test + prova GUI. Nessuna fase a metà.
 - [x] Nuova sequenza per candidato nel bin `AI Shorts` + range marker sulla sequenza sorgente
 - [x] Copia tagli video/audio/caption con link e trim, undo in un solo passo
 - [x] GTA6: 2 short (30,2 s e 29,7 s), 74 parole nel primo, 2 marker, seconda esecuzione no-op
+- [x] Export end-to-end Short 01: 1080×1920, 30 fps, H.264/AAC, 30,25 s, 32,3 MB (`short01.mp4`, ffprobe ok)
+- [x] Salvataggio/riapertura `.fcproj`: 2 marker, bin `AI Shorts` 2, 377 parole transcript
 - [x] Screenshot `documentazione/prove/f4-shorts/`, commit `ca54d717`
 - [ ] Hook verificabile / ranking LLM (AutoClip) in F4b
 - [ ] Longform (capitoli/pulizia) come comando

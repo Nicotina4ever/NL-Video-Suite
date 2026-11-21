@@ -45,6 +45,14 @@ esterni: è il passo locale e deterministico del montaggio AI, dichiarato come t
 Prove: `documentazione/prove/f4-shorts/source-markers.png`,
 `short-sequence.png`, `short-transcript.png`.
 
+## Export e persistenza
+
+- `Short 01` esportato con `file.exportMedia` (H.264, NVENC, 8 Mbps): **1080×1920, 30 fps,
+  H.264/AAC 48 kHz stereo, 30,25 s, 907 frame, 32.264.515 byte**, ffprobe in
+  `short01-ffprobe.json`.
+- Progetto salvato in `gta6-shorts.fcproj` e riaperto: nome, 2 marker sulla sorgente, bin
+  `AI Shorts` con 2 sequenze e 377 parole di transcript sono tutti presenti.
+
 ## Limiti
 
 - Il punteggio è euristico: non è un giudizio creativo né una previsione di visualizzazioni.
