@@ -51,6 +51,10 @@ pub struct Project {
     /// Render-only source for stateful audio across cropped preview windows.
     #[serde(skip)]
     pub render_audio_source: Option<crate::audio_mixer::Source>,
+    /// Reviewed:false translation layers per transcript and language. The
+    /// editorial corrections above feed the source text; raw ASR never moves.
+    #[serde(default)]
+    pub translations: crate::transcript_assistant::TranslationStore,
 }
 
 impl Project {
@@ -80,6 +84,7 @@ impl Project {
             montage: crate::creative_montage::Document::default(),
             audio: crate::audio_mixer::Document::default(),
             render_audio_source: None,
+            translations: BTreeMap::new(),
         }
     }
 }

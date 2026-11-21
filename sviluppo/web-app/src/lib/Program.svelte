@@ -170,6 +170,17 @@
   $effect(() => {
     exposed?.({ toggle, rate });
   });
+
+  const tc = $derived(
+    (() => {
+      const ms = Math.max(0, Math.round(playheadMs));
+      const h = Math.floor(ms / 3_600_000);
+      const m = Math.floor((ms % 3_600_000) / 60_000);
+      const s = Math.floor((ms % 60_000) / 1000);
+      const f = Math.floor((ms % 1000) / (1000 / 30));
+      return [h, m, s, f].map((v) => String(v).padStart(2, '0')).join(':');
+    })(),
+  );
 </script>
 
 <div class="program">
@@ -183,31 +194,30 @@
     ontimeupdate={onTimeUpdate}
     onloadedmetadata={onLoadedMetadata}
   ></video>
+  <div class="controls">
+    <button class="ghost" title="All'inizio (Home)" onclick={() => onplayhead(0)}>⏮</button>
+    <button class="primary" title="Riproduci / pausa (Spazio)" onclick={toggle}>
+      {playing ? '⏸' : '▶'}
+    </button>
+    <button class="ghost" title="Indietro di un frame (J)" onclick={() => onplayhead(Math.max(0, playheadMs - 33))}>
+      ◀︎◀︎
+    </button>
+    <button class="ghost speed" title="Velocità 1× (K)" onclick={() => rate(1)}>1×</button>
+    <button class="ghost speed" title="Velocità 2× (L)" onclick={() => rate(2)}>2×</button>
+    <span class="tc" aria-label="Timecode">{tc}</span>
+    <span class="muted clip-name">{current ? current.clip.label ?? 'clip' : ''}</span>
+  </div>
   <p class="muted note">{note}</p>
 </div>
 
 <style>
-  .program {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    height: 100%;
-    min-height: 0;
-  }
-  video {
-    flex: 1;
-    min-height: 0;
-    width: 100%;
-    background: #000;
-    border-radius: 8px;
-    object-fit: contain;
-  }
-  video.audio-only {
-    flex: 0 0 40%;
-  }
-  .note {
-    flex: none;
-    margin: 0;
-    font-size: 12px;
-  }
+  .program { display: flex; flex-direction: column; gap: 6px; height: 100%; min-height: 0; }
+  video { flex: 1; min-height: 0; width: 100%; background: #000; border-radius: 8px; object-fit: contain; }
+  video.audio-only { flex: 0 0 40%; }
+  .controls { display: flex; gap: 6px; align-items: center; flex: none; }
+  .tc { font: 12px Consolas, monospace; color: var(--accent-3); }
+  .clip-name { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ghost { background: transparent; }
+  .speed { padding: 3px 7px; font-size: 11px; }
+  .note { flex: none; margin: 0; font-size: 12px; }
 </style>

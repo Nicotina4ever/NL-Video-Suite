@@ -119,6 +119,7 @@ def main():
         tasks.append(('montage_sequence_browser', ['node', str(ROOT / 'sviluppo/tests/montage_sequence_browser.cjs'), exe]))
         tasks.append(('project_delete_browser', ['node', str(ROOT / 'sviluppo/tests/project_delete_browser.cjs'), exe]))
         tasks.append(('project_rename_browser', ['node', str(ROOT / 'sviluppo/tests/project_rename_browser.cjs'), exe]))
+        tasks.append(('transcript_assistant', ['node', str(ROOT / 'sviluppo/tests/transcript_assistant.cjs'), exe]))
         tasks.append(('motion_idea_browser', ['node', str(ROOT / 'sviluppo/tests/motion_idea_browser.cjs'), exe]))
         tasks.append(('workspace_prerequisite', ['node', str(ROOT / 'sviluppo/tests/workspace_prerequisite.cjs'), exe]))
         tasks.append(('asr_device_policy', [python, str(ROOT / 'sviluppo/tests/test_asr_device_policy.py')]))

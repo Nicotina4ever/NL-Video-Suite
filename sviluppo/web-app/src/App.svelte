@@ -369,7 +369,7 @@
             </div>
             <div class="transcript-host" class:hidden={timelineTab !== 'transcript'}>
               {#if full && videoAsset}
-                <Transcript projectId={full.id} assetId={videoAsset.id} ontoseek={(ms) => timelineApi?.seek(ms)} />
+                <Transcript projectId={full.id} assetId={videoAsset.id} ontoseek={(ms) => timelineApi?.seek(ms)} onstatus={(m) => (status = m)} />
               {:else}
                 <p class="muted">Apri un progetto con un media video o audio.</p>
               {/if}

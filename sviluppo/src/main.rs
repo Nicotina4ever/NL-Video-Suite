@@ -52,6 +52,7 @@ mod subtitle_history;
 mod subtitle_studio;
 mod thumbnail;
 mod time_map;
+mod transcript_assistant;
 mod transcript_core;
 mod waveform;
 mod web;
@@ -471,6 +472,22 @@ async fn main() -> anyhow::Result<()> {
             post(longform_analysis::overview),
         )
         .route("/api/v1/projects/{id}/search", get(project_index::view))
+        .route(
+            "/api/v1/projects/{id}/transcripts/{transcript}/corrections",
+            post(transcript_assistant::corrections),
+        )
+        .route(
+            "/api/v1/projects/{id}/translate",
+            post(transcript_assistant::translate),
+        )
+        .route(
+            "/api/v1/projects/{id}/transcripts/{transcript}/translations/{language}",
+            get(transcript_assistant::translation_view).put(transcript_assistant::translation_save),
+        )
+        .route(
+            "/api/v1/projects/{id}/transcripts/{transcript}/translations/{language}/srt",
+            get(transcript_assistant::translation_srt),
+        )
         .route(
             "/api/v1/projects/{id}/longform/chapters/{format}",
             get(longform_analysis::export),
