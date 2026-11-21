@@ -34,6 +34,7 @@ mod playback;
 mod previews;
 mod production_package;
 mod production_preset;
+mod project_index;
 mod project_management;
 mod providers;
 mod reframe;
@@ -285,6 +286,23 @@ async fn main() -> anyhow::Result<()> {
         worker: Arc::new(Semaphore::new(1)),
     };
 
+    // Warm the derived search indexes in the background: boot never waits for
+    // this sweep, and searches rebuild on demand if it did not complete.
+    {
+        let data = state.data_dir.clone();
+        let projects = state.projects.clone();
+        tokio::spawn(async move {
+            let list = projects.read().await.values().cloned().collect::<Vec<_>>();
+            for project in list {
+                let data = (*data).clone();
+                let _ = tokio::task::spawn_blocking(move || {
+                    project_index::rebuild_if_stale(&data, &project)
+                })
+                .await;
+            }
+        });
+    }
+
     let app = Router::new()
         .route("/", get(web::index))
         .route("/api/health", get(health))
@@ -452,6 +470,7 @@ async fn main() -> anyhow::Result<()> {
             "/api/v1/projects/{id}/longform/{asset}/overview",
             post(longform_analysis::overview),
         )
+        .route("/api/v1/projects/{id}/search", get(project_index::view))
         .route(
             "/api/v1/projects/{id}/longform/chapters/{format}",
             get(longform_analysis::export),
