@@ -9,6 +9,9 @@
     trim_in_ms: number;
     duration_ms: number;
     label?: string | null;
+    volume?: number;
+    opacity?: number;
+    transform?: Record<string, unknown> | null;
   }
   interface Track {
     id: string;
@@ -93,6 +96,10 @@
         }
       }
       note = playing ? 'Riproduzione in corso.' : 'Pronto: Spazio per riprodurre, L/K per velocità.';
+      const gain = current?.clip.volume ?? 1;
+      if (gain > 1) {
+        note += ` Audio in anteprima al 100%; l’export applica il gain ${gain.toFixed(2)}×.`;
+      }
       if (playing) void video?.play();
     } catch (error) {
       lastMediaKey = '';
@@ -182,6 +189,61 @@
       return [h, m, s, f].map((v) => String(v).padStart(2, '0')).join(':');
     })(),
   );
+
+  // The Inspector writes volume, opacity, fades, fit and (from the classic UI)
+  // scale/rotation/position; the monitor must show exactly what the export will
+  // do, not an unfiltered decode.
+  const look = $derived.by(() => {
+    const clip = current?.clip;
+    if (!clip) return { opacity: 1, volume: 1, fit: 'contain', transform: 'none', faded: false };
+    const t = playheadMs;
+    const rel = t - clip.start_ms;
+    const remain = clip.start_ms + clip.duration_ms - t;
+    const tf = (clip.transform ?? {}) as Record<string, unknown>;
+    const num = (key: string, fallback: number) => {
+      const value = tf[key];
+      return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+    };
+    const fadeIn = Math.max(0, num('fade_in_ms', 0));
+    const fadeOut = Math.max(0, num('fade_out_ms', 0));
+    let fade = 1;
+    let faded = false;
+    if (fadeIn > 0 && rel < fadeIn) {
+      fade = Math.min(fade, Math.max(0, rel / fadeIn));
+      faded = true;
+    }
+    if (fadeOut > 0 && remain < fadeOut) {
+      fade = Math.min(fade, Math.max(0, remain / fadeOut));
+      faded = true;
+    }
+    const opacity = Math.max(0, Math.min(1, (clip.opacity ?? 1) * fade));
+    // HTMLMediaElement caps at 1; the export applies the full 0–4 gain.
+    const volume = Math.max(0, Math.min(1, clip.volume ?? 1));
+    const fit = typeof tf.fit === 'string' && ['contain', 'cover'].includes(tf.fit) ? tf.fit : 'contain';
+    const scale = num('scale', 1);
+    const rotation = num('rotation', 0);
+    const x = num('x', 0);
+    const y = num('y', 0);
+    // The classic transform stores 0.5/0.5 for a centred subject (normalized
+    // focus), so only values outside -1..1 are treated as percentage offsets.
+    const px = Math.abs(x) > 1 ? x : 0;
+    const py = Math.abs(y) > 1 ? y : 0;
+    const parts: string[] = [];
+    if (px || py) parts.push(`translate(${px}%, ${py}%)`);
+    if (scale !== 1) parts.push(`scale(${scale})`);
+    if (rotation) parts.push(`rotate(${rotation}deg)`);
+    return {
+      opacity,
+      volume,
+      fit,
+      transform: parts.length ? parts.join(' ') : 'none',
+      faded,
+    };
+  });
+
+  $effect(() => {
+    if (video) video.volume = look.volume;
+  });
 </script>
 
 <div class="program">
@@ -191,6 +253,7 @@
       bind:this={video}
       playsinline
       preload="metadata"
+      style="opacity: {look.opacity}; object-fit: {look.fit}; transform: {look.transform};"
       class:audio-only={!!current && project.assets.find((a) => a.id === current?.clip.asset_id)?.kind === 'audio'}
       onclick={toggle}
       ontimeupdate={onTimeUpdate}

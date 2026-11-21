@@ -19,6 +19,7 @@ Shell Premiere-style: `sviluppo/web-app/src/`.
 - [ ] Workflow ComfyUI (`workflow_navigation.js`, `flow.js`, `creative_ui.js`, `creative_montage.js`)
 - [ ] Pannello effetti / oggetti grafici IA (`object_media.js`, `card_ui.js`, `clip_animation.js`)
 - [x] Safe margins nel monitor Programma (action-safe 90%, title-safe 80%, toggle + centro)
+- [x] Monitor Programma applica volume, opacità, fade e trasformazione della clip (non solo il decode)
 - [ ] Filmstrip per-tempo (frame via `/frame`) accanto alla waveform
 - [ ] Drag e rilascio dalla Sorgente alla timeline
 
