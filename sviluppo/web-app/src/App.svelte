@@ -39,6 +39,7 @@
     seek: (ms: number) => void;
     razor: () => void;
     setTool: (tool: EditTool) => void;
+    addMarker: () => void;
   } | null>(null);
   let programApi = $state<{ toggle: () => void; rate: (value: number) => void } | null>(null);
   let playheadMs = $state(0);
@@ -262,6 +263,14 @@
     group: 'Playback',
     run: () => timelineApi?.seek(0),
     enabled: () => !!full?.timeline.clips.length,
+  });
+  commands.register({
+    id: 'marker.add',
+    label: 'Aggiungi un marker alla playhead',
+    shortcut: 'M',
+    group: 'Montaggio',
+    run: () => timelineApi?.addMarker(),
+    enabled: () => !!full,
   });
   commands.register({
     id: 'edit.undo',

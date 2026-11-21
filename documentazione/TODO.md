@@ -28,6 +28,7 @@ Shell Premiere-style: `sviluppo/web-app/src/`.
 - [ ] Pannelli dockable / ridimensionabili (oggi solo 2 splitter)
 - [ ] Shortcut completi da `keyboard.md` di FilmCraft (143 comandi, adattati al browser)
 - [ ] Scrub testuale (hot text) nei monitor
+- [x] Marker di timeline: M per aggiungere, chip cliccabili per saltare, rimozione, persistenza per progetto
 - [ ] Marker e guidatore nel Programma
 - [ ] Selezione progetti con miniature
 

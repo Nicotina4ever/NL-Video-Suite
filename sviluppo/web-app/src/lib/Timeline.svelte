@@ -21,7 +21,7 @@
     onupdate: (project: FullProject) => void;
     onplayhead: (ms: number) => void;
     onselect?: (clipId: string | null) => void;
-    exposed?: (api: { seek: (ms: number) => void; razor: () => void; setTool: (tool: EditTool) => void }) => void;
+    exposed?: (api: { seek: (ms: number) => void; razor: () => void; setTool: (tool: EditTool) => void; addMarker: () => void }) => void;
   } = $props();
 
 
@@ -32,6 +32,46 @@
   let selected = $state<string | null>(null);
   let mediaTick = $state(0);
   let snapEnabled = $state(true);
+  interface Marker {
+    ms: number;
+    label: string;
+  }
+  let markers = $state<Marker[]>([]);
+  let markerProject = '';
+
+  function markerKey() {
+    return `nl-shell.markers.${project.id}`;
+  }
+  function loadMarkers() {
+    try {
+      const raw = localStorage.getItem(markerKey());
+      markers = raw ? (JSON.parse(raw) as Marker[]) : [];
+    } catch {
+      markers = [];
+    }
+  }
+  function saveMarkers() {
+    try {
+      localStorage.setItem(markerKey(), JSON.stringify(markers));
+    } catch {
+      /* markers are a session aid: storage may be blocked */
+    }
+  }
+  function addMarker() {
+    const at = Math.max(0, Math.round(playheadMs));
+    if (markers.some((m) => Math.abs(m.ms - at) < 40)) {
+      onstatus('C’è già un marker qui.');
+      return;
+    }
+    markers = [...markers, { ms: at, label: `M${markers.length + 1}` }].sort((a, b) => a.ms - b.ms);
+    saveMarkers();
+    onstatus(`Marker ${tc(at)} aggiunto (${markers.length}).`);
+  }
+  function removeMarker(ms: number) {
+    markers = markers.filter((m) => m.ms !== ms);
+    saveMarkers();
+    onstatus('Marker rimosso.');
+  }
   const posters = new Map<string, HTMLImageElement>();
   const waveforms = new Map<string, { peaks: [number, number][]; bin_ms: number }>();
   const waveformPending = new Set<string>();
@@ -390,6 +430,28 @@
       g.fillText(laneItem.label, 4, y + LANE - 6);
     });
 
+    // markers (session aids, not project data)
+    for (const marker of markers) {
+      const mx = timeToX(marker.ms);
+      if (mx < -20 || mx > box.width + 20) continue;
+      g.strokeStyle = 'rgba(255, 196, 64, 0.75)';
+      g.setLineDash([4, 4]);
+      g.beginPath();
+      g.moveTo(mx + 0.5, RULER);
+      g.lineTo(mx + 0.5, box.height);
+      g.stroke();
+      g.setLineDash([]);
+      g.fillStyle = '#ffc440';
+      g.beginPath();
+      g.moveTo(mx - 5, RULER - 9);
+      g.lineTo(mx + 5, RULER - 9);
+      g.lineTo(mx, RULER - 1);
+      g.closePath();
+      g.fill();
+      g.font = '9px Consolas, monospace';
+      g.fillText(marker.label, mx + 5, RULER - 10);
+    }
+
     // playhead
     const px = timeToX(playheadMs);
     g.strokeStyle = ink('--accent-3');
@@ -411,7 +473,7 @@
   $effect(() => {
     // redraw on every relevant change
     void pps; void scrollX; void playheadMs; void selected; void mediaTick; void project;
-    void drag?.previewMs; void drag?.previewDurationMs; void algebraPreview;
+    void drag?.previewMs; void drag?.previewDurationMs; void algebraPreview; void markers;
     if (project && project.id !== lastProjectId) {
       lastProjectId = project.id;
       posters.clear();
@@ -419,6 +481,7 @@
       peakCache.clear();
       posterPending.clear();
       waveformPending.clear();
+      loadMarkers();
     }
     if (project) {
       for (const asset of project.assets) {
@@ -787,7 +850,7 @@
   }
 
   $effect(() => {
-    exposed?.({ seek, razor, setTool });
+    exposed?.({ seek, razor, setTool, addMarker });
   });
 </script>
 
@@ -837,6 +900,13 @@
         </span>
       {/each}
     </span>
+    <button class="tool" onclick={addMarker} title="Aggiungi un marker alla playhead (M)">＋ Marker</button>
+    {#each markers as marker (marker.ms)}
+      <span class="marker-chip">
+        <button class="chip-name" onclick={() => seek(marker.ms)} title="Vai al marker">{marker.label}</button>
+        <button class="chip-lock" onclick={() => removeMarker(marker.ms)} title="Rimuovi marker">×</button>
+      </span>
+    {/each}
   </div>
   <canvas
     class="timeline-canvas"
@@ -876,6 +946,8 @@
   .track-chip.locked { border-color: var(--warn); }
   .chip-name, .chip-lock { background: transparent; border: 0; padding: 2px 7px; font-size: 11px; cursor: pointer; color: var(--text); }
   .chip-lock { border-left: 1px solid var(--line); }
+  .marker-chip { display: flex; align-items: center; border: 1px solid #ffc44066; border-radius: 6px; overflow: hidden; }
+  .marker-chip .chip-name { color: #ffc440; }
   .reason { font-size: 12px; color: var(--warn); }
   .hint { font-size: 12px; }
   .timeline-canvas { flex: 1; min-height: 0; width: 100%; display: block; border-radius: 8px; }
