@@ -213,10 +213,6 @@ def run(request):
             command = [str(paths['runner']), '-m', str(paths['model']), '--aligner-model', str(paths['aligner']), '-f', str(audio), '--transcribe-align', '-t', str(config['threads']), '--max-tokens', '1024', '-o', str(temporary)]
             if request['language'] != 'auto': command += ['-l', {'it':'Italian', 'en':'English', 'es':'Spanish'}.get(request['language'], request['language'])]
             with (cache / f'chunk-{index:05d}.log').open('wb') as log:
-                available = free_ram()
-                required = models['model']['bytes'] + models['aligner']['bytes'] + (int(request.get('reserve_ram_mib', 2048)) + 512) * 1024**2
-                if available is not None and available < required:
-                    raise RuntimeError(f'RAM insufficiente prima del chunk {index}: {available/1024**3:.2f} GiB liberi, stima con riserva {required/1024**3:.2f} GiB. Cache incrementale conservata; nessun modello/processo esterno chiuso.')
                 child = subprocess.Popen(command, cwd=paths['runner'].parent, env=env, stdout=log, stderr=subprocess.STDOUT)
                 deadline = time.monotonic() + 600
                 while child.poll() is None:

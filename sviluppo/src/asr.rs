@@ -328,7 +328,7 @@ pub async fn transcribe(
             tokio::fs::create_dir_all(&work).await?;
             tokio::fs::write(work.join("qwen_bridge.py"),include_str!("../bridge/qwen_asr_bridge.py")).await?;
             let root=std::env::current_dir()?;
-            let payload=json!({"config":cfg,"source":source,"duration_ms":duration,"work_dir":work,"cache_dir":store::project_dir(&app.data_dir,id).join("analysis/qwen"),"ffmpeg":root.join("app/tools/ffmpeg.exe"),"language":req.language,"reserve_ram_mib":config.resources.reserve_ram_mib});
+            let payload=json!({"config":cfg,"source":source,"duration_ms":duration,"work_dir":work,"cache_dir":store::project_dir(&app.data_dir,id).join("analysis/qwen"),"ffmpeg":root.join("app/tools/ffmpeg.exe"),"language":req.language});
             store::write_json(&work.join("request.json"),&payload)?;
             let log=std::fs::File::create(work.join("asr.log"))?;
             let mut command=tokio::process::Command::new(&config.python_executable);

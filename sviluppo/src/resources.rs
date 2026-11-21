@@ -103,31 +103,6 @@ pub fn memory() -> Option<Memory> {
     }
     None
 }
-pub fn admit(available: u64, estimate: u64, policy: &Policy) -> anyhow::Result<()> {
-    let required = estimate.saturating_add(policy.reserve_ram_mib * 1024 * 1024);
-    anyhow::ensure!(available>=required,"RAM insufficiente per la stima: {:.2}GiB liberi, {:.2}GiB richiesti inclusa riserva. Nessun processo/modello esterno è stato chiuso; libera risorse o scegli un modello più leggero.",available as f64/1073741824.,required as f64/1073741824.);
-    Ok(())
-}
-pub fn guard_ram(estimate: u64, policy: &Policy) -> anyhow::Result<()> {
-    policy.validate()?;
-    if let Some(m) = memory() {
-        admit(m.available_bytes, estimate, policy)?;
-    }
-    Ok(())
-}
-/// CPU keeps the full conservative weight estimate. Auto may place part of the
-/// weights on the GPU; retain one GiB of VRAM headroom and all host overhead.
-/// This is admission guidance, not a prediction of Ollama's actual layer split.
-fn incremental_ram(bytes: Option<u64>, resident: bool, gpu_free: Option<u64>) -> u64 {
-    if resident {
-        return 512 * 1024 * 1024;
-    }
-    bytes.map_or(0, |b| {
-        let offload_budget = gpu_free.unwrap_or(0).saturating_sub(1024 * 1024 * 1024);
-        b.saturating_sub(offload_budget)
-            .saturating_add(1536 * 1024 * 1024)
-    })
-}
 async fn get(client: &reqwest::Client, url: String) -> Option<Value> {
     client
         .get(url)
@@ -246,9 +221,9 @@ pub async fn guard_llm(
     cfg: &AppConfig,
     model: &str,
 ) -> anyhow::Result<()> {
-    // The owner's rule of 21/11: occupied resources QUEUE the work instead of
-    // refusing it. Wait (with an honest log line and a generous deadline) and
-    // only fail after a day, which means something is permanently wrong.
+    // The owner's rule of 21/11: only process overlap serializes. The LLM waits
+    // for ComfyUI's external queue to empty when it would use the GPU; RAM/VRAM
+    // never gate a request. After a day something is permanently wrong.
     const DEADLINE: std::time::Duration = std::time::Duration::from_secs(24 * 60 * 60);
     const POLL: std::time::Duration = std::time::Duration::from_secs(15);
     let started = std::time::Instant::now();
@@ -258,13 +233,13 @@ pub async fn guard_llm(
             Err(error) => {
                 if started.elapsed() >= DEADLINE {
                     return Err(anyhow::anyhow!(
-                        "Risorsa non disponibile dopo 24 ore di attesa: {error}"
+                        "Coda ComfyUI non libera dopo 24 ore di attesa: {error}"
                     ));
                 }
                 tracing::info!(
                     %error,
                     wait_seconds = POLL.as_secs(),
-                    "LLM in attesa di risorse libere: la richiesta resta in coda"
+                    "LLM in attesa della coda ComfyUI: un solo job pesante alla volta"
                 );
                 tokio::time::sleep(POLL).await;
             }
@@ -274,14 +249,14 @@ pub async fn guard_llm(
 async fn guard_llm_once(
     client: &reqwest::Client,
     cfg: &AppConfig,
-    model: &str,
+    _model: &str,
 ) -> anyhow::Result<()> {
     if cfg.llm_provider != LlmProvider::Ollama {
         return Ok(());
     }
-    // Declared test mode only: browser tests simulate the provider over a
-    // loopback socket, so physical RAM says nothing about that "load".
-    // Production binaries never receive this variable and keep the guard.
+    // Owner's rule (21/11): only process overlap serializes. RAM and VRAM are
+    // reported by the status panel and can be released manually; they never
+    // refuse or delay a request.
     if std::env::var("NL_SUITE_LLM_ADMISSION").is_ok_and(|v| v == "off") {
         return Ok(());
     }
@@ -292,39 +267,12 @@ async fn guard_llm_once(
     ) {
         return Ok(());
     }
-    let base = cfg.ollama_url.trim_end_matches('/');
-    let (tags, ps) = tokio::join!(
-        get(client, format!("{base}/api/tags")),
-        get(client, format!("{base}/api/ps"))
-    );
-    let resident = ps
-        .as_ref()
-        .and_then(|v| v["models"].as_array())
-        .is_some_and(|m| m.iter().any(|m| m["name"].as_str() == Some(model)));
-    let bytes = tags
-        .as_ref()
-        .and_then(|v| v["models"].as_array())
-        .and_then(|m| m.iter().find(|m| m["name"].as_str() == Some(model)))
-        .and_then(|m| m["size"].as_u64());
     let gpu_requested = cfg.resources.profile == "gpu_preferred"
         || (cfg.resources.profile != "cpu_first" && cfg.ollama_execution == OllamaExecution::Auto);
-    let gpu_free = if gpu_requested {
+    if gpu_requested {
+        // One heavy GPU consumer at a time: wait for ComfyUI's external queue.
         check_comfy_queue(client, &cfg.comfy_url).await?;
-        let probe = gpu().await;
-        let free = probe["csv"]
-            .as_str()
-            .and_then(|v| v.lines().next())
-            .and_then(|s| s.rsplit(',').next())
-            .and_then(|s| s.trim().parse::<u64>().ok())
-            .map(|m| m * 1024 * 1024);
-        anyhow::ensure!(free.is_some_and(|f|f>=1024*1024*1024),"VRAM libera insufficiente/non verificabile per Auto GPU/CPU. Nessun modello condiviso è stato scaricato dalla memoria; usa CPU-first o attendi.");
-        free
-    } else {
-        None
-    };
-    guard_ram(incremental_ram(bytes, resident, gpu_free), &cfg.resources).map_err(|e| {
-        anyhow::anyhow!("{e} Modalità: {}. La stima riguarda un modello e una richiesta, non l'intero album. {}", if gpu_requested {"Auto GPU/CPU"} else {"CPU, num_gpu=0"}, if gpu_requested {"La ripartizione effettiva e l'eventuale offload sono decisi da Ollama; non sono garantiti dalla stima."} else {"Per consentire l'offload scegli Auto GPU/CPU nell'album o nelle impostazioni del provider; CPU-first lo disabilita."})
-    })?;
+    }
     Ok(())
 }
 #[derive(Deserialize)]
@@ -450,34 +398,26 @@ pub async fn release(
 mod tests {
     use super::*;
     #[test]
-    fn admission_keeps_reserved_ram_and_never_assumes_negative_estimates() {
-        let p = Policy::default();
-        assert!(admit(8 << 30, 4 << 30, &p).is_ok());
-        assert!(admit(5 << 30, 4 << 30, &p).is_err());
-        let mut p = p;
+    fn policy_still_validates_but_memory_never_gates_admission() {
+        let mut p = Policy::default();
+        assert!(p.validate().is_ok());
         p.llm_threads = 100;
         assert!(p.validate().is_err());
     }
-    #[test]
-    fn offload_estimate_counts_weights_once_and_keeps_host_overhead() {
-        let gib = 1024 * 1024 * 1024;
-        assert_eq!(
-            incremental_ram(Some(8 * gib), false, None),
-            9 * gib + gib / 2
-        );
-        assert_eq!(
-            incremental_ram(Some(8 * gib), false, Some(6 * gib)),
-            4 * gib + gib / 2
-        );
-        assert_eq!(
-            incremental_ram(Some(8 * gib), false, Some(16 * gib)),
-            gib + gib / 2
-        );
-        assert_eq!(incremental_ram(Some(8 * gib), true, None), gib / 2);
-        assert_eq!(
-            incremental_ram(Some(8 * gib), false, Some(gib / 2)),
-            9 * gib + gib / 2
-        );
+    #[tokio::test]
+    async fn low_reported_ram_never_blocks_the_llm() {
+        // Regression guard for the owner's rule: only process overlap gates
+        // work. A tiny reported RAM must not stop a loopback LLM request; the
+        // offline ComfyUI probe is allowed to pass because it cannot overlap.
+        TEST_AVAILABLE_RAM.store(64 * 1024 * 1024, std::sync::atomic::Ordering::Relaxed);
+        let mut cfg = AppConfig::default();
+        cfg.llm_provider = LlmProvider::Ollama;
+        cfg.ollama_url = "http://127.0.0.1:11434".into();
+        cfg.comfy_url = "http://127.0.0.1:9".into();
+        cfg.ollama_execution = OllamaExecution::Auto;
+        let result = guard_llm_once(&reqwest::Client::new(), &cfg, "model").await;
+        TEST_AVAILABLE_RAM.store(0, std::sync::atomic::Ordering::Relaxed);
+        assert!(result.is_ok(), "{result:?}");
     }
     #[tokio::test]
     async fn local_comfy_offline_allows_ollama_but_bad_responses_do_not() {
