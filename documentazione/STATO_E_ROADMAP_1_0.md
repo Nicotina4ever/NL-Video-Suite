@@ -2,7 +2,7 @@
 
 > **21 novembre 2026 — restauro in corso.** Fasi chiuse: consolidamento del lavoro 19/11, rinomina progetto con cartella leggibile che segue il titolo, trasparenza durate/trascrizione (verificata sul reale 28 min), indice SQLite FTS derivato per progetto, shell «Premiere-style» (Vite + Svelte) in `sviluppo/web-app`. Punto di ripresa: [Session Handoff](../sviluppo/roadmap/V1_SESSION_HANDOFF.md). Le righe sotto restano la base finché il handoff non le sostituisce esplicitamente.
 
-Aggiornato: **18 novembre 2026**. Canale di pubblicazione: **sperimentale avanzata**, non 1.0 stabile. La versione interna del candidato è ancora 0.7.1. L'eseguibile stabile locale non è stato sostituito.
+Aggiornato: **18 novembre 2026** (testata), corretto **21 novembre 2026**: lo stabile locale È stato sostituito dal binario certificato `ade48793…` con backup e ricevuta (`app/ultima-promozione.json`, `app/stabile-backup/`). Canale di pubblicazione: **sperimentale avanzata**, non 1.0 certificata. La versione interna dei binari è ancora 0.7.1.
 
 ## Documentazione da usare
 
