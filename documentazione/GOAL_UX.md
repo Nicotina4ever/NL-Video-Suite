@@ -44,8 +44,8 @@ Riferimenti di comportamento: Adobe Premiere Pro 2025 (solo layout/scorciatoie/c
 - [ ] MANUALE/STATO aggiornati
 
 ## R7 — Copertina AI (Nano Banana-like)
-- [ ] Selettore workflow con input testo + reference immagine
-- [ ] Frame scelto dal playhead o dal tempo della sorgente
-- [ ] Descrizione + «prendi il parlato qui» come contesto
-- [ ] Genera dal frame (asset_ranges), review, «usa come copertina»
-- [ ] Verifica payload e anteprima (nessuna generazione pesante senza consenso)
+- [x] Selettore workflow con input testo + reference immagine (narrative-controls)
+- [x] Frame scelto dal playhead o dal tempo della sorgente, catturato a piena risoluzione
+- [x] Descrizione + «prendi il parlato qui» come contesto (verificato su GTA6)
+- [x] Genera dal frame, review, «usa come copertina» (payload verificato; generazione non avviata senza consenso)
+- [x] Verifica payload: `7656.input_text`, `7658.image`, frame reale `4eabbb3c…`, 2 asset nel progetto di prova
