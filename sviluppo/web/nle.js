@@ -284,7 +284,10 @@ window.NLE=(()=>{
   layout.left=Math.max(170,Math.min(maxSide,layout.left));layout.right=Math.max(170,Math.min(maxSide,layout.right));
   const available=Math.max(390,innerHeight-studio.getBoundingClientRect().top-10),toolbarHeight=toolbar.getBoundingClientRect().height;
   studio.style.setProperty('--studio-available',available+'px');
-  const height=Math.max(160,Math.min(available-toolbarHeight-(innerHeight<720?200:270),layout.height));
+  // Short windows still deserve a usable monitor: keep a 320 px floor and let
+  // the page scroll instead of crushing the preview to 160 px.
+  const room=Math.max(320,available-toolbarHeight-(innerHeight<720?200:270));
+  const height=Math.max(240,Math.min(room,layout.height));
   studio.style.setProperty('--workspace-height',height+'px');
   grid.style.setProperty('--workspace-left',layout.left+'px');grid.style.setProperty('--workspace-right',layout.right+'px');grid.style.setProperty('--workspace-height',height+'px');
   for(const field of Object.keys(handles))handles[field].setAttribute('aria-valuenow',Math.round(field==='height'?height:layout[field]));

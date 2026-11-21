@@ -10,8 +10,8 @@ Riferimenti di comportamento: Adobe Premiere Pro 2025 (solo layout/scorciatoie/c
 - [x] Backend già capace: reframe volti, sfondo sfocato, mixer a bus, sottotitoli, FTS
 
 ## R1 — Layout e anteprima solida
-- [x] Anteprima nitida: canvas fino a 1280 px lato lungo, ridisegno al resize
-- [ ] Splitter: verifica min/max, persistenza, doppio clic = reset su finestra reale
+- [x] Anteprima nitida: canvas fino a 1280 px lato lungo (9:16 a 608×1080), ridisegno al resize
+- [x] Splitter: persistenza, doppio clic/Home = reset; pavimento 320 px per il monitor, la pagina scorre su finestre basse
 - [x] Mixer sempre raggiungibile (primo pulsante della toolbar + Shift+6)
 
 ## R2 — Mixer con console vera
@@ -34,9 +34,9 @@ Riferimenti di comportamento: Adobe Premiere Pro 2025 (solo layout/scorciatoie/c
 - [x] Backend: video con audio ammesso sulla traccia audio (video muto rifiutato) + test
 
 ## R5 — Comandi facili
-- [ ] Palette comandi (Ctrl+K) con tutte le azioni
+- [x] Palette comandi (Ctrl+Shift+P) con tutte le azioni del pannello attivo, barra e navigazione
 - [x] Scorciatoie: V, C, S, Spazio, J/K/L, M, Ctrl+Z/Y (shell), Ctrl+L (scollega), Shift+6 (mixer)
-- [ ] Tooltip con la scorciatoia su ogni pulsante
+- [ ] Tooltip con la scorciatoia su ogni pulsante (la palette mostra i title esistenti)
 
 ## R6 — Verifica e consegna
 - [x] Test Rust 194/194 + sintassi JS dei moduli toccati
