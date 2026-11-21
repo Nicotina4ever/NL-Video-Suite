@@ -33,6 +33,9 @@ __pycache__/
 /sviluppo/tests/fixtures/*
 !/sviluppo/tests/fixtures/native-color.ass
 /.agent-projects/
+/.vscode/
+/reference_software/
+/Pubblicità AI EP2/
 /sviluppo/anteprima_creativa/
 /sviluppo/archivio/
 /sviluppo/prove-utente/
