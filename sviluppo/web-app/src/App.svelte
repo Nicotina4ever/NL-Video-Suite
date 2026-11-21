@@ -14,20 +14,10 @@
   import Timeline from './lib/Timeline.svelte';
   import Transcript from './lib/Transcript.svelte';
   import Program from './lib/Program.svelte';
+  import Sorgente from './lib/Sorgente.svelte';
+  import Inspector from './lib/Inspector.svelte';
+  import type { ProjectFull } from './lib/types';
 
-  interface FullProject {
-    id: string;
-    title: string;
-    updated_at: string;
-    timeline: {
-      tracks: { id: string; name: string; kind: string; visible: boolean; locked: boolean }[];
-      clips: {
-        id: string; asset_id: string; track_id: string; start_ms: number;
-        trim_in_ms: number; duration_ms: number; label?: string | null;
-      }[];
-    };
-    assets: { id: string; name: string; kind: string }[];
-  }
 
   interface Health {
     version: string;
@@ -40,11 +30,17 @@
   let health = $state<Health | null>(null);
   let projects = $state<ProjectSummary[]>([]);
   let project = $state<ProjectSummary | null>(null);
-  let full = $state<FullProject | null>(null);
+  let full = $state<ProjectFull | null>(null);
   let timelineApi = $state<{ seek: (ms: number) => void; razor: () => void } | null>(null);
   let programApi = $state<{ toggle: () => void; rate: (value: number) => void } | null>(null);
   let playheadMs = $state(0);
-  let timelineTab = $state<'cut' | 'transcript'>('cut');
+  let timelineTab = $state<'cut' | 'transcript' | 'inspector'>('cut');
+  let selectedClipId = $state<string | null>(null);
+
+  async function reloadFull() {
+    if (!project) return;
+    full = await get<ProjectFull>(`/api/projects/${project.id}`);
+  }
   const videoAsset = $derived(full?.assets.find((a) => a.kind === 'video') ?? full?.assets[0] ?? null);
   let layout = $state(loadLayout());
   let status = $state('Pronto.');
@@ -78,7 +74,7 @@
     full = null;
     if (project) {
       try {
-        full = await get<FullProject>(`/api/projects/${project.id}`);
+        full = await get<ProjectFull>(`/api/projects/${project.id}`);
         status = `Progetto aperto: ${project.title} · ${full.timeline.clips.length} clip.`;
       } catch (error) {
         status = (error as Error).message;
@@ -345,7 +341,21 @@
       {:else if layout.workspace === 'edit'}
         <div class="edit-grid" style="--inspector:{100 - layout.monitorSplit * 100 * (1 - layout.inspectorWidth)}%;--timeline:{layout.timelineHeight * 100}%">
           <section class="panel monitors">
-            <div class="monitor"><h3>Sorgente</h3><p class="muted">Il monitor sorgente usa gli stessi proxy H.264 del motore attuale.</p></div>
+            <div class="monitor">
+              <h3>Sorgente</h3>
+              {#if full}
+                <Sorgente
+                  project={full}
+                  onstatus={(m) => (status = m)}
+                  onadded={async () => {
+                    await reloadFull();
+                    timelineTab = 'cut';
+                  }}
+                />
+              {:else}
+                <p class="muted">Apri un progetto per vedere i suoi media.</p>
+              {/if}
+            </div>
             <Splitter
               axis="x"
               fraction={layout.monitorSplit}
@@ -374,6 +384,9 @@
               <button class:active={timelineTab === 'transcript'} onclick={() => (timelineTab = 'transcript')}>
                 Trascrizione
               </button>
+              <button class:active={timelineTab === 'inspector'} onclick={() => (timelineTab = 'inspector')}>
+                Ispettore{selectedClipId ? ' · clip' : ''}
+              </button>
               <div class="spacer"></div>
               <span class="muted ticks">{#if full}{full.timeline.clips.length} clip · {videoAsset ? 'parlato indicizzato' : 'nessun media audio'}{/if}</span>
             </div>
@@ -383,6 +396,7 @@
                   project={full}
                   {playheadMs}
                   onplayhead={(ms) => (playheadMs = ms)}
+                  onselect={(id) => (selectedClipId = id)}
                   exposed={(api) => (timelineApi = api)}
                   onstatus={(m) => (status = m)}
                   onupdate={(p) => {
@@ -399,6 +413,20 @@
                 <Transcript projectId={full.id} assetId={videoAsset.id} ontoseek={(ms) => timelineApi?.seek(ms)} onstatus={(m) => (status = m)} />
               {:else}
                 <p class="muted">Apri un progetto con un media video o audio.</p>
+              {/if}
+            </div>
+            <div class="transcript-host" class:hidden={timelineTab !== 'inspector'}>
+              {#if full}
+                <Inspector
+                  project={full}
+                  selectedId={selectedClipId}
+                  {playheadMs}
+                  onstatus={(m) => (status = m)}
+                  onupdate={(p) => (full = p)}
+                  onrazor={() => timelineApi?.razor()}
+                />
+              {:else}
+                <p class="muted">Nessun progetto aperto.</p>
               {/if}
             </div>
           </section>

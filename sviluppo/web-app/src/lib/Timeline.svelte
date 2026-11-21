@@ -1,16 +1,8 @@
 <script lang="ts">
   import { get, put } from './api';
+  import type { AssetInfo, Clip, ProjectFull } from './types';
 
-  interface Track { id: string; name: string; kind: string; visible: boolean; locked: boolean }
-  interface Clip {
-    id: string; asset_id: string; track_id: string; start_ms: number;
-    trim_in_ms: number; duration_ms: number; label?: string | null;
-  }
-  interface FullProject {
-    id: string; title: string; updated_at: string;
-    timeline: { tracks: Track[]; clips: Clip[] };
-    assets: AssetInfo[];
-  }
+  type FullProject = ProjectFull;
 
   let {
     project,
@@ -18,6 +10,7 @@
     onstatus,
     onupdate,
     onplayhead,
+    onselect,
     exposed,
   }: {
     project: FullProject;
@@ -25,15 +18,11 @@
     onstatus: (message: string) => void;
     onupdate: (project: FullProject) => void;
     onplayhead: (ms: number) => void;
+    onselect?: (clipId: string | null) => void;
     exposed?: (api: { seek: (ms: number) => void; razor: () => void }) => void;
   } = $props();
 
-  interface AssetInfo {
-    id: string;
-    name: string;
-    kind: string;
-    media?: { has_audio?: boolean } | null;
-  }
+
 
   let canvas = $state<HTMLCanvasElement | null>(null);
   let pps = $state(60); // pixels per second
@@ -422,10 +411,12 @@
       const ms = snapMs(xToTime(event.clientX - rect.left)).value;
       onplayhead(Math.max(0, ms));
       selected = null;
+      onselect?.(null);
       return;
     }
     const { clip, edge } = found;
     selected = clip.id;
+    onselect?.(clip.id);
     const track = project.timeline.tracks.find((t) => t.id === clip.track_id);
     if (track?.locked) {
       onstatus(`Traccia «${track.name}» bloccata: sbloccala dal pannello classico per modificarla.`);
