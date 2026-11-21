@@ -51,11 +51,14 @@ Regola: una fase = commit con build + test + prova GUI. Nessuna fase a metà.
 - [ ] ASR selezionabile (Whisper / Qwen / WhisperX)
 - [ ] Traduzioni EN/ES
 
-### F4 — Montaggio AI
-- [ ] Longform/shorts come comandi in Clip/Sequence
-- [ ] Risultati nel Project panel
-- [ ] Refinement confini su parola + silenzio (da AutoClip, reimplementato)
-- [ ] Hook verificabile + reason nel candidato
+### F4 — Montaggio AI (IN CORSO)
+- [x] `sequence.findShorts`: candidati da trascrizione, punteggio locale, confini su parola/silenzio
+- [x] Nuova sequenza per candidato nel bin `AI Shorts` + range marker sulla sequenza sorgente
+- [x] Copia tagli video/audio/caption con link e trim, undo in un solo passo
+- [x] GTA6: 2 short (30,2 s e 29,7 s), 74 parole nel primo, 2 marker, seconda esecuzione no-op
+- [x] Screenshot `documentazione/prove/f4-shorts/`, commit `ca54d717`
+- [ ] Hook verificabile / ranking LLM (AutoClip) in F4b
+- [ ] Longform (capitoli/pulizia) come comando
 
 ### F5 — Visual AI
 - [ ] Reframe 9:16 + sfondo sfocato in Effect Controls
