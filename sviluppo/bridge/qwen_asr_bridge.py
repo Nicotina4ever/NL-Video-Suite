@@ -62,8 +62,13 @@ def identity(path, cache):
 
 
 def chunk_plan(duration, silences, seconds=30):
-    """Core ownership is disjoint; contexts overlap for words at chunk joins."""
+    """Core ownership is disjoint; contexts overlap for words at chunk joins.
+
+    Returns (chunks, skipped): a core entirely under the silence threshold is
+    recorded as a skipped span, never silently dropped.
+    """
     chunks = []
+    skipped = []
     cursor = 0
     while cursor < duration:
         end = min(cursor + seconds * 1000, duration)
@@ -74,8 +79,19 @@ def chunk_plan(duration, silences, seconds=30):
         # Skip an entirely silent core. Never deduplicate repeated spoken words.
         if not any(a <= cursor and b >= end for a, b in silences):
             chunks.append({'core_start': cursor, 'core_end': end, 'start': max(0, cursor - 750), 'end': min(duration, end + 750)})
+        else:
+            skipped.append([cursor, end])
         cursor = end
-    return chunks
+    return chunks, skipped
+
+
+def skip_facts(skipped):
+    """Bounded, honest report of spans the plan skipped as silent."""
+    return {
+        'skipped_silent_spans': skipped[:200],
+        'skipped_silent_span_count': len(skipped),
+        'skipped_silent_seconds': round(sum(b - a for a, b in skipped) / 1000, 2),
+    }
 
 
 def merge_words(chunks):
@@ -108,7 +124,7 @@ def alignment_diagnostics(cache, duration, seconds):
     if saved.is_file(): return json.loads(saved.read_text(encoding='utf-8'))
     pauses = cache / 'silences.json'
     if not pauses.is_file(): return {'available': False, 'reason': 'missing_chunk_plan'}
-    chunks = chunk_plan(duration, json.loads(pauses.read_text()), seconds)
+    chunks, _ = chunk_plan(duration, json.loads(pauses.read_text()), seconds)
     unplaced = []; texts = []
     for index, chunk in enumerate(chunks):
         output = cache / f'chunk-{index:05d}.json'
@@ -159,6 +175,13 @@ def run(request):
     if ready.is_file():
         result = json.loads(ready.read_text(encoding='utf-8')); result['cache_hit'] = True
         result['metadata']['alignment_diagnostics'] = alignment_diagnostics(cache, request['duration_ms'], config['chunk_seconds'])
+        pauses = cache / 'silences.json'
+        if 'skipped_silent_spans' not in result['metadata'] and pauses.is_file():
+            # Silent-skip facts for caches written before the report existed:
+            # recomputed from cached silence analysis, no new inference.
+            _, skipped = chunk_plan(request['duration_ms'], json.loads(pauses.read_text()), config['chunk_seconds'])
+            result['metadata'].update(skip_facts(skipped))
+            result['metadata']['skipped_reported_from_cached_silences'] = True
         report('Trascrizione e allineamento già presenti in cache', completed_chunks=0, total_chunks=0)
         return result
     ffmpeg = request['ffmpeg']
@@ -177,7 +200,7 @@ def run(request):
             elif start is not None: silences.append([start, at]); start = None
         if start is not None: silences.append([start, duration])
         write_json(silence_file, silences)
-    chunks = chunk_plan(duration, silences, config['chunk_seconds'])
+    chunks, skipped = chunk_plan(duration, silences, config['chunk_seconds'])
     outputs = []; started = time.monotonic(); ran = 0; peak_rss = None; min_free_ram = free_ram()
     env = {**os.environ, 'HF_HUB_OFFLINE': '1', 'TRANSFORMERS_OFFLINE': '1'}
     for index, chunk in enumerate(chunks):
@@ -217,6 +240,7 @@ def run(request):
         group = words[index:index+18]
         segments.append({'text': ' '.join(w['text'] for w in group), 'start_ms': group[0]['start_ms'], 'end_ms': max(w['end_ms'] for w in group)})
     result = {'language': request['language'], 'segments': segments, 'words': words, 'metadata': {'engine': 'qwen3_asr_cpp', 'adapter_version': VERSION, 'alignment_completed': True, 'models': models, 'source_sha256': source_identity['sha256'], 'parameters': parameters, 'elapsed_seconds': round(time.monotonic()-started, 3), 'chunks': len(chunks), 'inference_chunks': ran, 'peak_runner_rss_bytes': peak_rss, 'min_free_ram_bytes': min_free_ram, 'confidence': None}, 'cache_hit': False}
+    result['metadata'].update(skip_facts(skipped))
     result['metadata']['alignment_diagnostics'] = alignment_diagnostics(cache, duration, config['chunk_seconds'])
     write_json(ready, result)
     report('Trascrizione Qwen completata', completed_chunks=len(chunks), total_chunks=len(chunks))

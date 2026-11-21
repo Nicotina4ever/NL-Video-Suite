@@ -71,8 +71,8 @@ use model::{
     ImportAssetRequest, Job, JobKind, JobStatus, Project, SplitClipRequest, TimelineClip,
     TrackKind, WorkflowScanRequest, WorkflowSummary,
 };
-use serde::Serialize;
-use serde_json::json;
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
 use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
 use tokio::{
     net::TcpListener,
@@ -298,6 +298,10 @@ async fn main() -> anyhow::Result<()> {
         .route(
             "/api/projects/{id}",
             get(get_project).delete(project_management::delete),
+        )
+        .route(
+            "/api/projects/{id}/title",
+            axum::routing::put(rename_project),
         )
         .route(
             "/api/projects/{id}/delete-preview",
@@ -957,6 +961,62 @@ async fn create_project(
         .await
         .insert(project.id, project.clone());
     Ok((StatusCode::CREATED, Json(project)))
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RenameProjectRequest {
+    title: String,
+    expected_updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+async fn rename_project(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(request): Json<RenameProjectRequest>,
+) -> Result<Json<Value>, ApiError> {
+    let id = parse_id(&id)?;
+    let title = request.title.trim().to_owned();
+    if title.is_empty() || title.chars().count() > 100 {
+        return Err(ApiError::bad_request("title must contain 1–100 characters"));
+    }
+    if state.jobs.read().await.values().any(|j| {
+        j.project_id == Some(id) && matches!(j.status, JobStatus::Queued | JobStatus::Running)
+    }) {
+        return Err(ApiError(
+            StatusCode::CONFLICT,
+            "Attendi i lavori attivi del progetto prima di rinominarlo".into(),
+        ));
+    }
+    update_project(&state, id, |p| {
+        if p.updated_at != request.expected_updated_at {
+            return Err(ApiError(
+                StatusCode::CONFLICT,
+                "Progetto aggiornato altrove: ricarica".into(),
+            ));
+        }
+        p.title = title.clone();
+        Ok(())
+    })
+    .await?;
+    let project = state
+        .projects
+        .read()
+        .await
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| ApiError::not_found("project not found"))?;
+    let data = state.data_dir.as_ref().clone();
+    let renamed =
+        tokio::task::spawn_blocking(move || store::rename_project_folder(&data, &project))
+            .await
+            .map_err(|e| ApiError::internal(e.into()))?
+            .map_err(ApiError::internal)?;
+    Ok(Json(json!({
+        "title": title,
+        "folder_renamed": renamed.as_ref().map(|m| m.to.clone()),
+        "folder_from": renamed.as_ref().map(|m| m.from.clone()),
+    })))
 }
 
 async fn import_asset(

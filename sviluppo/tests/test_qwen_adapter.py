@@ -29,15 +29,22 @@ class ChunkTests(unittest.TestCase):
             self.assertEqual(bridge.alignment_diagnostics(cache,1000,30),value)
 
     def test_long_audio_is_bounded_and_joins_at_real_pauses(self):
-        plan = bridge.chunk_plan(7_200_000, [[28_000, 30_000]], 30)
+        plan, skipped = bridge.chunk_plan(7_200_000, [[28_000, 30_000]], 30)
         self.assertEqual(plan[0]['core_end'], 29_000)
         self.assertLessEqual(max(c['end']-c['start'] for c in plan), 31_500)
         for left, right in zip(plan, plan[1:]):
             self.assertEqual(left['core_end'], right['core_start'])
             self.assertLess(right['start'], left['end'])
+        self.assertEqual(skipped, [])
 
     def test_silence_is_skipped_but_repeated_words_are_preserved(self):
-        self.assertEqual(bridge.chunk_plan(30_000, [[0, 30_000]], 30), [])
+        plan, skipped = bridge.chunk_plan(30_000, [[0, 30_000]], 30)
+        self.assertEqual(plan, [])
+        self.assertEqual(skipped, [[0, 30_000]])
+        facts = bridge.skip_facts(skipped)
+        self.assertEqual(facts['skipped_silent_span_count'], 1)
+        self.assertEqual(facts['skipped_silent_seconds'], 30.0)
+        self.assertEqual(facts['skipped_silent_spans'], [[0, 30_000]])
         chunk = {'core_start':0, 'core_end':3000, 'start':0, 'end':3000}
         words = [{'word':'no', 'start':.1, 'end':.3}, {'word':'no', 'start':.4, 'end':.6}]
         merged = bridge.merge_words([(chunk, words)])

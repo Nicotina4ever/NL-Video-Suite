@@ -162,7 +162,29 @@ pub fn save_result(p: &mut Project, mut t: Transcript, metadata: Value) -> Trans
     }) {
         t = old.clone();
     }
-    p.transcript_metadata.entry(t.id).or_insert(metadata);
+    match p.transcript_metadata.entry(t.id) {
+        std::collections::btree_map::Entry::Occupied(mut stored) => {
+            // Append-only enrichment: a later cache hit may add the silent-skip
+            // facts an older attestation lacked. Provenance keys never change.
+            if let (Value::Object(old), Value::Object(fresh)) = (stored.get_mut(), &metadata) {
+                for key in [
+                    "skipped_silent_spans",
+                    "skipped_silent_span_count",
+                    "skipped_silent_seconds",
+                    "skipped_reported_from_cached_silences",
+                ] {
+                    if !old.contains_key(key) {
+                        if let Some(value) = fresh.get(key) {
+                            old.insert((*key).to_owned(), value.clone());
+                        }
+                    }
+                }
+            }
+        }
+        std::collections::btree_map::Entry::Vacant(slot) => {
+            slot.insert(metadata);
+        }
+    }
     retain_raw(p, t.clone());
     t
 }
@@ -387,6 +409,27 @@ mod tests {
         assert_eq!(p.transcript_metadata[&a.id]["engine"], "whisperx");
         let restored: Project = serde_json::from_value(serde_json::to_value(&p).unwrap()).unwrap();
         assert_eq!(active(&restored, asset).unwrap().id, b.id);
+    }
+    #[test]
+    fn cache_hit_can_add_silent_skip_facts_without_changing_provenance() {
+        let asset = Uuid::new_v4();
+        let mut p = Project::new("Skip facts".into(), None);
+        let raw = json!({"language":"it","segments":[{"start":0,"end":1,"text":"Ciao"}]});
+        let first = save_result(
+            &mut p,
+            editor::normalise_transcript(asset, &raw).unwrap(),
+            json!({"engine":"qwen3_asr_cpp","model":"a"}),
+        );
+        let repeat = save_result(
+            &mut p,
+            editor::normalise_transcript(asset, &raw).unwrap(),
+            json!({"engine":"qwen3_asr_cpp","model":"a","wall_seconds":9,"skipped_silent_spans":[[12000,42000]],"skipped_silent_span_count":1,"skipped_silent_seconds":30.0}),
+        );
+        assert_eq!(first.id, repeat.id);
+        let meta = &p.transcript_metadata[&first.id];
+        assert_eq!(meta["skipped_silent_span_count"], 1);
+        assert_eq!(meta["skipped_silent_spans"][0][0], 12000);
+        assert!(meta["wall_seconds"].is_null());
     }
     #[test]
     fn legacy_edit_state_and_foreign_selection_do_not_fall_back_silently() {

@@ -187,6 +187,70 @@ pub fn migrate_project_folders(data_dir: &Path) -> anyhow::Result<Vec<FolderMigr
     Ok(done)
 }
 
+/// The readable folder follows a later title change. Ownership stays in the
+/// moved `.project-id` marker and every resolution scans by marker, so no
+/// stored path needs rewriting. Legacy `<uuid>` folders stay for the startup
+/// migration; failures always leave the working name untouched.
+pub fn rename_project_folder(
+    data_dir: &Path,
+    project: &Project,
+) -> anyhow::Result<Option<FolderMigration>> {
+    let base = data_dir.join("projects");
+    let dir = project_dir(data_dir, project.id);
+    if !dir.is_dir() {
+        return Ok(None);
+    }
+    crate::storage::reject_links(&dir)?;
+    let Some(name) = dir.file_name().and_then(|s| s.to_str()).map(str::to_owned) else {
+        return Ok(None);
+    };
+    if Uuid::parse_str(&name).is_ok() {
+        return Ok(None); // Legacy name: the first launch of the new build owns it
+    }
+    let label = readable_name(&project.title);
+    let simple = project.id.simple().to_string();
+    for length in [8usize, 12, 16, 32] {
+        let candidate = base.join(format!("{label}--{}", &simple[..length]));
+        if candidate == dir {
+            return Ok(None); // Folder already follows the title
+        }
+        if candidate.exists() {
+            continue; // Another owner: try a longer unique suffix
+        }
+        if fs::rename(&dir, &candidate).is_err() {
+            continue; // Busy folder keeps its working name; resolution is unchanged
+        }
+        if directory_project_id(&candidate) != Some(project.id)
+            && fs::write(candidate.join(".project-id"), project.id.to_string()).is_err()
+        {
+            let _ = fs::rename(&candidate, &dir);
+            return Ok(None);
+        }
+        let to = candidate
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_owned();
+        append_folder_receipt(data_dir, &name, &to)?;
+        return Ok(Some(FolderMigration { from: name, to }));
+    }
+    Ok(None)
+}
+
+fn append_folder_receipt(data_dir: &Path, from: &str, to: &str) -> anyhow::Result<()> {
+    let path = data_dir.join("project-folders-migration.json");
+    let mut doc = fs::read(&path)
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
+        .filter(|v| v["items"].is_array())
+        .unwrap_or_else(|| serde_json::json!({"schema_version": 1, "items": []}));
+    doc["at"] = serde_json::json!(chrono::Utc::now());
+    if let Some(items) = doc["items"].as_array_mut() {
+        items.push(serde_json::json!({"from": from, "to": to}));
+    }
+    write_json(&path, &doc)
+}
+
 pub fn load_projects(data_dir: &Path) -> anyhow::Result<BTreeMap<Uuid, Project>> {
     let projects_dir = data_dir.join("projects");
     fs::create_dir_all(&projects_dir)?;
@@ -373,6 +437,41 @@ mod project_folder_tests {
         save_project(&root, &p).unwrap();
         assert_eq!(project_dir(&root, p.id), dir);
         assert_eq!(load_projects(&root).unwrap().len(), 1);
+        fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn explicit_rename_follows_the_title_with_receipt_and_idempotence() {
+        let root = std::env::temp_dir().join(format!("nl-store-{}", Uuid::new_v4()));
+        let mut p = Project::new("Titolo Uno".into(), None);
+        save_project(&root, &p).unwrap();
+        let first = project_dir(&root, p.id);
+        p.title = "Titolo Due · Finale".into();
+        save_project(&root, &p).unwrap();
+        let moved = rename_project_folder(&root, &p)
+            .unwrap()
+            .expect("rename follows title");
+        assert!(moved.to.starts_with("Titolo Due"));
+        assert!(!first.exists());
+        let now = project_dir(&root, p.id);
+        assert_eq!(now.file_name().unwrap().to_string_lossy(), moved.to);
+        assert_eq!(directory_project_id(&now), Some(p.id));
+        assert_eq!(load_projects(&root).unwrap().len(), 1);
+        let receipt: serde_json::Value =
+            read_json(&root.join("project-folders-migration.json")).unwrap();
+        assert_eq!(receipt["items"].as_array().unwrap().len(), 1);
+        assert_eq!(receipt["items"][0]["from"], moved.from);
+        assert!(rename_project_folder(&root, &p).unwrap().is_none());
+        fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn uuid_legacy_folders_wait_for_startup_migration_not_for_rename() {
+        let root = std::env::temp_dir().join(format!("nl-store-{}", Uuid::new_v4()));
+        let p = Project::new("Legacy".into(), None);
+        let legacy = root.join("projects").join(p.id.to_string());
+        fs::create_dir_all(&legacy).unwrap();
+        save_project(&root, &p).unwrap();
+        assert!(rename_project_folder(&root, &p).unwrap().is_none());
+        assert!(legacy.is_dir());
         fs::remove_dir_all(root).unwrap();
     }
     #[test]
