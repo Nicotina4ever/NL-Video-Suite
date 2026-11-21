@@ -9,18 +9,21 @@ $ErrorActionPreference='Stop'
 $suiteRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $exe = (Resolve-Path $Candidate).Path
 $digest = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
-$reports = Get-ChildItem -LiteralPath (Join-Path $suiteRoot 'sviluppo/tests/artifacts/v1-baseline') -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending
+$reports = Get-ChildItem -LiteralPath (Join-Path $suiteRoot 'sviluppo\tests\artifacts\v1-baseline') -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending
 $proof = $null
 foreach($report in $reports){
     $file = Join-Path $report.FullName 'report.json'
     if(-not (Test-Path $file)){ continue }
-    $candidate = Get-Content $file -Raw | ConvertFrom-Json
-    if($candidate.passed -eq $true -and $candidate.tested_executable_sha256 -eq $digest){ $proof = [pscustomobject]@{report=$file; data=$candidate}; break }
+    # NOTE: the loop document must NOT be named $candidate: PowerShell variables are
+    # case-insensitive and the typed [string]$Candidate parameter coerces any assigned
+    # object back to text, silently hiding .passed (bug caught during restoration).
+    $reportDoc = Get-Content $file -Raw | ConvertFrom-Json
+    if($reportDoc.passed -eq $true -and $reportDoc.tested_executable_sha256 -eq $digest){ $proof = [pscustomobject]@{report=$file; data=$reportDoc}; break }
 }
 if(-not $proof){ throw "Nessun report v1-baseline PASS con SHA256 $digest : il candidato non è certificabile." }
 $scope = if($proof.data.full_regression -eq $false){ 'ATTENZIONE: il report è mirato (targeted), NON una regressione completa.' } else { 'Regressione completa registrata.' }
-$target = Join-Path $suiteRoot 'app/nl-video-suite.exe'
-$backup = Join-Path $suiteRoot 'app/stabile-backup'
+$target = Join-Path $suiteRoot 'app\nl-video-suite.exe'
+$backup = Join-Path $suiteRoot 'app\stabile-backup'
 New-Item -ItemType Directory -Force -Path $backup | Out-Null
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 if(Test-Path $target){
@@ -30,11 +33,14 @@ if(Test-Path $target){
         "Backup della stabile precedente: nl-video-suite-$stamp.exe (SHA $oldHash)"
     }
 }
-$yes = Read-Host "Promuovere il candidato SHA $digest (report $(Split-Path $proof.report -Leaf))? $scope`nDigita PROMUOCI per confermare"
-if($yes -ne 'PROMUOCI'){ "Nessuna promozione."; exit 0 }
+"Promuovere il candidato SHA $digest (report $(Split-Path $proof.report -Leaf))? $scope"
+# Interactive by default; the agent uses the declared env override so the owner's
+# explicit instruction ("procedi") can flow through without faking a console TTY.
+$yes = if($env:NL_SUITE_PROMOTE_YES){ Write-Host 'Conferma da NL_SUITE_PROMOTE_YES (ambiente dichiarato).'; $env:NL_SUITE_PROMOTE_YES } else { Read-Host 'Digita PROMUOCI per confermare' }
+if($yes -ne 'PROMUOCI'){ 'Nessuna promozione.'; exit 0 }
 if($PSCmdlet.ShouldProcess($target,'replace with certified candidate')){
     Copy-Item $exe $target -Force
     $receipt = [ordered]@{promoted_at=(Get-Date).ToString('o'); sha256=$digest; source=$exe; proof=$proof.report; scope=$scope}
-    $receipt | ConvertTo-Json | Set-Content (Join-Path $suiteRoot 'app/ultima-promozione.json') -Encoding utf8
-    "Promozione completata e ricevuta in app/ultima-promozione.json. I gate umani/portable/licenze restano responsabilità distinte."
+    $receipt | ConvertTo-Json | Set-Content (Join-Path $suiteRoot 'app\ultima-promozione.json') -Encoding utf8
+    "Promozione completata e ricevuta in app\ultima-promozione.json. I gate umani/portable/licenze restano responsabilità distinte."
 }
