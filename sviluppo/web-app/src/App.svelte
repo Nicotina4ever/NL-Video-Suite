@@ -5,6 +5,7 @@
     commands,
     formatShortcut,
     WORKSPACES,
+    CLASSIC_TABS,
     loadLayout,
     saveLayout,
     currentProjectId,
@@ -52,6 +53,13 @@
   let paletteOpen = $state(false);
   let paletteQuery = $state('');
   let renameValue = $state('');
+  let classicTab = $state('studio');
+  // In dev the shell lives on the vite port and the classic UI on the Rust
+  // backend; in production the binary serves both, so a relative URL is right.
+  const classicBase = import.meta.env.DEV ? __NL_BACKEND__ : '';
+  const classicHref = $derived(
+    `${classicBase}/?tab=${classicTab}${project ? `&project=${encodeURIComponent(project.id)}` : ''}`,
+  );
 
   $effect(() => saveLayout(layout));
 
@@ -174,6 +182,14 @@
     shortcut: 'Alt+4',
     group: 'Workspace',
     run: () => { layout.workspace = 'story'; },
+    enabled: () => true,
+  });
+  commands.register({
+    id: 'workspace.classic',
+    label: 'Vai alla Classica (tutti i pannelli)',
+    shortcut: 'Alt+5',
+    group: 'Workspace',
+    run: () => { layout.workspace = 'classic'; },
     enabled: () => true,
   });
   commands.register({
@@ -355,9 +371,9 @@
         </button>
       {/each}
       <div class="spacer"></div>
-      <a class="legacy" href="http://127.0.0.1:8099/" target="_blank" rel="noreferrer">
-        Interfaccia completa attuale
-      </a>
+      <button class="legacy" onclick={() => (layout.workspace = 'classic')}>
+        Classica · tutti i pannelli
+      </button>
     </nav>
 
     <main class="workspace">
@@ -367,8 +383,8 @@
           {#if project}
             <p>«{project.title}» · {project.assets.length} media.</p>
             <p class="muted">
-              Importazione, trascrizione e montaggio completi restano disponibili nell'interfaccia attuale;
-              questa shell li ospiterà pannello per pannello.
+              Importazione, trascrizione e montaggio completi sono nella scheda «Classica · tutti i pannelli»
+              (o nell'interfaccia classica su <code>/</code>); questa shell li ospiterà pannello per pannello.
             </p>
           {:else}
             <p class="muted">Scegli un progetto dalla barra in alto.</p>
@@ -480,6 +496,23 @@
             <p class="muted">Apri un progetto.</p>
           {/if}
         </section>
+      {:else if layout.workspace === 'classic'}
+        <section class="panel classic">
+          <div class="classic-bar">
+            <span class="muted">Interfaccia classica completa · tutti i pannelli della suite</span>
+            <div class="classic-tabs">
+              {#each CLASSIC_TABS as tab (tab.id)}
+                <button class:active={classicTab === tab.id} onclick={() => (classicTab = tab.id)}>
+                  {tab.label}
+                </button>
+              {/each}
+            </div>
+            <div class="spacer"></div>
+            <a class="ghost" href={classicHref} target="_blank" rel="noreferrer">Apri in scheda nuova ↗</a>
+          </div>
+          <!-- the classic UI is the same-origin studio the binary already serves -->
+          <iframe class="classic-frame" title="NL Video Suite · interfaccia classica" src={classicHref}></iframe>
+        </section>
       {:else}
         <section class="panel"><h2>Storie e Regia AI</h2><p class="muted">Storia, reference e generazione: pannello in arrivo dalla UI attuale.</p></section>
       {/if}
@@ -553,11 +586,23 @@
   .rail button { text-align: left; background: transparent; border-color: transparent; }
   .rail button.active { background: var(--bg-panel); border-color: var(--accent); }
   .rail .spacer { flex: 1; }
-  .legacy { color: var(--text-dim); font-size: 12px; padding: 6px; text-decoration: none; }
+  .legacy {
+    color: var(--text-dim); font-size: 12px; padding: 6px; text-decoration: none;
+    background: transparent; border: 1px solid transparent; border-radius: 6px; cursor: pointer;
+  }
   .legacy:hover { color: var(--accent); }
   .workspace { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 10px; gap: 10px; }
   .panel { background: var(--bg-panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; min-height: 0; overflow: auto; }
   .panel.full { flex: 1; display: flex; flex-direction: column; }
+  .panel.classic { flex: 1; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+  .classic-bar {
+    display: flex; align-items: center; gap: 10px; padding: 6px 10px;
+    border-bottom: 1px solid var(--line); background: var(--bg-raised); flex: none;
+  }
+  .classic-tabs { display: flex; gap: 4px; overflow-x: auto; }
+  .classic-tabs button { background: transparent; border-color: transparent; padding: 3px 8px; white-space: nowrap; }
+  .classic-tabs button.active { border-color: var(--accent); background: var(--bg-panel); }
+  .classic-frame { flex: 1; width: 100%; border: 0; background: var(--bg); min-height: 0; }
   .panel h2, .panel h3 { margin: 0 0 8px; font-size: 14px; }
   .edit-grid { flex: 1; display: flex; flex-direction: column; min-height: 0; gap: 0; }
   .monitors { flex: 1; display: flex; gap: 8px; }

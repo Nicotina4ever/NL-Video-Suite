@@ -69,6 +69,32 @@ export const WORKSPACES: Workspace[] = [
   { id: 'edit', label: 'Montaggio', shortcut: 'Alt+2' },
   { id: 'social', label: 'Shorts e Social', shortcut: 'Alt+3' },
   { id: 'story', label: 'Storie e Regia AI', shortcut: 'Alt+4' },
+  { id: 'classic', label: 'Classica · tutti i pannelli', shortcut: 'Alt+5' },
+];
+
+/// The classic UI (`sviluppo/web`) is the full studio: 54 modules, every panel
+/// the suite ever had. The shell embeds it so nothing is unreachable while the
+/// panels are ported one by one; each entry is a real classic tab.
+export interface ClassicTab {
+  id: string;
+  label: string;
+}
+
+export const CLASSIC_TABS: ClassicTab[] = [
+  { id: 'studio', label: 'Montaggio' },
+  { id: 'projects', label: 'Materiali' },
+  { id: 'longform', label: 'Analisi e trascrizione' },
+  { id: 'shorts', label: 'Shorts' },
+  { id: 'subtitles', label: 'Sottotitoli' },
+  { id: 'motion', label: 'Motion e grafiche' },
+  { id: 'social', label: 'Social e copertina' },
+  { id: 'graphics', label: 'Grafiche contestuali' },
+  { id: 'story', label: 'Storia e scene' },
+  { id: 'pipeline', label: 'Percorso guidato' },
+  { id: 'workflows', label: 'Generazione ComfyUI' },
+  { id: 'jobs', label: 'Lavori' },
+  { id: 'system', label: 'Sistema' },
+  { id: 'storage', label: 'Spazio e pulizia' },
 ];
 
 export interface LayoutState {
