@@ -31,10 +31,15 @@ Regola: una fase = commit con build + test + prova GUI. Nessuna fase a metà.
 - [x] Build release (79,9 MB), avvio, screenshot About/UI e icona exe
 - [x] Commit `0845ee6a`
 
-### F2 — Ponte progetto
-- [ ] Adapter `project.json` NL → progetto FilmCraft
-- [ ] `File > Import NL Project…`
-- [ ] Sync FilmCraft → mirror NL
+### F2 — Ponte progetto (COMPLETATO)
+- [x] Modulo `filmcraft-engine/src/nl_project.rs`: media, tracce, clip, trim, trascrizioni
+- [x] Audio incorporato dei clip video ricollegato su tracce audio dedicate (link)
+- [x] Comando `file.importNlProject {path}` (headless/automazione)
+- [x] Voce `File > Import NL Project…` con dialogo e guardia modifiche non salvate
+- [x] Verifica GTA6: 1 media, V1 9 clip, V2 overlay vuoto, 9 audio collegati, 1 audio NL, 377 parole sulla timeline, 0 media mancanti
+- [x] Screenshot `documentazione/prove/f2-import/import-verified.png`
+- [x] Commit `6b7577a6`
+- [ ] Sync FilmCraft → mirror NL: spostato in F3, dove le chiamate AI lo richiedono; preserva le sezioni NL non note invece di ricostruirle
 
 ### F3 — Text panel
 - [ ] ASR selezionabile (Whisper / Qwen / WhisperX)
