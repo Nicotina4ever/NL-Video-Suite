@@ -151,7 +151,7 @@
 
   async function applyCorrections(entries: [string, string][]): Promise<boolean> {
     if (!view?.transcript_id) return false;
-    const state = structuredClone(view.state) as EditState;
+    const state = JSON.parse(JSON.stringify(view.state));
     for (const [wordId, text] of entries) state.corrections[wordId] = text;
     try {
       const p = await get<{ updated_at: string }>(`/api/projects/${projectId}`);
@@ -189,7 +189,7 @@
 
   async function removeOne() {
     if (!picked || !view) return;
-    const state = structuredClone(view.state) as EditState;
+    const state = JSON.parse(JSON.stringify(view.state));
     delete state.corrections[picked.id];
     const p = await get<{ updated_at: string }>(`/api/projects/${projectId}`);
     try {
