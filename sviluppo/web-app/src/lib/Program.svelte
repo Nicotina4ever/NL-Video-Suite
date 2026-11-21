@@ -43,6 +43,7 @@
   let playing = $state(false);
   let note = $state('Scegli un punto della timeline.');
   let lastMediaKey = '';
+  let safeMargins = $state(true);
 
   function topmostClipAt(ms: number): Clip | null {
     const pick = (kind: string): Clip | null => {
@@ -184,16 +185,24 @@
 </script>
 
 <div class="program">
-  <!-- svelte-ignore a11y_media_has_caption -->
-  <video
-    bind:this={video}
-    playsinline
-    preload="metadata"
-    class:audio-only={!!current && project.assets.find((a) => a.id === current?.clip.asset_id)?.kind === 'audio'}
-    onclick={toggle}
-    ontimeupdate={onTimeUpdate}
-    onloadedmetadata={onLoadedMetadata}
-  ></video>
+  <div class="stage">
+    <!-- svelte-ignore a11y_media_has_caption -->
+    <video
+      bind:this={video}
+      playsinline
+      preload="metadata"
+      class:audio-only={!!current && project.assets.find((a) => a.id === current?.clip.asset_id)?.kind === 'audio'}
+      onclick={toggle}
+      ontimeupdate={onTimeUpdate}
+      onloadedmetadata={onLoadedMetadata}
+    ></video>
+    <!-- Premiere-style guides: action-safe 90 %, title-safe 80 % -->
+    <div class="safe" class:on={safeMargins} aria-hidden="true">
+      <div class="action"></div>
+      <div class="title"></div>
+      <div class="cross"></div>
+    </div>
+  </div>
   <div class="controls">
     <button class="ghost" title="All'inizio (Home)" onclick={() => onplayhead(0)}>⏮</button>
     <button class="primary" title="Riproduci / pausa (Spazio)" onclick={toggle}>
@@ -204,6 +213,15 @@
     </button>
     <button class="ghost speed" title="Velocità 1× (K)" onclick={() => rate(1)}>1×</button>
     <button class="ghost speed" title="Velocità 2× (L)" onclick={() => rate(2)}>2×</button>
+    <button
+      class="ghost speed"
+      aria-pressed={safeMargins}
+      class:active={safeMargins}
+      title="Mostra/nascondi le guide action-safe e title-safe"
+      onclick={() => (safeMargins = !safeMargins)}
+    >
+      Safe
+    </button>
     <span class="tc" aria-label="Timecode">{tc}</span>
     <span class="muted clip-name">{current ? current.clip.label ?? 'clip' : ''}</span>
   </div>
@@ -212,12 +230,24 @@
 
 <style>
   .program { display: flex; flex-direction: column; gap: 6px; height: 100%; min-height: 0; }
-  video { flex: 1; min-height: 0; width: 100%; background: #000; border-radius: 8px; object-fit: contain; }
-  video.audio-only { flex: 0 0 40%; }
+  .stage { position: relative; flex: 1; min-height: 0; display: flex; }
+  .stage video { flex: 1; min-height: 0; width: 100%; background: #000; border-radius: 8px; object-fit: contain; }
+  .stage video.audio-only { flex: 0 0 40%; }
+  .safe { position: absolute; inset: 0; pointer-events: none; display: none; border-radius: 8px; overflow: hidden; }
+  .safe.on { display: block; }
+  .safe .action { position: absolute; inset: 5%; border: 1px dashed rgba(255, 255, 255, 0.5); }
+  .safe .title { position: absolute; inset: 10%; border: 1px dashed rgba(139, 228, 230, 0.75); }
+  .safe .cross {
+    position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; transform: translate(-50%, -50%);
+    background:
+      linear-gradient(rgba(255,255,255,.55), rgba(255,255,255,.55)) center / 1px 100% no-repeat,
+      linear-gradient(rgba(255,255,255,.55), rgba(255,255,255,.55)) center / 100% 1px no-repeat;
+  }
   .controls { display: flex; gap: 6px; align-items: center; flex: none; }
   .tc { font: 12px Consolas, monospace; color: var(--accent-3); }
   .clip-name { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ghost { background: transparent; }
+  .ghost.active { border-color: var(--accent-2); color: var(--accent-2); }
   .speed { padding: 3px 7px; font-size: 11px; }
   .note { flex: none; margin: 0; font-size: 12px; }
 </style>

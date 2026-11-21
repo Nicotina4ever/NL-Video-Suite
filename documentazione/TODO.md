@@ -18,7 +18,7 @@ Shell Premiere-style: `sviluppo/web-app/src/`.
 - [ ] Regia / narrative (`narrative*.js`, `narrative_audio_first.js`, `narrative_library.js`, `narrative_preflight.js`, `narrative_assistant.js`)
 - [ ] Workflow ComfyUI (`workflow_navigation.js`, `flow.js`, `creative_ui.js`, `creative_montage.js`)
 - [ ] Pannello effetti / oggetti grafici IA (`object_media.js`, `card_ui.js`, `clip_animation.js`)
-- [ ] Safe margins nel monitor Programma
+- [x] Safe margins nel monitor Programma (action-safe 90%, title-safe 80%, toggle + centro)
 - [ ] Filmstrip per-tempo (frame via `/frame`) accanto alla waveform
 - [ ] Drag e rilascio dalla Sorgente alla timeline
 
