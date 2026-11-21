@@ -17,7 +17,7 @@ use std::{
 };
 use uuid::Uuid;
 
-const SCHEMA_VERSION: i32 = 1;
+const SCHEMA_VERSION: i32 = 2;
 const DB_NAME: &str = "index.db";
 
 /// Rebuilds are best-effort and cheap to redo, so only one runs per project.
@@ -32,6 +32,8 @@ fn fingerprint(project: &Project) -> String {
         "transcripts": project.transcripts.iter().map(|t| (t.id, t.words.len(), t.segments.len())).collect::<Vec<_>>(),
         "revision": project.longform.revision,
         "corrections": project.longform.corrections.len(),
+        "chapters": project.longform.chapters.len(),
+        "decisions": project.longform.decisions.len(),
     })
     .to_string()
 }
@@ -50,6 +52,8 @@ fn create_schema(conn: &Connection) -> anyhow::Result<()> {
          DROP TABLE IF EXISTS meta;
          DROP TABLE IF EXISTS words;
          DROP TABLE IF EXISTS segments;
+         DROP TABLE IF EXISTS chapters;
+         DROP TABLE IF EXISTS decisions;
          DROP TABLE IF EXISTS words_search;
          CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
          CREATE TABLE words(
@@ -75,6 +79,28 @@ fn create_schema(conn: &Connection) -> anyhow::Result<()> {
              text TEXT NOT NULL
          );
          CREATE INDEX segments_time ON segments(transcript_id, start_ms);
+         CREATE TABLE chapters(
+             id TEXT PRIMARY KEY,
+             asset_id TEXT NOT NULL,
+             transcript_id TEXT,
+             title TEXT NOT NULL,
+             summary TEXT NOT NULL,
+             start_ms INTEGER NOT NULL,
+             end_ms INTEGER NOT NULL,
+             approved INTEGER NOT NULL,
+             engine TEXT NOT NULL,
+             model TEXT NOT NULL
+         );
+         CREATE INDEX chapters_asset_time ON chapters(asset_id, start_ms);
+         CREATE TABLE decisions(
+             id TEXT PRIMARY KEY,
+             asset_id TEXT NOT NULL,
+             action TEXT NOT NULL,
+             reason TEXT NOT NULL,
+             start_ms INTEGER NOT NULL,
+             end_ms INTEGER NOT NULL
+         );
+         CREATE INDEX decisions_asset_time ON decisions(asset_id, start_ms);
          CREATE VIRTUAL TABLE words_search USING fts5(
              text,
              transcript_id UNINDEXED,
@@ -141,6 +167,35 @@ fn populate(conn: &mut Connection, project: &Project) -> anyhow::Result<()> {
                     s.text
                 ])?;
             }
+        }
+        let mut chapter = tx.prepare_cached(
+            "INSERT OR REPLACE INTO chapters VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
+        )?;
+        for c in &project.longform.chapters {
+            chapter.execute(params![
+                c.id.to_string(),
+                c.asset_id.to_string(),
+                c.transcript_id.to_string(),
+                c.title,
+                c.summary,
+                c.source.start_ms as i64,
+                c.source.end_ms as i64,
+                c.approved as i64,
+                c.engine,
+                c.model
+            ])?;
+        }
+        let mut decision =
+            tx.prepare_cached("INSERT OR REPLACE INTO decisions VALUES (?1,?2,?3,?4,?5,?6)")?;
+        for d in &project.longform.decisions {
+            decision.execute(params![
+                d.id.to_string(),
+                d.asset_id.to_string(),
+                d.action,
+                d.reason,
+                d.range.start_ms as i64,
+                d.range.end_ms as i64
+            ])?;
         }
     }
     tx.execute(
@@ -477,6 +532,56 @@ mod tests {
         assert!(db.is_file());
         let (hits, _) = search(&data, &p, "caffè", 10, 0).unwrap();
         assert_eq!(hits.len(), 1);
+        std::fs::remove_dir_all(&data).unwrap();
+    }
+    #[test]
+    fn chapters_and_decisions_are_indexed_for_later_retrieval() {
+        let (data, mut p) = project_with_words();
+        let t = p.transcripts[0].clone();
+        p.longform.chapters.push(crate::longform_analysis::Chapter {
+            id: Uuid::new_v4(),
+            asset_id: t.asset_id,
+            transcript_id: t.id,
+            source: crate::time_map::TimeRange {
+                start_ms: 0,
+                end_ms: 5_000,
+            },
+            title: "Apertura".into(),
+            summary: "Il caffè della mattina".into(),
+            keywords: vec!["caffè".into()],
+            evidence: vec![],
+            approved: true,
+            engine: "local_llm".into(),
+            model: "test".into(),
+        });
+        p.longform.decisions.push(crate::longform::Decision {
+            id: Uuid::new_v4(),
+            asset_id: t.asset_id,
+            range: crate::time_map::TimeRange {
+                start_ms: 60_000,
+                end_ms: 62_000,
+            },
+            action: "exclude".into(),
+            reason: "pausa lunga".into(),
+        });
+        store::save_project(&data, &p).unwrap();
+        rebuild_if_stale(&data, &p);
+        let db = store::project_dir(&data, p.id).join(DB_NAME);
+        let conn = Connection::open(&db).unwrap();
+        let chapters: i64 = conn
+            .query_row("SELECT count(*) FROM chapters WHERE approved=1", [], |r| {
+                r.get(0)
+            })
+            .unwrap();
+        let decisions: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM decisions WHERE action='exclude'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!((chapters, decisions), (1, 1));
+        drop(conn);
         std::fs::remove_dir_all(&data).unwrap();
     }
 }

@@ -71,20 +71,36 @@ pub async fn resolve(state: &AppState, requested: Device) -> Result<Device, ApiE
     if requested == Device::Cpu {
         return Ok(Device::Cpu);
     }
-    let result = probe(state)
-        .await
-        .map_err(|e| ApiError::bad_request(e.to_string()))?;
-    if result["cuda"].as_bool() != Some(true) {
-        if requested == Device::Cuda {
-            return Err(ApiError::bad_request(format!("GPU ASR richiesta ma non operativa: {}. Nessun ripiego in CPU: scegli CPU o correggi il runtime.",result["reason"].as_str().unwrap_or("CUDA non disponibile"))));
+    // Owner's rule: busy resources queue the work, they never kill it. The ASR
+    // request waits for ComfyUI's external queue to empty, then takes CUDA;
+    // without CUDA the Auto request falls back to CPU (declared, never silent
+    // for an explicit cuda choice).
+    const DEADLINE: Duration = Duration::from_secs(24 * 60 * 60);
+    let started = Instant::now();
+    loop {
+        let result = probe(state)
+            .await
+            .map_err(|e| ApiError::bad_request(e.to_string()))?;
+        if result["cuda"].as_bool() != Some(true) {
+            if requested == Device::Cuda {
+                return Err(ApiError::bad_request(format!("GPU ASR richiesta ma non operativa: {}. Nessun ripiego in CPU: scegli CPU o correggi il runtime.",result["reason"].as_str().unwrap_or("CUDA non disponibile"))));
+            }
+            return Ok(Device::Cpu);
         }
-        return Ok(Device::Cpu);
+        match resources::check_comfy_queue(&state.http, &state.config().comfy_url).await {
+            Ok(()) => return Ok(Device::Cuda),
+            Err(error) => {
+                if started.elapsed() >= DEADLINE {
+                    return Err(ApiError::bad_request(format!(
+                        "ASR GPU in attesa da 24 ore: {error}"
+                    )));
+                }
+                tracing::info!(%error, "ASR GPU in coda: ComfyUI occupato, riprovo tra 15s");
+                tokio::time::sleep(Duration::from_secs(15)).await;
+            }
+        }
     }
-    resources::check_comfy_queue(&state.http, &state.config().comfy_url)
-        .await
-        .map_err(|e| ApiError::bad_request(format!("ASR GPU: {e}")))?;
-    Ok(Device::Cuda)
 }
 pub fn metadata(requested: Device, actual: Device) -> Value {
-    json!({"requested":requested.label(),"actual":actual.label(),"cpu_fallback":false})
+    json!({"requested":requested.label(),"actual":actual.label(),"cpu_fallback":requested!=Device::Cpu && actual==Device::Cpu})
 }

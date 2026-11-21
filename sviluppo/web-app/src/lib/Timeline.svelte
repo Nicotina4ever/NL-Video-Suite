@@ -25,7 +25,7 @@
     onstatus: (message: string) => void;
     onupdate: (project: FullProject) => void;
     onplayhead: (ms: number) => void;
-    exposed?: (api: { seek: (ms: number) => void }) => void;
+    exposed?: (api: { seek: (ms: number) => void; razor: () => void }) => void;
   } = $props();
 
   interface AssetInfo {
@@ -539,8 +539,38 @@
   function seek(ms: number) {
     onplayhead(Math.max(0, ms));
   }
+
+  // Razor: split the selected clip at the playhead. Same arithmetic as the
+  // server endpoint (first keeps duration=offset, second shifts start and
+  // trim_in), but committed through the revision-guarded PUT so it joins the
+  // existing write queue instead of racing it.
+  function razor() {
+    const clip = project?.timeline.clips.find((c) => c.id === selected);
+    if (!clip) {
+      onstatus('Seleziona prima una clip sulla timeline, poi premi C.');
+      return;
+    }
+    const at = playheadMs;
+    const end = clip.start_ms + clip.duration_ms;
+    if (at <= clip.start_ms || at >= end) {
+      onstatus('La playhead deve essere dentro la clip selezionata.');
+      return;
+    }
+    const offset = Math.round(at - clip.start_ms);
+    const first: Clip = { ...clip, duration_ms: offset };
+    const second: Clip = {
+      ...clip,
+      id: crypto.randomUUID(),
+      start_ms: clip.start_ms + offset,
+      trim_in_ms: clip.trim_in_ms + offset,
+      duration_ms: clip.duration_ms - offset,
+    };
+    void enqueue((clips) => clips.flatMap((c) => (c.id === clip.id ? [first, second] : c)));
+    onstatus('Clip divisa alla playhead.');
+  }
+
   $effect(() => {
-    exposed?.({ seek });
+    exposed?.({ seek, razor });
   });
 </script>
 

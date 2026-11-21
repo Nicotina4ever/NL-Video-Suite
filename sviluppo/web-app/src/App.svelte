@@ -41,7 +41,7 @@
   let projects = $state<ProjectSummary[]>([]);
   let project = $state<ProjectSummary | null>(null);
   let full = $state<FullProject | null>(null);
-  let timelineApi = $state<{ seek: (ms: number) => void } | null>(null);
+  let timelineApi = $state<{ seek: (ms: number) => void; razor: () => void } | null>(null);
   let programApi = $state<{ toggle: () => void; rate: (value: number) => void } | null>(null);
   let playheadMs = $state(0);
   let timelineTab = $state<'cut' | 'transcript'>('cut');
@@ -107,6 +107,24 @@
     }
   }
 
+  async function releaseResources() {
+    if (
+      !confirm(
+        'Rilascio manuale: i modelli Ollama in memoria vengono scaricati (righe successive: chi li usa li ricaricherà) e, SOLO se la coda ComfyUI è vuota, ComfyUI rilascia pesi e cache. I lavori in corso non vengono interrotti. Procedere?',
+      )
+    )
+      return;
+    status = 'Rilascio risorse in corso…';
+    try {
+      const reply = await post<{ note: string; actions: string[] }>('/api/v1/resources/release', {
+        confirmation: 'SVUOTA',
+      });
+      status = `${reply.note} ${reply.actions.join(' · ')}`;
+    } catch (error) {
+      status = (error as Error).message;
+    }
+  }
+
   const filtered = $derived(
     commands
       .list()
@@ -164,6 +182,14 @@
     group: 'Playback',
     run: () => timelineApi?.seek(0),
     enabled: () => !!full?.timeline.clips.length,
+  });
+  commands.register({
+    id: 'clip.razor',
+    label: 'Dividi la clip selezionata alla playhead',
+    shortcut: 'C',
+    group: 'Montaggio',
+    run: () => timelineApi?.razor(),
+    enabled: () => !!full,
   });
   commands.register({
     id: 'play.toggle',
@@ -273,6 +299,7 @@
       </div>
     {/if}
     <div class="spacer"></div>
+    <button class="ghost" title="Scarica i modelli Ollama residenti e, se la coda ComfyUI è vuota, rilascia la sua memoria. Nessun processo esterno viene terminato." onclick={releaseResources}>Libera RAM/VRAM</button>
     <button class="ghost" onclick={() => commands.run('palette.open')}>Comandi</button>
     <div class="services" title="Servizi rilevati dal backend">
       <span class:ok={health?.ffmpeg} class:bad={!health?.ffmpeg}>FFmpeg</span>

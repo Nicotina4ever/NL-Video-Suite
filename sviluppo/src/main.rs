@@ -311,6 +311,7 @@ async fn main() -> anyhow::Result<()> {
             "/api/v1/resources",
             get(resources::view).put(resources::save),
         )
+        .route("/api/v1/resources/release", post(resources::release))
         .route("/api/integrations", get(integrations))
         .route("/api/runtime", get(runtime::status))
         .route("/api/projects", get(list_projects).post(create_project))

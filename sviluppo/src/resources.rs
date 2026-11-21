@@ -246,6 +246,36 @@ pub async fn guard_llm(
     cfg: &AppConfig,
     model: &str,
 ) -> anyhow::Result<()> {
+    // The owner's rule of 21/11: occupied resources QUEUE the work instead of
+    // refusing it. Wait (with an honest log line and a generous deadline) and
+    // only fail after a day, which means something is permanently wrong.
+    const DEADLINE: std::time::Duration = std::time::Duration::from_secs(24 * 60 * 60);
+    const POLL: std::time::Duration = std::time::Duration::from_secs(15);
+    let started = std::time::Instant::now();
+    loop {
+        match guard_llm_once(client, cfg, model).await {
+            Ok(()) => return Ok(()),
+            Err(error) => {
+                if started.elapsed() >= DEADLINE {
+                    return Err(anyhow::anyhow!(
+                        "Risorsa non disponibile dopo 24 ore di attesa: {error}"
+                    ));
+                }
+                tracing::info!(
+                    %error,
+                    wait_seconds = POLL.as_secs(),
+                    "LLM in attesa di risorse libere: la richiesta resta in coda"
+                );
+                tokio::time::sleep(POLL).await;
+            }
+        }
+    }
+}
+async fn guard_llm_once(
+    client: &reqwest::Client,
+    cfg: &AppConfig,
+    model: &str,
+) -> anyhow::Result<()> {
     if cfg.llm_provider != LlmProvider::Ollama {
         return Ok(());
     }
@@ -296,6 +326,125 @@ pub async fn guard_llm(
         anyhow::anyhow!("{e} Modalità: {}. La stima riguarda un modello e una richiesta, non l'intero album. {}", if gpu_requested {"Auto GPU/CPU"} else {"CPU, num_gpu=0"}, if gpu_requested {"La ripartizione effettiva e l'eventuale offload sono decisi da Ollama; non sono garantiti dalla stima."} else {"Per consentire l'offload scegli Auto GPU/CPU nell'album o nelle impostazioni del provider; CPU-first lo disabilita."})
     })?;
     Ok(())
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReleaseRequest {
+    pub confirmation: String,
+}
+
+/// Manual, explicitly confirmed release of the resources the suite can act
+/// on: unload every model Ollama currently keeps resident and, ONLY when
+/// ComfyUI's queue is empty, ask ComfyUI to release its weights and cache.
+/// Never interrupts running work, never kills services, never touches
+/// another app's active generation: if ComfyUI is busy it is reported and
+/// left alone. The button is the owner's emergency valve; admission normally
+/// queues instead of failing.
+pub async fn release(
+    State(state): State<AppState>,
+    Json(request): Json<ReleaseRequest>,
+) -> Result<Json<Value>, ApiError> {
+    if request.confirmation != "SVUOTA" {
+        return Err(ApiError::bad_request(
+            "Scrivi SVUOTA per confermare il rilascio manuale delle risorse.",
+        ));
+    }
+    let cfg = state.config();
+    let before_ram = memory().map(|m| m.available_bytes).unwrap_or(0);
+    let before_gpu = gpu().await;
+    let mut actions: Vec<String> = Vec::new();
+    let ollama_local = reqwest::Url::parse(&cfg.ollama_url)
+        .ok()
+        .and_then(|url| {
+            url.host_str()
+                .map(|host| matches!(host, "localhost" | "127.0.0.1" | "[::1]" | "::1"))
+        })
+        .unwrap_or(false);
+    if ollama_local {
+        let base = cfg.ollama_url.trim_end_matches('/');
+        if let Some(ps) = get(&state.http, format!("{base}/api/ps")).await {
+            let loaded: Vec<String> = ps["models"]
+                .as_array()
+                .cloned()
+                .unwrap_or_default()
+                .iter()
+                .filter_map(|m| m["name"].as_str().map(|s| s.to_owned()))
+                .collect();
+            if loaded.is_empty() {
+                actions.push("Ollama: nessun modello in memoria".into());
+            }
+            for name in loaded {
+                let response = state
+                    .http
+                    .post(format!("{base}/api/generate"))
+                    .timeout(Duration::from_secs(30))
+                    .json(&json!({"model": name, "prompt": "", "keep_alive": 0}))
+                    .send()
+                    .await;
+                match response {
+                    Ok(r) if r.status().is_success() => {
+                        actions.push(format!("Ollama: «{name}» scaricato dalla memoria"))
+                    }
+                    Ok(r) => actions.push(format!(
+                        "Ollama: «{name}» non scaricato (HTTP {})",
+                        r.status()
+                    )),
+                    Err(e) => actions.push(format!("Ollama: «{name}» non raggiungibile: {e}")),
+                }
+            }
+        } else {
+            actions.push("Ollama non raggiungibile: nessun modello scaricato".into());
+        }
+    } else {
+        actions.push("Provider LLM remoto: rilascio locale non applicabile".into());
+    }
+    // ComfyUI only if idle: its queue belongs to whoever is using it.
+    let base = cfg.comfy_url.trim_end_matches('/');
+    let idle = get(&state.http, format!("{base}/queue"))
+        .await
+        .map(|q| {
+            ["queue_running", "queue_pending"]
+                .iter()
+                .all(|k| q[*k].as_array().map(|v| v.is_empty()).unwrap_or(false))
+        })
+        .unwrap_or(false);
+    if idle {
+        let released = state
+            .http
+            .post(format!("{base}/free"))
+            .timeout(Duration::from_secs(60))
+            .json(&json!({"unload_models": true, "free_memory": true}))
+            .send()
+            .await
+            .map(|r| r.status().is_success())
+            .unwrap_or(false);
+        actions.push(if released {
+            "ComfyUI: pesi e cache rilasciati (coda vuota)".to_owned()
+        } else {
+            "ComfyUI: versione senza endpoint di rilascio; nulla fatto".to_owned()
+        });
+    } else {
+        actions.push("ComfyUI occupato: lavori tuoi in corso, non toccato".to_owned());
+    }
+    tokio::time::sleep(Duration::from_secs(2)).await;
+    let after_ram = memory().map(|m| m.available_bytes).unwrap_or(0);
+    let after_gpu = gpu().await;
+    let gib = 1u64 << 30;
+    let recovered = after_ram.saturating_sub(before_ram);
+    let before_gib = before_ram / gib;
+    let after_gib = after_ram / gib;
+    Ok(Json(json!({
+        "ram_free_before": before_ram,
+        "ram_free_after": after_ram,
+        "ram_recovered_bytes": recovered,
+        "gpu_before": before_gpu,
+        "gpu_after": after_gpu,
+        "actions": actions,
+        "note": format!(
+            "RAM libera: {before_gib} GiB prima, {after_gib} GiB dopo (+{} MiB). Nessun processo esterno terminato; i lavori ComfyUI in corso non sono stati interrotti.",
+            recovered / (1u64 << 20)
+        ),
+    })))
 }
 #[cfg(test)]
 mod tests {
