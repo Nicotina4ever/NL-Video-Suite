@@ -1,5 +1,7 @@
 # TODO — restauro NL Video Suite
 
+> **Prodotto = UI classica** (`sviluppo/web`). La shell Svelte (`web-app`) è un laboratorio: le voci della sezione B/C che la riguardano **non bloccano il 1.0**. Il backlog del prodotto è in `GOAL_UX.md`.
+
 Regola: **una voce = un commit**, spuntata solo dopo verifica visibile (test, screenshot o output).
 Stato del backend e dei documenti: `STATO.md`, `MANUALE.md`, `ARCHITETTURA.md`.
 UI classica: `sviluppo/web/*.js` (54 moduli, ~671 KB) — fonte di verità per i pannelli.
@@ -39,7 +41,7 @@ Shell Premiere-style: `sviluppo/web-app/src/`.
 - [ ] Selezione progetti con miniature
 
 ## D. Verifica
-- [x] Test Rust: 193 passed / 0 failed (`cargo test --offline`)
+- [x] Test Rust: 194 passed / 0 failed (`cargo test --offline`)
 - [x] Algebra di montaggio: 8 test passati + svelte-check 0/0 + build pulita
 - [ ] `real_playback` a ComfyUI libero (oggi `running=1`: coda rispettata)
 - [ ] Baseline browser 5/5
@@ -51,4 +53,4 @@ Shell Premiere-style: `sviluppo/web-app/src/`.
 
 ## E. Housekeeping
 - [ ] Svuotare `da_eliminare` (decisione del proprietario, ~545 MB)
-- [ ] Push di `origin/main` (32 commit in attesa)
+- [ ] Push di `origin/main` (40+ commit in attesa)
