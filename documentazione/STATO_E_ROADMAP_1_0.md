@@ -1,5 +1,7 @@
 # Stato e percorso verso NL Video Suite 1.0
 
+> **21 novembre 2026 — restauro in corso.** Fasi chiuse: consolidamento del lavoro 19/11, rinomina progetto con cartella leggibile che segue il titolo, trasparenza durate/trascrizione (verificata sul reale 28 min), indice SQLite FTS derivato per progetto, shell «Premiere-style» (Vite + Svelte) in `sviluppo/web-app`. Punto di ripresa: [Session Handoff](../sviluppo/roadmap/V1_SESSION_HANDOFF.md). Le righe sotto restano la base finché il handoff non le sostituisce esplicitamente.
+
 Aggiornato: **18 novembre 2026**. Canale di pubblicazione: **sperimentale avanzata**, non 1.0 stabile. La versione interna del candidato è ancora 0.7.1. L'eseguibile stabile locale non è stato sostituito.
 
 ## Documentazione da usare

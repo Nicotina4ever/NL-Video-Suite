@@ -1,51 +1,33 @@
-# Session Handoff - 19 novembre 2026
+# Session Handoff — restauro 21 novembre 2026
 
-## Stato da cui riprendere
+Letto da soli, questo file + [Stato e roadmap operativa](../../documentazione/STATO_E_ROADMAP_1_0.md). La storia precedente (incluso il handoff del 19/11) resta nel git a partire dal tag `restore-base-20261121`; non copiarla di nuovo qui.
 
-Leggi prima questo file e [Stato e roadmap operativa](../../documentazione/STATO_E_ROADMAP_1_0.md). La specifica completa unica è [V1_MASTER_ROADMAP.md](V1_MASTER_ROADMAP.md). Non ricominciare audit o pipeline già realizzati.
+## Dove siamo
 
-**Candidato certificato:** `sviluppo/target/release/nl-video-suite-context.exe`
-**SHA256:** `f8856961baa4a952383972e5bb643cbbef2960fa8976ebee0910a22372909b87`
-Versione 0.7.1, NON 1.0. Apri con `sviluppo/tools/Avvia_Anteprima_Creativa.ps1`: il launcher sceglie automaticamente l'EXE più recente con report di verifica e hash corrispondenti.
+Piano di restauro in 5 fasi: **0 ✅ · 1 ✅ · 2 ✅ (backend) · 3a ✅ · 3b+ in corso · 4–5 alla fine**.
 
-## Verifiche eseguite su questo candidato
+- **Fase 0**: lavoro certificato 19/11 committato (`96cc5d5`), gitignore per reference/materiali, un solo nome binario (`nl-video-suite.exe`); i vecchi EXE variante sono in `da_eliminare/exe-storici-20261121` (~115 MB reali, liberabili a svuotamento).
+- **Fase 1**: `PUT /api/projects/{id}/title` — il nome della cartella segue il titolo (marcatore `.project-id` invariato, ricevuta doppia, refusing su lavori attivi e revisioni stale); GUI «Rinomina progetto…»; il bridge Qwen **riporta gli intervalli saltati come silenzio** (nuovi run e cache vecchie, senza re-inferenza) con nota cliccabile nel pannello; proposta sgrossatura etichettata come durata *dopo i tagli*; verificato sul progetto reale: sorgente 28:21.17, parlato fino a 28:13.17, copertura 99%.
+- **Fase 2**: `index.db` SQLite **derivato** dentro ogni progetto (FTS5 parole + frasi, ricerca `GET /api/v1/projects/{id}/search` con tempi, contestualizzazione per segmento, prefissi `parola*`); fingerprint su project.json, ricostruzione a richiesta e alla partenza, mai autoritativo, mai resuscitato dopo cancellazione. project.json resta la fonte di verità; DB eliminato insieme al progetto.
+- **Fase 3a**: shell nuova in `sviluppo/web-app` (Vite + Svelte 5 + TS, tema scuro stile editor): barra progetto con rinomina, rail workspace Alt+1…4, pannelli ridimensionabili da mouse e tastiera, status bar con servizi reali, command palette Ctrl+Shift+P su registry di comandi (pattern command-registry). Dev: `npm run dev` su 127.0.0.1:5173 con proxy al backend; build in `sviluppo/web-dist` (non ancora servito dall'EXE).
 
-- `cargo fmt --check` PASS.
-- `cargo clippy --release --offline --all-targets -- -D warnings` PASS.
-- `cargo test --release --bin nl-video-suite` **179 PASS, 0 FAIL**.
-- Baseline mirata `20261119T004021Z` PASS: `longform_chapters` + `project_delete_browser`, SHA del report uguale all'EXE. Nessuna inferenza reale: LLM simulato, FFmpeg/Edge reali.
-- `longform_chapters` copre digest deterministico, sintesi LLM in cache, pannello Panoramica, cache argomenti v3, capitoli/evidenze, export MP4 36 s.
-- `project_delete_browser` copre avvio, migrazione cartelle leggibili, cancellazione progetto e conservazione dell'originale.
+## Candidato corrente
 
-## Lavoro completato
+`sviluppo/target/release/nl-video-suite.exe` — SHA `BABB164C…` obsoleto: ricertificato dal report mirato `20261121T120717Z` (longform_chapters + project_delete_browser + project_rename_browser **3/3 PASS**; scope: targeted, non regressione completa). Il launcher Anteprima lo riconosce (passa la condizione `browser` + SHA).
 
-1. **Compilazione ripristinata**: import `store` in `storage.rs`; `edit_versions::production::recover_pending` non dipende più dal nome cartella UUID ma da `.project-id`.
-2. **Cartelle riconoscibili**: `<uuid>` → `<Titolo>--<id breve>` con marcatore `.project-id`, ricevuta `data/project-folders-migration.json` e rollback automatico se il marcatore non si scrive. I nuovi progetti nascono già con nome leggibile.
-3. **Duplicati non bloccanti**: vince `updated_at` più recente; la copia viene saltata, mai sovrascritta, e segnalata in `data/project-folder-issues.json` + `data_warnings` in `/api/health`.
-4. **Trascrizione completa e navigabile**: durata sorgente, inizio/fine parlato, intervallo della pagina, pulsanti Inizio/Fine testo e nota esplicita quando il parlato finisce prima del file.
-5. **Contesto dell'intero video**: digest deterministico sempre presente (durata, parlato, copertura, capitoli, parole chiave, apertura/chiusura) + una sintesi LLM opzionale, salvata in `analysis/longform-overview` e con fallback al solo digest se il modello non è disponibile. Cache argomenti aggiornata a `contextual-topics-v3`.
-6. **Test adattati**: 30 file in `sviluppo/tests/` risolvono il progetto tramite `projectDir`/`firstProjectId` (`sviluppo/tests/project_folder.cjs`) invece di assumere `projects/<uuid>`.
+Verifiche verde su questo sorgente: `cargo fmt --check`, `cargo clippy --release --all-targets -D warnings`, **188 unit test**, `test_qwen_adapter.py` 4/4, 3 baseline mirati. Versione interna ancora 0.7.1: la promozione resta un atto deliberato.
 
-## Verifica sul progetto reale (dati migrati)
+## Prossimo lavoro verificabile
 
-"Mi ficco in GTA" (`sviluppo/anteprima_creativa/data`): file 24:28.77, parlato 0:00.00 → 24:27.01, 3048 parole, 170 segmenti, ultimi 1,75 s senza testo. Nessun ASR rilanciato.
+1. **3b — timeline canvas nella shell**: filmstrip da `/frame`, waveform da `/peaks`, trim con hit-test e snapping, shortcut Premiere-derived (J/K/L, I/O, Q/W, C, D) dal registry; il porting dei pannelli esistenti avviene uno alla volta, la UI classica resta autoritativa finché un pannello non è passato (link in fondo al rail).
+2. **3c — pannello Longform nella shell** (trascrizione + Panoramica + ricerca FTS con click→seek) e Shorts.
+3. Servire `web-dist` dall'EXE (file disk-served o embed) e decidere il canale di rilascio della shell.
+4. **Fase 4**: consolidamento documentale (MANUALE/ARCHITETTURA/STATO come unici vivi, resto in `documentazione/archivio/`) + script `tools/Promuovi_Anteprima.ps1`.
+5. **Fase 5**: ricertificazione mirata + regressione proporzionata + riordino finale; `da_eliminare` si svuota solo per decisione del proprietario.
 
-Il 19/11/2026 il candidato è stato avviato sui dati reali dell'Anteprima: migrazione eseguita e tracciata in `data/project-folders-migration.json` (`Trailer--82f391db`, `Progetto Compleanno Elita--9dc2860a`, `Mi ficco in GTA--b64f74d2`), nessun duplicato, `data_warnings` vuoto. Verifica UI headless sul progetto reale: `#lf-total` = "3048 parole · sorgente 24:28.77 · parlato 0:00.00 → 24:27.01", nota "gli ultimi 0:01.75 del file non hanno testo", pagina "1–200 di 3048 · 0:00.00 → 1:17.09", pannello Panoramica con digest (copertura 99%, parole chiave, apertura reale) e zero errori JS.
+## Regole vive del restauro
 
-## Limiti dichiarati
-
-- Nessuna regressione generale nuova; la baseline è mirata. `browser.cjs` resta obsoleto rispetto alla UI corrente (import spostato in `#editor-import`, `#render` non visibile nella vista compatta): è un debito di test preesistente, non un difetto introdotto qui.
-- Migrazione dati reali eseguita solo sul data-dir dell'Anteprima (`sviluppo/anteprima_creativa/data`), reversibile con la ricevuta `project-folders-migration.json`. Gli altri data-dir restano UUID e migreranno al primo avvio del candidato. Progetti, stabile e originali non sono stati toccati.
-- Nessun test GPU, nessuna inferenza ASR/LLM reale, nessun render lungo: Topaz Video era in esecuzione.
-- La promozione 1.0 e la redistribuzione restano bloccate dai gate esistenti. Stabile locale SHA `61442816` invariata.
-
-## Prove rimandate (da fare quando Topaz Video è terminato)
-
-1. Sintesi LLM reale sul progetto "Mi ficco in GTA" con modello già installato, verificando cache e fallback.
-2. Accettazione GUI completa del candidato con dati reali migrati (apertura, chiusura, riapertura, cancellazione).
-3. Regressione generale `v1_baseline.py` completa, inclusi i test browser da riallineare alla UI corrente.
-4. Solo se richiesto: export lunghi e test audio/video pesanti.
-
-## Dopo questo lavoro
-
-Restano i gate noti: QA audiovisiva/narrativa indipendente, parità residua, recovery/performance, licenze, portable completo, congelamento e regressione finale prima di qualunque promozione autorizzata. Non ripetere pubblicazione, CoreQA o inferenze già esistenti. Deduplicazione Gemini 1,368 GiB e quarantena `da_eliminare` restano da svuotare manualmente; non dire già liberate.
+- Niente si butta: si archivia (git o `da_eliminare` con `PERCHE.txt`). Ogni unità finita = commit subito.
+- Nessuna re-inferenza ASR/LLM non necessaria: riuso cache e raw; gli artefatti di prove autentiche costose (`v1-authentic-longform`, replay planner, confronti percettivi) **non si toccano**.
+- Da filmcraft (MIT/Apache, in `reference_software/`, non distribuito): solo pattern, specifiche UX (`ui-parity.md`, `keyboard.md`) e funzioni pure con avviso di copyright; mai marchi, mai egui, mai codec.
+- I test non devono dipendere dalla RAM libera del momento: dove il provider è simulato si dichiara `NL_SUITE_LLM_ADMISSION=off` nel test (guardia di ammissione solo per Ollama reale).
