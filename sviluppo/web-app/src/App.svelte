@@ -19,6 +19,7 @@
   import Sorgente from './lib/Sorgente.svelte';
   import Inspector from './lib/Inspector.svelte';
   import Shorts from './lib/Shorts.svelte';
+  import Media from './lib/Media.svelte';
 
 
   interface Health {
@@ -54,6 +55,7 @@
   let paletteQuery = $state('');
   let renameValue = $state('');
   let classicTab = $state('studio');
+  let sorgenteAssetId = $state<string | null>(null);
   // In dev the shell lives on the vite port and the classic UI on the Rust
   // backend; in production the binary serves both, so a relative URL is right.
   const classicBase = import.meta.env.DEV ? __NL_BACKEND__ : '';
@@ -378,14 +380,19 @@
 
     <main class="workspace">
       {#if layout.workspace === 'materials'}
-        <section class="panel">
+        <section class="panel full">
           <h2>Progetti e materiali</h2>
-          {#if project}
-            <p>«{project.title}» · {project.assets.length} media.</p>
-            <p class="muted">
-              Importazione, trascrizione e montaggio completi sono nella scheda «Classica · tutti i pannelli»
-              (o nell'interfaccia classica su <code>/</code>); questa shell li ospiterà pannello per pannello.
-            </p>
+          {#if full}
+            <Media
+              project={full}
+              onstatus={(m) => (status = m)}
+              onadded={reloadFull}
+              onopen={(id) => {
+                sorgenteAssetId = id;
+                layout.workspace = 'edit';
+                status = 'Media aperto nella Sorgente.';
+              }}
+            />
           {:else}
             <p class="muted">Scegli un progetto dalla barra in alto.</p>
           {/if}
@@ -398,6 +405,7 @@
               {#if full}
                 <Sorgente
                   project={full}
+                  assetId={sorgenteAssetId}
                   onstatus={(m) => (status = m)}
                   onadded={async () => {
                     await reloadFull();

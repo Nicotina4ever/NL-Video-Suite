@@ -11,12 +11,12 @@ Shell Premiere-style: `sviluppo/web-app/src/`.
 - [x] Base dell'iframe corretta in sviluppo (proxy vite) e in produzione (binario)
 
 ## B. Shell: pannelli mancanti (port dalla classica, uno per commit)
+- [x] Project browser con miniature, selezione, «+ Timeline» e drag-to-timeline (`Media.svelte`)
 - [ ] Sottotitoli (`subtitle_studio.js`)
 - [ ] Motion studio (`motion_studio.js`, `motion_paths.js`, `motion_typography.js`, `motion_svg.js`, `motion_groups.js`, `motion_idea.js`, `motion_ranking.js`, `motion_presets.js`, `motion_images.js`, `motion_layer_timeline.js`)
 - [ ] Mixer audio (`audio_mixer.js`, `audio_master_ui.js`)
 - [ ] Regia / narrative (`narrative*.js`, `narrative_audio_first.js`, `narrative_library.js`, `narrative_preflight.js`, `narrative_assistant.js`)
 - [ ] Workflow ComfyUI (`workflow_navigation.js`, `flow.js`, `creative_ui.js`, `creative_montage.js`)
-- [ ] Project browser con miniature + drag-to-timeline + hover-scrub
 - [ ] Pannello effetti / oggetti grafici IA (`object_media.js`, `card_ui.js`, `clip_animation.js`)
 - [ ] Safe margins nel monitor Programma
 - [ ] Filmstrip per-tempo (frame via `/frame`) accanto alla waveform
@@ -34,6 +34,9 @@ Shell Premiere-style: `sviluppo/web-app/src/`.
 - [ ] Regressione completa (193 unit + 8 algebra + baseline 5/5)
 - [ ] REA browser su ogni pannello, dati reali GTA6
 - [ ] Prova IA reale sulle correzioni (richiede Ollama acceso)
+
+## F. Backend — lacune scoperte durante la verifica
+- [ ] Annullare un lavoro dalla coda (endpoint + pulsante): oggi un `prepare_preview` lungo non si può fermare dalla UI
 
 ## E. Housekeeping
 - [ ] Svuotare `da_eliminare` (decisione del proprietario, ~545 MB)

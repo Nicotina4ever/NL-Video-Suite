@@ -635,6 +635,46 @@
     onstatus(mode === 'move' ? 'Clip spostato e salvato.' : 'Trim applicato e salvato.');
   }
 
+  function onDragOver(event: DragEvent) {
+    if (!event.dataTransfer || !event.dataTransfer.types.includes('text/nl-asset-id')) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  }
+
+  async function onDrop(event: DragEvent) {
+    const assetId = event.dataTransfer?.getData('text/nl-asset-id');
+    if (!assetId) return;
+    event.preventDefault();
+    const rect = canvas!.getBoundingClientRect();
+    const px = event.clientX - rect.left;
+    const py = event.clientY - rect.top;
+    const lane = Math.floor((py - RULER) / LANE);
+    const laneKinds = ['overlay', 'video', 'audio'];
+    if (lane < 0 || lane >= laneKinds.length) return;
+    const asset = project.assets.find((a) => a.id === assetId);
+    if (!asset) return;
+    // audio goes to the audio lane, images to overlay; video follows the lane
+    const kind = asset.kind === 'audio' ? 'audio' : asset.kind === 'image' ? 'overlay' : laneKinds[lane];
+    const track = project.timeline.tracks.find((t) => t.kind === kind);
+    if (!track) {
+      onstatus('Nessuna traccia adatta a questo media: aggiungila dal pannello classico.');
+      return;
+    }
+    const at = Math.max(0, Math.round(snapMs(xToTime(px)).value));
+    try {
+      const clip = await post<{ start_ms: number }>(`/api/projects/${project.id}/timeline/clips`, {
+        asset_id: asset.id,
+        track_id: track.id,
+        start_ms: at,
+        label: asset.name,
+      });
+      onupdate(await get<FullProject>(`/api/projects/${project.id}`));
+      onstatus(`«${asset.name}» rilasciata al minuto ${(clip.start_ms / 1000).toFixed(2)} s.`);
+    } catch (error) {
+      onstatus(`Rilascio non riuscito: ${(error as Error).message}`);
+    }
+  }
+
   function onWheel(event: WheelEvent) {
     event.preventDefault();
     if (event.ctrlKey) {
@@ -741,6 +781,8 @@
       algebraBase = null;
       algebraPreview = null;
     }}
+    ondragover={onDragOver}
+    ondrop={onDrop}
     onwheel={onWheel}
     onkeydown={onKeydown}
   ></canvas>

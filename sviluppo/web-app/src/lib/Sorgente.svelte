@@ -19,10 +19,12 @@
     project,
     onstatus,
     onadded,
+    assetId,
   }: {
     project: FullProject;
     onstatus: (message: string) => void;
     onadded: () => void | Promise<void>;
+    assetId?: string | null;
   } = $props();
 
   let video = $state<HTMLVideoElement | null>(null);
@@ -34,6 +36,13 @@
   let marks = $state({ in: null as number | null, out: null as number | null });
 
   const mediaAssets = $derived(project?.assets.filter((a) => ['video', 'audio', 'image'].includes(a.kind)) ?? []);
+
+  $effect(() => {
+    const wanted = assetId;
+    if (!wanted) return;
+    const found = project?.assets.find((a) => a.id === wanted);
+    if (found && asset?.id !== found.id) asset = found;
+  });
 
   $effect(() => {
     if (!asset && mediaAssets.length) asset = mediaAssets[0];
