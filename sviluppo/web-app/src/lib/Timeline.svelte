@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { get, put } from './api';
+  import { get, post, put } from './api';
   import type { AssetInfo, Clip, EditTool, ProjectFull } from './types';
   import { rippleTrim, roll, slip, slide, trackClips } from './editAlgebra';
   import type { AClip, MediaMap } from './editAlgebra';
@@ -76,20 +76,30 @@
     if (!['video', 'audio'].includes(asset.kind)) return;
     if (waveforms.has(asset.id) || waveformPending.has(asset.id)) return;
     waveformPending.add(asset.id);
-    void get<{ peaks?: [number, number][]; bin_ms?: number }>(
-      `/api/v1/projects/${project.id}/assets/${asset.id}/peaks`,
-    )
-      .then((value) => {
-        waveformPending.delete(asset.id);
-        if (Array.isArray(value.peaks) && value.bin_ms) {
-          waveforms.set(asset.id, { peaks: value.peaks, bin_ms: value.bin_ms });
-          mediaTick++;
+    const ensure = async () => {
+      for (let attempt = 0; attempt < 60; attempt++) {
+        try {
+          const value = await get<{ peaks?: [number, number][]; bin_ms?: number }>(
+            `/api/v1/projects/${project.id}/assets/${asset.id}/peaks`,
+          );
+          if (Array.isArray(value.peaks) && value.bin_ms) {
+            waveforms.set(asset.id, { peaks: value.peaks, bin_ms: value.bin_ms });
+            mediaTick++;
+          }
+          waveformPending.delete(asset.id);
+          return;
+        } catch {
+          if (attempt === 0) {
+            // no cache yet: trigger the (heavy, background) preparation
+            // job the classic UI also uses, then keep retrying the GET
+            await post(`/api/v1/projects/${project.id}/assets/${asset.id}/peaks`, {}).catch(() => undefined);
+          }
+          await new Promise((resolve) => setTimeout(resolve, 3000));
         }
-      })
-      .catch(() => {
-        /* peaks are optional decoration: a missing cache simply stays silent */
-        waveformPending.delete(asset.id);
-      });
+      }
+      waveformPending.delete(asset.id);
+    };
+    void ensure();
   }
   let drag: {
     clipId: string;
