@@ -14,13 +14,17 @@
 
   let {
     project,
+    playheadMs,
     onstatus,
     onupdate,
+    onplayhead,
     exposed,
   }: {
     project: FullProject;
+    playheadMs: number;
     onstatus: (message: string) => void;
     onupdate: (project: FullProject) => void;
+    onplayhead: (ms: number) => void;
     exposed?: (api: { seek: (ms: number) => void }) => void;
   } = $props();
 
@@ -34,7 +38,6 @@
   let canvas = $state<HTMLCanvasElement | null>(null);
   let pps = $state(60); // pixels per second
   let scrollX = $state(0);
-  let playheadMs = $state(0);
   let selected = $state<string | null>(null);
   let mediaTick = $state(0);
   const posters = new Map<string, HTMLImageElement>();
@@ -417,7 +420,7 @@
     const found = hit(event.clientX - rect.left, event.clientY - rect.top);
     if (!found) {
       const ms = snapMs(xToTime(event.clientX - rect.left)).value;
-      playheadMs = Math.max(0, ms);
+      onplayhead(Math.max(0, ms));
       selected = null;
       return;
     }
@@ -534,7 +537,7 @@
   }
 
   function seek(ms: number) {
-    playheadMs = Math.max(0, ms);
+    onplayhead(Math.max(0, ms));
   }
   $effect(() => {
     exposed?.({ seek });

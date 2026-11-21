@@ -52,7 +52,7 @@ export function formatShortcut(event: KeyboardEvent): string | null {
   if (event.ctrlKey) parts.push('Ctrl');
   if (event.altKey) parts.push('Alt');
   if (event.shiftKey) parts.push('Shift');
-  const key = event.key.length === 1 ? event.key.toUpperCase() : event.key;
+  const key = event.key === ' ' ? 'Space' : event.key.length === 1 ? event.key.toUpperCase() : event.key;
   if (['Control', 'Alt', 'Shift', 'Meta'].includes(key)) return null;
   parts.push(key);
   return parts.join('+');

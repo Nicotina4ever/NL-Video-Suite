@@ -13,6 +13,7 @@
   import Splitter from './lib/Splitter.svelte';
   import Timeline from './lib/Timeline.svelte';
   import Transcript from './lib/Transcript.svelte';
+  import Program from './lib/Program.svelte';
 
   interface FullProject {
     id: string;
@@ -41,6 +42,8 @@
   let project = $state<ProjectSummary | null>(null);
   let full = $state<FullProject | null>(null);
   let timelineApi = $state<{ seek: (ms: number) => void } | null>(null);
+  let programApi = $state<{ toggle: () => void; rate: (value: number) => void } | null>(null);
+  let playheadMs = $state(0);
   let timelineTab = $state<'cut' | 'transcript'>('cut');
   const videoAsset = $derived(full?.assets.find((a) => a.kind === 'video') ?? full?.assets[0] ?? null);
   let layout = $state(loadLayout());
@@ -163,6 +166,40 @@
     enabled: () => !!full?.timeline.clips.length,
   });
   commands.register({
+    id: 'play.toggle',
+    label: 'Riproduci / pausa il Programma',
+    shortcut: 'Space',
+    group: 'Playback',
+    run: () => programApi?.toggle(),
+    enabled: () => !!full,
+  });
+  commands.register({
+    id: 'play.forward',
+    label: 'Avanti veloce 2×',
+    shortcut: 'L',
+    group: 'Playback',
+    run: () => programApi?.rate(2),
+    enabled: () => !!full,
+  });
+  commands.register({
+    id: 'play.normal',
+    label: 'Velocità normale 1×',
+    shortcut: 'K',
+    group: 'Playback',
+    run: () => programApi?.rate(1),
+    enabled: () => !!full,
+  });
+  commands.register({
+    id: 'play.back',
+    label: 'Riavvolgi di un frame',
+    shortcut: 'J',
+    group: 'Playback',
+    run: () => {
+      playheadMs = Math.max(0, playheadMs - 33);
+    },
+    enabled: () => !!full,
+  });
+  commands.register({
     id: 'view.theme',
 
     label: 'Passa al tema chiaro/scuro',
@@ -189,10 +226,11 @@
   });
 
   function onWindowKeydown(event: KeyboardEvent) {
-    if ((event.target as HTMLElement)?.closest('input,textarea,select')) return;
+    const target: unknown = event.target;
+    if (target instanceof Element && target.closest('input,textarea,select')) return;
     const combo = formatShortcut(event);
     if (!combo) return;
-    const id = commands.shortcutKeys().get(combo);
+    const id = commands.shortcutKeys().get(combo.toUpperCase());
     if (id) {
       event.preventDefault();
       commands.run(id);
@@ -287,7 +325,20 @@
               label="Dividi area programma / ispettore"
               onchange={(v) => (layout.inspectorWidth = 1 - v)}
             />
-            <div class="monitor program"><h3>Programma</h3><p class="muted">Composizione live della timeline.</p></div>
+            <div class="monitor program">
+              <h3>Programma</h3>
+              {#if full}
+                <Program
+                  project={full}
+                  {playheadMs}
+                  onplayhead={(ms) => (playheadMs = ms)}
+                  onstatus={(m) => (status = m)}
+                  exposed={(api) => (programApi = api)}
+                />
+              {:else}
+                <p class="muted">Composizione live della timeline: apri un progetto.</p>
+              {/if}
+            </div>
           </section>
           <Splitter axis="y" fraction={layout.timelineHeight} label="Altezza timeline" onchange={(v) => (layout.timelineHeight = v)} />
           <section class="panel timeline">
@@ -303,6 +354,8 @@
               {#if full}
                 <Timeline
                   project={full}
+                  {playheadMs}
+                  onplayhead={(ms) => (playheadMs = ms)}
                   exposed={(api) => (timelineApi = api)}
                   onstatus={(m) => (status = m)}
                   onupdate={(p) => {

@@ -1,0 +1,213 @@
+<script lang="ts">
+  import { playbackUrl } from './media';
+
+  interface Clip {
+    id: string;
+    asset_id: string;
+    track_id: string;
+    start_ms: number;
+    trim_in_ms: number;
+    duration_ms: number;
+    label?: string | null;
+  }
+  interface Track {
+    id: string;
+    name: string;
+    kind: string;
+    visible: boolean;
+    locked: boolean;
+  }
+  interface ProgramProject {
+    id: string;
+    updated_at: string;
+    timeline: { tracks: Track[]; clips: Clip[] };
+    assets: { id: string; name: string; kind: string }[];
+  }
+
+  let {
+    project,
+    playheadMs,
+    onplayhead,
+    onstatus,
+    exposed,
+  }: {
+    project: ProgramProject;
+    playheadMs: number;
+    onplayhead: (ms: number) => void;
+    onstatus: (message: string) => void;
+    exposed?: (api: { toggle: () => void; rate: (value: number) => void }) => void;
+  } = $props();
+
+  let video = $state<HTMLVideoElement | null>(null);
+  let current = $state<{ clip: Clip; sourceMs: number } | null>(null);
+  let playing = $state(false);
+  let note = $state('Scegli un punto della timeline.');
+  let lastMediaKey = '';
+
+  function topmostClipAt(ms: number): Clip | null {
+    const pick = (kind: string): Clip | null => {
+      const track = project?.timeline.tracks.find((t) => t.kind === kind && t.visible);
+      if (!track) return null;
+      return (
+        project.timeline.clips.find(
+          (c) => c.track_id === track.id && c.start_ms <= ms && c.start_ms + c.duration_ms > ms,
+        ) ?? null
+      );
+    };
+    return pick('overlay') ?? pick('video') ?? pick('audio');
+  }
+
+  // The program follows the playhead when paused and owns the clock while
+  // playing, exactly like a monitor of a single composition.
+  $effect(() => {
+    void playheadMs;
+    if (!project) return;
+    const clip = topmostClipAt(playheadMs);
+    if (!clip) {
+      current = null;
+      if (playing) {
+        playing = false;
+        video?.pause();
+        note = 'Nessun media a questa altezza: intervallo vuoto (nero/silenzio).';
+      } else {
+        note = 'Intervallo vuoto: nero e silenzio come nell’export.';
+      }
+      return;
+    }
+    current = { clip, sourceMs: clip.trim_in_ms + (playheadMs - clip.start_ms) };
+    void prepareMedia(clip);
+  });
+
+  async function prepareMedia(clip: Clip) {
+    const key = `${project.id}:${clip.asset_id}`;
+    if (playing && lastMediaKey === key) return;
+    if (!playing && lastMediaKey === key && current && video && Math.abs(video.currentTime * 1000 - current.sourceMs) < 220) return;
+    try {
+      const url = await playbackUrl(project.id, clip.asset_id);
+      if (lastMediaKey !== key) {
+        lastMediaKey = key;
+        if (video) {
+          video.src = url;
+          video.load();
+        }
+      }
+      note = playing ? 'Riproduzione in corso.' : 'Pronto: Spazio per riprodurre, L/K per velocità.';
+      if (playing) void video?.play();
+    } catch (error) {
+      lastMediaKey = '';
+      note = (error as Error).message;
+      onstatus(note);
+    }
+  }
+
+  function syncClock() {
+    if (!video || !current) return;
+    if (Math.abs(video.currentTime * 1000 - current.sourceMs) > 180) {
+      video.currentTime = current.sourceMs / 1000;
+    }
+  }
+
+  // While paused, the playhead drives the media position.
+  $effect(() => {
+    void playheadMs;
+    if (!playing) syncClock();
+  });
+
+  function onTimeUpdate() {
+    if (!playing || !current || !video) return;
+    const clip = current.clip;
+    const timelineMs = clip.start_ms + (video.currentTime * 1000 - clip.trim_in_ms);
+    if (timelineMs >= clip.start_ms + clip.duration_ms) {
+      // continue across gaps: jump the playhead to the next media
+      const nextStart = project.timeline.clips
+        .filter((c) => c.start_ms > clip.start_ms + clip.duration_ms - 1 && topmostClipAt(c.start_ms)?.id === c.id)
+        .map((c) => c.start_ms)
+        .sort((a, b) => a - b)[0];
+      if (nextStart === undefined) {
+        playing = false;
+        video.pause();
+        onplayhead(clip.start_ms + clip.duration_ms);
+        note = 'Fine del montaggio.';
+        return;
+      }
+      onplayhead(nextStart);
+      return;
+    }
+    if (Math.abs(timelineMs - playheadMs) > 33) onplayhead(Math.max(0, timelineMs));
+  }
+
+  function toggle() {
+    if (!video) return;
+    if (playing) {
+      playing = false;
+      video.pause();
+      note = 'In pausa.';
+      return;
+    }
+    if (!current) {
+      note = 'Nessun media sotto la playhead.';
+      return;
+    }
+    playing = true;
+    syncClock();
+    void video.play().catch(() => {
+      playing = false;
+      note = 'Riproduzione bloccata dal browser: clicca sul monitor una volta.';
+    });
+    note = 'Riproduzione in corso.';
+  }
+
+  function rate(value: number) {
+    if (!video) return;
+    video.playbackRate = value;
+    onstatus(`Velocità anteprima: ${value}× (l’export non cambia).`);
+  }
+
+  function onLoadedMetadata() {
+    syncClock();
+  }
+
+  $effect(() => {
+    exposed?.({ toggle, rate });
+  });
+</script>
+
+<div class="program">
+  <!-- svelte-ignore a11y_media_has_caption -->
+  <video
+    bind:this={video}
+    playsinline
+    preload="metadata"
+    class:audio-only={!!current && project.assets.find((a) => a.id === current?.clip.asset_id)?.kind === 'audio'}
+    onclick={toggle}
+    ontimeupdate={onTimeUpdate}
+    onloadedmetadata={onLoadedMetadata}
+  ></video>
+  <p class="muted note">{note}</p>
+</div>
+
+<style>
+  .program {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    height: 100%;
+    min-height: 0;
+  }
+  video {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    background: #000;
+    border-radius: 8px;
+    object-fit: contain;
+  }
+  video.audio-only {
+    flex: 0 0 40%;
+  }
+  .note {
+    flex: none;
+    margin: 0;
+    font-size: 12px;
+  }
+</style>
