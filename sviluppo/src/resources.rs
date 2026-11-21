@@ -249,6 +249,12 @@ pub async fn guard_llm(
     if cfg.llm_provider != LlmProvider::Ollama {
         return Ok(());
     }
+    // Declared test mode only: browser tests simulate the provider over a
+    // loopback socket, so physical RAM says nothing about that "load".
+    // Production binaries never receive this variable and keep the guard.
+    if std::env::var("NL_SUITE_LLM_ADMISSION").is_ok_and(|v| v == "off") {
+        return Ok(());
+    }
     let url = reqwest::Url::parse(&cfg.ollama_url)?;
     if !matches!(
         url.host_str(),
