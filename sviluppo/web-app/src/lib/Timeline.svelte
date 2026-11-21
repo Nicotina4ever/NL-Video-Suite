@@ -1,6 +1,8 @@
 <script lang="ts">
   import { get, put } from './api';
-  import type { AssetInfo, Clip, ProjectFull } from './types';
+  import type { AssetInfo, Clip, EditTool, ProjectFull } from './types';
+  import { rippleTrim, roll, slip, slide, trackClips } from './editAlgebra';
+  import type { AClip, MediaMap } from './editAlgebra';
 
   type FullProject = ProjectFull;
 
@@ -19,7 +21,7 @@
     onupdate: (project: FullProject) => void;
     onplayhead: (ms: number) => void;
     onselect?: (clipId: string | null) => void;
-    exposed?: (api: { seek: (ms: number) => void; razor: () => void }) => void;
+    exposed?: (api: { seek: (ms: number) => void; razor: () => void; setTool: (tool: EditTool) => void }) => void;
   } = $props();
 
 
@@ -213,7 +215,7 @@
         g.fillRect(0, y, box.width, LANE);
       }
       if (!track) return;
-      for (const clip of project.timeline.clips) {
+      for (const clip of algebraPreview ?? project.timeline.clips) {
         if (clip.track_id !== track.id) continue;
         const draggingThis = !!liveDrag && liveDrag.clipId === clip.id;
         const live = draggingThis ? liveDrag : null;
@@ -356,7 +358,7 @@
   $effect(() => {
     // redraw on every relevant change
     void pps; void scrollX; void playheadMs; void selected; void mediaTick; void project;
-    void drag?.previewMs; void drag?.previewDurationMs;
+    void drag?.previewMs; void drag?.previewDurationMs; void algebraPreview;
     if (project && project.id !== lastProjectId) {
       lastProjectId = project.id;
       posters.clear();
@@ -404,6 +406,121 @@
     return saving;
   }
 
+  // ---- edit tools (algebra from ./editAlgebra) ----
+  type Tool = EditTool;
+  const TOOLS: [Tool, string][] = [
+    ['trim', 'Taglio'],
+    ['ripple', 'Ripple'],
+    ['roll', 'Roll'],
+    ['slip', 'Slip'],
+    ['slide', 'Slide'],
+  ];
+  let tool = $state<Tool>('trim');
+  let algebraBase = $state<Clip[] | null>(null);
+  let algebraPreview = $state<Clip[] | null>(null);
+  let algebraReason = $state('');
+  let algebraTarget = '';
+  let algebraEdge: 'in' | 'out' | 'body' = 'body';
+  let algebraTrack = '';
+  let downPx = 0;
+
+  function mediaDurations(): MediaMap {
+    const map: MediaMap = {};
+    for (const a of project.assets) map[a.id] = a.media?.duration_ms;
+    return map;
+  }
+
+  function adjacentAround(clipId: string, edge: 'in' | 'out'): AClip | null {
+    const track = trackClips(project.timeline.clips as AClip[], algebraTrack);
+    const i = track.findIndex((c) => c.id === clipId);
+    if (i < 0) return null;
+    if (edge === 'out') {
+      const next = track[i + 1];
+      const here = track[i];
+      return next && here.start_ms + here.duration_ms === next.start_ms ? next : null;
+    }
+    const prev = track[i - 1];
+    const here = track[i];
+    return prev && prev.start_ms + prev.duration_ms === here.start_ms ? prev : null;
+  }
+
+  function algebraStart(clipId: string, edge: 'in' | 'out' | 'body', startX: number) {
+    const clip = project.timeline.clips.find((c) => c.id === clipId);
+    if (!clip) return;
+    algebraTrack = clip.track_id;
+    algebraTarget = clipId;
+    algebraEdge = edge;
+    downPx = startX;
+    algebraBase = JSON.parse(JSON.stringify(project.timeline.clips)) as Clip[];
+    algebraPreview = null;
+    algebraReason = '';
+  }
+
+  function algebraMove(px: number) {
+    if (!algebraBase) return;
+    // delta in ms from the press point; screen px are time at the current zoom
+    const delta = Math.round(xToTime(px) - xToTime(downPx));
+    const m = mediaDurations();
+    if (tool === 'ripple' && algebraEdge !== 'body') {
+      const res = rippleTrim(algebraBase, algebraTrack, algebraTarget, algebraEdge === 'in' ? 'start' : 'end', delta, m);
+      algebraPreview = res.clips as Clip[];
+      algebraReason = res.reason ?? '';
+    } else if (tool === 'roll' && algebraEdge !== 'body') {
+      if (algebraEdge === 'out') {
+        const next = adjacentAround(algebraTarget, 'out');
+        if (!next) {
+          algebraPreview = null;
+          algebraReason = 'roll: serve un clip adiacente a destra (taglio condiviso)';
+          return;
+        }
+        const res = roll(algebraBase, algebraTrack, algebraTarget, next.id, delta, m);
+        algebraPreview = res.clips as Clip[];
+          algebraReason = res.reason ?? '';
+      } else {
+        const prev = adjacentAround(algebraTarget, 'in');
+        if (!prev) {
+          algebraPreview = null;
+          algebraReason = 'roll: serve un clip adiacente a sinistra (taglio condiviso)';
+          return;
+        }
+        // dragging the left cut with a negative delta mirrors the right-cut roll
+        const res = roll(algebraBase, algebraTrack, prev.id, algebraTarget, delta, m);
+        algebraPreview = res.clips as Clip[];
+          algebraReason = res.reason ?? '';
+      }
+    } else if (tool === 'slip' && algebraEdge === 'body') {
+      const res = slip(algebraBase, algebraTarget, delta, m);
+      algebraPreview = res.clips as Clip[];
+      algebraReason = res.reason ?? '';
+    } else if (tool === 'slide' && algebraEdge === 'body') {
+      const res = slide(algebraBase, algebraTrack, algebraTarget, delta, m);
+      algebraPreview = res.clips as Clip[];
+      algebraReason = res.reason ?? '';
+    }
+  }
+
+  async function algebraFinish() {
+    const base = algebraBase;
+    const preview = algebraPreview;
+    const reason = algebraReason;
+    const trackId = algebraTrack;
+    algebraBase = null;
+    algebraPreview = null;
+    algebraReason = '';
+    if (!base || !preview) {
+      if (reason) onstatus(reason);
+      return;
+    }
+    const changed = JSON.stringify(base) !== JSON.stringify(preview);
+    if (!changed) return;
+    const previewForTrack = preview.filter((c) => c.track_id === trackId);
+    await enqueue((clips) => [
+      ...clips.filter((c) => c.track_id !== trackId),
+      ...previewForTrack.map((c) => ({ ...c, label: c.label ?? null })),
+    ]);
+    onstatus(`Modifica ${tool} applicata (traccia preservata, gli altri clip intatti).`);
+  }
+
   function onPointerDown(event: PointerEvent) {
     const rect = canvas!.getBoundingClientRect();
     const found = hit(event.clientX - rect.left, event.clientY - rect.top);
@@ -422,6 +539,11 @@
       onstatus(`Traccia «${track.name}» bloccata: sbloccala dal pannello classico per modificarla.`);
       return;
     }
+    if (tool !== 'trim') {
+      algebraStart(clip.id, edge, event.clientX - rect.left);
+      canvas!.setPointerCapture(event.pointerId);
+      return;
+    }
     const grabMs = xToTime(event.clientX - rect.left) - clip.start_ms;
     drag = {
       clipId: clip.id,
@@ -435,8 +557,12 @@
   }
 
   function onPointerMove(event: PointerEvent) {
-    if (!drag) return;
     const rect = canvas!.getBoundingClientRect();
+    if (algebraBase) {
+      algebraMove(event.clientX - rect.left);
+      return;
+    }
+    if (!drag) return;
     const clip = project.timeline.clips.find((c) => c.id === drag!.clipId);
     if (!clip) return;
     const px = event.clientX - rect.left;
@@ -456,6 +582,10 @@
   }
 
   async function onPointerUp() {
+    if (algebraBase) {
+      await algebraFinish();
+      return;
+    }
     if (!drag) return;
     const { clipId, mode, previewMs, previewDurationMs } = drag;
     drag = null;
@@ -530,6 +660,9 @@
   function seek(ms: number) {
     onplayhead(Math.max(0, ms));
   }
+  function setTool(next: Tool) {
+    tool = next;
+  }
 
   // Razor: split the selected clip at the playhead. Same arithmetic as the
   // server endpoint (first keeps duration=offset, second shifts start and
@@ -561,28 +694,55 @@
   }
 
   $effect(() => {
-    exposed?.({ seek, razor });
+    exposed?.({ seek, razor, setTool });
   });
 </script>
 
-<canvas
-  class="timeline-canvas"
-  bind:this={canvas}
-  tabindex="0"
-  aria-label="Timeline: frecce per spostare la clip selezionata, rotella per scorrere, Ctrl+rotella per lo zoom"
-  onpointerdown={onPointerDown}
-  onpointermove={onPointerMove}
-  onpointerup={onPointerUp}
-  onpointercancel={() => (drag = null)}
-  onwheel={onWheel}
-  onkeydown={onKeydown}
-></canvas>
+<div class="tl-wrap">
+  <div class="tools" role="toolbar" aria-label="Strumenti di montaggio">
+    {#each TOOLS as [value, label] (value)}
+      <button class="tool" class:active={tool === value} onclick={() => (tool = value)}
+        title={value === 'trim' ? 'Taglio classico: bordi liberi (V)'
+          : value === 'ripple' ? 'Ripple: le teste si consumano e il seguito si avvicina (N)'
+          : value === 'roll' ? 'Roll: sposti il taglio condiviso, la durata totale non cambia (R)'
+          : value === 'slip' ? 'Slip: finestra sorgente in movimento, posizione fissa (Y)'
+          : 'Slide: il clip scorre, i vicini assorbono (U)'}>
+        {label}
+      </button>
+    {/each}
+    {#if algebraReason}
+      <span class="muted reason">{algebraReason}</span>
+    {/if}
+    {#if tool !== 'trim'}
+      <span class="muted hint">{tool === 'slip' || tool === 'slide' ? 'trascina il corpo del clip' : 'trascina un bordo del clip'}</span>
+    {/if}
+  </div>
+  <canvas
+    class="timeline-canvas"
+    class:algebraic={tool !== 'trim'}
+    bind:this={canvas}
+    tabindex="0"
+    aria-label="Timeline: frecce per spostare la clip selezionata, rotella per scorrere, Ctrl+rotella per lo zoom"
+    onpointerdown={onPointerDown}
+    onpointermove={onPointerMove}
+    onpointerup={onPointerUp}
+    onpointercancel={() => {
+      drag = null;
+      algebraBase = null;
+      algebraPreview = null;
+    }}
+    onwheel={onWheel}
+    onkeydown={onKeydown}
+  ></canvas>
+</div>
 
 <style>
-  .timeline-canvas {
-    width: 100%;
-    height: 100%;
-    display: block;
-    border-radius: 8px;
-  }
+  .tl-wrap { display: flex; flex-direction: column; height: 100%; min-height: 0; gap: 4px; }
+  .tools { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+  .tool { padding: 2px 9px; font-size: 12px; background: transparent; border-color: var(--line); }
+  .tool.active { border-color: var(--accent-2); background: rgba(228, 70, 155, 0.16); }
+  .reason { font-size: 12px; color: var(--warn); }
+  .hint { font-size: 12px; }
+  .timeline-canvas { flex: 1; min-height: 0; width: 100%; display: block; border-radius: 8px; }
+  .algebraic { cursor: crosshair; }
 </style>

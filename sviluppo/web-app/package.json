@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "check": "svelte-check --tsconfig ./tsconfig.json",
+    "test:algebra": "node --test tests/algebra.test.mjs",
     "preview": "vite preview"
   },
   "devDependencies": {

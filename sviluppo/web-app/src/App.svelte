@@ -1,5 +1,6 @@
 <script lang="ts">
   import { get, post, put, api, type ProjectSummary } from './lib/api';
+  import type { ProjectFull, EditTool } from './lib/types';
   import {
     commands,
     formatShortcut,
@@ -17,7 +18,6 @@
   import Sorgente from './lib/Sorgente.svelte';
   import Inspector from './lib/Inspector.svelte';
   import Shorts from './lib/Shorts.svelte';
-  import type { ProjectFull } from './lib/types';
 
 
   interface Health {
@@ -32,7 +32,11 @@
   let projects = $state<ProjectSummary[]>([]);
   let project = $state<ProjectSummary | null>(null);
   let full = $state<ProjectFull | null>(null);
-  let timelineApi = $state<{ seek: (ms: number) => void; razor: () => void } | null>(null);
+  let timelineApi = $state<{
+    seek: (ms: number) => void;
+    razor: () => void;
+    setTool: (tool: EditTool) => void;
+  } | null>(null);
   let programApi = $state<{ toggle: () => void; rate: (value: number) => void } | null>(null);
   let playheadMs = $state(0);
   let timelineTab = $state<'cut' | 'transcript' | 'inspector'>('cut');
@@ -188,6 +192,30 @@
     run: () => timelineApi?.razor(),
     enabled: () => !!full,
   });
+  for (const [toolId, label, shortcut] of [
+    ['trim', 'Strumento Taglio', 'V'],
+    ['ripple', 'Strumento Ripple', 'N'],
+    ['roll', 'Strumento Roll', 'R'],
+    ['slip', 'Strumento Slip', 'Y'],
+    ['slide', 'Strumento Slide', 'U'],
+  ] as [EditTool, string, string][]) {
+    commands.register({
+      id: `tool.${toolId}`,
+      label,
+      shortcut,
+      group: 'Strumenti',
+      run: () => {
+        if (!timelineApi) {
+          status = 'Apri il workspace Montaggio: gli strumenti agiscono sulla timeline.';
+          return;
+        }
+        timelineApi.setTool(toolId);
+        status = `${label}: ${toolId === 'trim' ? 'bordi liberi' : toolId === 'ripple' ? 'il seguito si avvicina' : toolId === 'roll' ? 'taglio condiviso, totale invariato' : toolId === 'slip' ? 'finestra sorgente mobile' : 'clip scorre, vicini assorbono'}.` +
+          (toolId === 'slip' || toolId === 'slide' ? ' trascina il corpo del clip.' : ' trascina un bordo.');
+      },
+      enabled: () => !!full,
+    });
+  }
   commands.register({
     id: 'play.toggle',
     label: 'Riproduci / pausa il Programma',

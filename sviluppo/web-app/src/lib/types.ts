@@ -1,3 +1,5 @@
+export type EditTool = 'trim' | 'ripple' | 'roll' | 'slip' | 'slide';
+
 export interface AssetInfo {
   id: string;
   name: string;
