@@ -24,11 +24,53 @@
     exposed?: (api: { seek: (ms: number) => void }) => void;
   } = $props();
 
+  interface AssetInfo { id: string; name: string; kind: string }
+
   let canvas = $state<HTMLCanvasElement | null>(null);
   let pps = $state(60); // pixels per second
   let scrollX = $state(0);
   let playheadMs = $state(0);
   let selected = $state<string | null>(null);
+  let mediaTick = $state(0);
+  const posters = new Map<string, HTMLImageElement>();
+  const waveforms = new Map<string, { peaks: [number, number][]; bin_ms: number }>();
+  const waveformPending = new Set<string>();
+
+  const posterPending = new Set<string>();
+
+  function loadPoster(asset: AssetInfo) {
+    if (!['video', 'image'].includes(asset.kind)) return;
+    if (posters.has(asset.id) || posterPending.has(asset.id)) return;
+    posterPending.add(asset.id);
+    const img = new Image();
+    img.onload = () => {
+      posterPending.delete(asset.id);
+      posters.set(asset.id, img);
+      mediaTick++;
+    };
+    img.onerror = () => posterPending.delete(asset.id);
+    img.src = `/api/projects/${project.id}/assets/${asset.id}/thumbnail`;
+  }
+
+  function loadWaveform(asset: AssetInfo) {
+    if (!['video', 'audio'].includes(asset.kind)) return;
+    if (waveforms.has(asset.id) || waveformPending.has(asset.id)) return;
+    waveformPending.add(asset.id);
+    void get<{ peaks?: [number, number][]; bin_ms?: number }>(
+      `/api/v1/projects/${project.id}/assets/${asset.id}/peaks`,
+    )
+      .then((value) => {
+        waveformPending.delete(asset.id);
+        if (Array.isArray(value.peaks) && value.bin_ms) {
+          waveforms.set(asset.id, { peaks: value.peaks, bin_ms: value.bin_ms });
+          mediaTick++;
+        }
+      })
+      .catch(() => {
+        /* peaks are optional decoration: a missing cache simply stays silent */
+        waveformPending.delete(asset.id);
+      });
+  }
   let drag: {
     clipId: string;
     mode: 'move' | 'trim-in' | 'trim-out';
@@ -187,11 +229,55 @@
           g.strokeStyle = ink('--warn');
           g.strokeRect(x0 + 1.5, yTop + 1.5, w - 3, h - 3);
         }
+        const asset = project.assets.find((a) => a.id === clip.asset_id);
+        if (asset) {
+          const img = posters.get(asset.id);
+          if (img && laneItem.kind !== 'audio' && w > 36) {
+            g.save();
+            g.beginPath();
+            g.roundRect(x0, yTop, w, h, 5);
+            g.clip();
+            const ratio = (img.naturalWidth || 16) / (img.naturalHeight || 9);
+            const tileW = Math.max(28, (h - 2) * ratio);
+            for (let tx = x0 + 1; tx < x0 + w - 2; tx += tileW) {
+              g.drawImage(img, tx, yTop + 1, tileW, h - 2);
+            }
+            g.restore();
+          }
+          const wf = waveforms.get(asset.id);
+          if (wf && w > 18) {
+            g.save();
+            g.beginPath();
+            g.roundRect(x0, yTop, w, h, 5);
+            g.clip();
+            g.strokeStyle = laneItem.kind === 'audio' ? 'rgba(139,228,230,0.8)' : 'rgba(236,234,246,0.35)';
+            g.beginPath();
+            const midY = yTop + h / 2;
+            const scale = (h / 2 - 2) / 32768;
+            const from = Math.max(0, Math.floor(x0));
+            for (let sx = from; sx < x0 + w; sx++) {
+              const timelineMs = xToTime(sx);
+              const sourceMs = clip.trim_in_ms + Math.max(0, timelineMs - start);
+              const pair = wf.peaks[Math.floor(sourceMs / wf.bin_ms)];
+              if (!pair) continue;
+              g.moveTo(sx + 0.5, midY - pair[1] * scale);
+              g.lineTo(sx + 0.5, midY - pair[0] * scale);
+            }
+            g.stroke();
+            g.restore();
+          }
+        }
         if (w > 46) {
-          g.fillStyle = ink('--text');
+          g.fillStyle = 'rgba(10,10,18,0.72)';
+          const name = clip.label || asset?.name || clip.asset_id.slice(0, 6);
+          const shown = w < 90 ? name.slice(0, 14) : name.slice(0, 34);
           g.font = '11px Segoe UI, sans-serif';
-          const name = clip.label || project.assets.find((a) => a.id === clip.asset_id)?.name || clip.asset_id.slice(0, 6);
-          g.fillText(w < 90 ? name.slice(0, 14) : name.slice(0, 34), x0 + 6, yTop + 15);
+          const textW = g.measureText(shown).width;
+          g.beginPath();
+          g.roundRect(x0 + 4, yTop + 2, textW + 10, 17, 4);
+          g.fill();
+          g.fillStyle = '#f2f0fa';
+          g.fillText(shown, x0 + 9, yTop + 15);
           g.fillStyle = ink('--text-dim');
           g.font = '10px Consolas, monospace';
           g.fillText(`${(duration / 1000).toFixed(2)}s`, x0 + 6, yTop + h - 6);
@@ -222,9 +308,27 @@
     g.fill();
   }
 
+  let lastProjectId = '';
+
   $effect(() => {
     // redraw on every relevant change
-    void pps; void scrollX; void playheadMs; void selected; void project; void drag?.previewMs; void drag?.previewDurationMs;
+    void pps; void scrollX; void playheadMs; void selected; void mediaTick; void project;
+    void drag?.previewMs; void drag?.previewDurationMs;
+    if (project && project.id !== lastProjectId) {
+      lastProjectId = project.id;
+      posters.clear();
+      waveforms.clear();
+      posterPending.clear();
+      waveformPending.clear();
+    }
+    if (project) {
+      for (const asset of project.assets) {
+        if (project.timeline.clips.some((c) => c.asset_id === asset.id)) {
+          loadPoster(asset);
+          loadWaveform(asset);
+        }
+      }
+    }
     const raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
   });
