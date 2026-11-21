@@ -111,3 +111,7 @@
 #creative-audio-library>button{margin-bottom:14px}.creative-audio{padding:14px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
 .creative-audio audio{width:100%;display:block;margin:10px 0}.creative-layout aside{padding:16px;border:1px solid var(--line);border-radius:8px;align-self:start}
 @media(max-width:750px){.creative-layout{grid-template-columns:minmax(0,1fr)}#creative-dialog{padding:16px}.creative-head h2{font-size:18px}}
+
+.clip-wave{position:absolute;left:0;right:0;bottom:0;height:42%;background-repeat:no-repeat;opacity:.82;pointer-events:none;z-index:1;mix-blend-mode:screen}
+
+

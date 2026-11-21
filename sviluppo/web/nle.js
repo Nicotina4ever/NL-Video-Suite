@@ -26,7 +26,8 @@ window.NLE=(()=>{
   const $=s=>document.querySelector(s), clone=v=>JSON.parse(JSON.stringify(v));
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const defaults=()=>({x:.5,y:.5,scale:1,rotation:0,fit:'contain',focus_x:.5,focus_y:.5});
-  const s={project:null,selected:null,objectSelected:null,objectDirty:false,time:0,pps:60,playing:false,awaitingPlay:false,snap:true,tool:'select',players:new Map(),images:new Map(),draft:null,gesture:null,audio:null,origin:0,raf:0,fingerprint:'',api:null};
+  const s={project:null,selected:null,objectSelected:null,objectDirty:false,time:0,pps:60,playing:false,awaitingPlay:false,snap:true,tool:'select',players:new Map(),images:new Map(),draft:null,gesture:null,audio:null,origin:0,raf:0,fingerprint:'',api:null,showWave:true};
+ try{s.showWave=localStorage.getItem('nl-nle-wave')!=='0';}catch{}
   const project=()=>s.project, timeline=()=>s.draft||project()?.timeline;
   const asset=id=>project()?.assets.find(a=>a.id===id);
   const clip=id=>timeline()?.clips.find(c=>c.id===id);
@@ -77,7 +78,27 @@ window.NLE=(()=>{
   function timecode(ms){const rate=fps(),nominal=Math.round(rate),f=Math.max(0,Math.floor(ms/1000*rate));return[Math.floor(f/(nominal*3600)),Math.floor(f/(nominal*60))%60,Math.floor(f/nominal)%60,f%nominal].map(n=>String(n).padStart(2,'0')).join(':');}
   function report(error){s.api?.notify(error.message||String(error),true);}
   function validTrack(c,t){const a=asset(c.asset_id);return t&&!t.locked&&(a?.kind==='audio'?t.kind==='audio':t.kind!=='audio');}
-  function configure(api){s.api=api;$('#nle-fit').insertAdjacentHTML('afterend','<label>Nuova traccia<select id="nle-track-kind"><option value="video">Video</option><option value="overlay">Grafiche</option><option value="audio">Audio</option></select></label><button id="nle-add-track" class="secondary">+ Traccia</button>');$('#inspector-name').insertAdjacentHTML('afterend','<button id="open-clip-object" class="secondary" hidden>Descrizione e prompt dell’oggetto</button>');bind();window.NLObjectMedia.configure({api,project,object:()=>object(s.objectSelected),time:()=>s.time,selected,save:saveObject,dirty:()=>{s.objectDirty=true;}});}
+  async function unlinkAudio(){
+    const c=selected();if(!c)throw Error('Seleziona un clip video.');
+    const a=asset(c.asset_id);if(!a||a.kind!=='video'||!a.media?.has_audio)throw Error('Il clip selezionato non ha audio da scollegare.');
+    const at=timeline().tracks.find(t=>t.kind==='audio');if(!at)throw Error('Nessuna traccia audio nel progetto.');
+    if(timeline().clips.some(x=>x.track_id===at.id&&x.asset_id===c.asset_id&&x.start_ms===c.start_ms&&x.trim_in_ms===c.trim_in_ms&&x.duration_ms===c.duration_ms))throw Error('L’audio di questo clip è già scollegato.');
+    await mutate(tl=>{
+      const v=tl.clips.find(x=>x.id===c.id);if(!v)return;
+      const copy={...JSON.parse(JSON.stringify(v)),id:crypto.randomUUID(),track_id:at.id,label:'Audio · '+(v.label||a.name),volume:Number(v.volume)||1};
+      v.volume=0;tl.clips.push(copy);
+    });
+    s.api?.notify?.('Audio scollegato: clip indipendente sulla traccia audio, video muto.');
+  }
+  async function relinkAudio(){
+    const c=selected();if(!c)throw Error('Seleziona il clip video da ricollegare.');
+    const at=timeline().tracks.find(t=>t.kind==='audio');
+    const match=timeline().clips.find(x=>x.track_id===at?.id&&x.asset_id===c.asset_id&&x.start_ms===c.start_ms&&x.trim_in_ms===c.trim_in_ms&&x.duration_ms===c.duration_ms&&String(x.label||'').startsWith('Audio · '));
+    if(!match)throw Error('Nessun audio scollegato corrispondente a questo clip.');
+    await mutate(tl=>{tl.clips=tl.clips.filter(x=>x.id!==match.id);const v=tl.clips.find(x=>x.id===c.id);if(v)v.volume=Math.max(1,Number(match.volume)||1);});
+    s.api?.notify?.('Audio ricollegato al video.');
+  }
+  function configure(api){s.api=api;$('#nle-fit').insertAdjacentHTML('afterend','<label>Nuova traccia<select id="nle-track-kind"><option value="video">Video</option><option value="overlay">Grafiche</option><option value="audio">Audio</option></select></label><button id="nle-add-track" class="secondary">+ Traccia</button>');$('#nle-duplicate').insertAdjacentHTML('afterend','<button id="nle-unlink" class="secondary" title="Scollega l\'audio dal video (Ctrl+L)">Scollega audio</button><button id="nle-relink" class="secondary" title="Ricollega l\'audio scollegato">Ricollega</button><label class="check" title="Mostra la forma d\'onda sulle clip video"><input id="nle-wave" type="checkbox" checked>Waveform</label>');$('#nle-wave').checked=s.showWave;$('#nle-unlink').addEventListener('click',()=>unlinkAudio().catch(report));$('#nle-relink').addEventListener('click',()=>relinkAudio().catch(report));$('#nle-wave').addEventListener('change',e=>{s.showWave=e.target.checked;try{localStorage.setItem('nl-nle-wave',s.showWave?'1':'0');}catch{}render();});document.addEventListener('keydown',e=>{if(!e.ctrlKey||e.shiftKey||e.altKey||String(e.key).toLowerCase()!=='l')return;if(!document.querySelector('#tab-studio')?.classList.contains('active'))return;const tag=document.activeElement?.tagName;if(['INPUT','TEXTAREA','SELECT'].includes(tag))return;e.preventDefault();unlinkAudio().catch(report);});$('#inspector-name').insertAdjacentHTML('afterend','<button id="open-clip-object" class="secondary" hidden>Descrizione e prompt dell’oggetto</button>');bind();window.NLObjectMedia.configure({api,project,object:()=>object(s.objectSelected),time:()=>s.time,selected,save:saveObject,dirty:()=>{s.objectDirty=true;}});}
   function update(p){
     if(p?.id!==s.project?.id){pause();s.players.forEach(v=>{v.element.removeAttribute('src');v.element.load();v.node?.disconnect();v.gain?.disconnect();});s.players.clear();s.images.clear();s.selected=null;s.objectSelected=null;s.objectDirty=false;s.time=0;s.fingerprint='';}
     s.project=p;
@@ -97,10 +118,12 @@ window.NLE=(()=>{
     const lanes=tl.tracks.map((t,i)=>{
       const clips=tl.clips.filter(c=>c.track_id===t.id).map(c=>{
         const a=asset(c.asset_id);if(!a)return'';
-        const media=a.kind==='audio'?cacheUrl(a.id,'waveform'):a.kind==='image'?sourceUrl(a.id):cacheUrl(a.id,'thumbnail');
+        const audioLane=t.kind==='audio'||a.kind==='audio';
+        const media=audioLane?cacheUrl(a.id,'waveform'):a.kind==='image'?sourceUrl(a.id):cacheUrl(a.id,'thumbnail');
         const duration=a.media?.duration_ms||c.duration_ms;
-        const style=a.kind==='audio'?`background-size:${duration/1000*s.pps}px 100%;background-position:${-c.trim_in_ms/1000*s.pps}px center;`:'';
-        return `<div class="nle-clip ${c.id===s.selected?'selected':''} ${t.locked?'locked':''}" tabindex="0" role="button" aria-label="Clip ${esc(c.label||a.name)}" data-nle-clip="${c.id}" data-kind="${a.kind}" style="left:${118+c.start_ms/1000*s.pps}px;width:${Math.max(3,c.duration_ms/1000*s.pps)}px" title="${esc(c.label||a.name)} · ${timecode(c.start_ms)}"><i class="nle-handle" data-edge="start"></i><b>${esc(c.label||a.name)}</b><small>${(c.duration_ms/1000).toFixed(2)} s${a.media?.has_audio&&c.volume?' · ♫':''}</small><div class="clip-media" style="background-image:url('${media}');${style}"></div><i class="nle-handle end" data-edge="end"></i></div>`;
+        const style=audioLane?`background-size:${duration/1000*s.pps}px 100%;background-position:${-c.trim_in_ms/1000*s.pps}px center;`:'';
+        const wave=a.kind!=='image'&&a.media?.has_audio&&s.showWave?`<div class="clip-wave" style="background-image:url('${cacheUrl(a.id,'waveform')}');background-size:${duration/1000*s.pps}px 100%;background-position:${-c.trim_in_ms/1000*s.pps}px center" aria-hidden="true"></div>`:'';
+        return `<div class="nle-clip ${c.id===s.selected?'selected':''} ${t.locked?'locked':''}" tabindex="0" role="button" aria-label="Clip ${esc(c.label||a.name)}" data-nle-clip="${c.id}" data-kind="${a.kind}" style="left:${118+c.start_ms/1000*s.pps}px;width:${Math.max(3,c.duration_ms/1000*s.pps)}px" title="${esc(c.label||a.name)} · ${timecode(c.start_ms)}"><i class="nle-handle" data-edge="start"></i><b>${esc(c.label||a.name)}</b><small>${(c.duration_ms/1000).toFixed(2)} s${a.media?.has_audio&&c.volume?' · ♫':''}</small>${wave}<div class="clip-media" style="background-image:url('${media}');${style}"></div><i class="nle-handle end" data-edge="end"></i></div>`;
       }).join('');
       const name=t.name==='video'?'V1 · Video':t.name==='overlay'?'V2 · Grafiche':t.name==='audio'?'A1 · Audio':t.name;
       return `<div class="nle-lane ${!t.visible?'muted-lane':''}" data-lane="${t.id}" style="width:${width+118}px"><div class="lane-label"><span>${esc(name)}</span><div><button data-lane-visible="${t.id}" aria-pressed="${!t.visible}" title="Attiva/disattiva traccia">${t.kind==='audio'?'M':'Occhio'}</button><button data-lane-lock="${t.id}" aria-pressed="${t.locked}" title="Blocca traccia">${t.locked?'Bloccata':'Blocca'}</button></div></div>${clips}${objectBlocks(t)}</div>`;
@@ -172,7 +195,7 @@ window.NLE=(()=>{
     const load=force=>window.MediaPreview.resolve(pid,a,{force,onStatus:message=>{player.message=message;if(!s.playing&&project()?.id===pid)draw();}}).then(url=>{if(s.players.get(c.id)===player){element.src=url;element.load();}}).catch(error=>{player.message=error.message;pause();report(error);});
     element.addEventListener('error',()=>{if(!player.fallback){player.fallback=true;load(true);}else{player.message='Impossibile riprodurre il media. Rigenera l’anteprima dalla sorgente.';pause();report(Error(player.message));}});const ready=()=>{if(element.readyState>=2)player.message='';if(!s.playing)draw();if(s.awaitingPlay&&!s.playing&&project()?.id===pid)play();};element.addEventListener('seeked',ready);element.addEventListener('loadeddata',ready);element.addEventListener('canplay',ready);if(a.kind==='video'&&element.requestVideoFrameCallback){const presented=(_,meta)=>{player.presentedTime=meta.mediaTime*1000;if(!s.playing)draw();if(s.players.get(c.id)===player)player.callback=element.requestVideoFrameCallback(presented);};player.callback=element.requestVideoFrameCallback(presented);}s.players.set(c.id,player);load(false);return player;}
   function connect(player,c){if(!s.audio)return;try{if(!player.node){player.node=s.audio.createMediaElementSource(player.element);player.gain=s.audio.createGain();player.node.connect(player.gain);}const target=window.AudioMixer?.destination(s.audio,c)||s.audio.destination;if(player.destination!==target){player.gain.disconnect();player.gain.connect(target);player.destination=target;}}catch(e){report(e);}}
-  function draw(){const canvas=$('#program-canvas');if(!canvas)return;const ctx=canvas.getContext('2d');const tl=timeline();if(!tl){ctx.clearRect(0,0,canvas.width,canvas.height);return;}const ratio=project().aspect_ratio.split(':').map(Number);const fullWidth=1080*ratio[0]/ratio[1],factor=Math.min(1,960/fullWidth,640/1080);const width=Math.round(fullWidth*factor),height=Math.round(1080*factor);if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}const well=$('.program-well'),dual=well.classList.contains('dual-monitor'),availableWidth=dual?(well.clientWidth-20)/2:well.clientWidth,availableHeight=well.clientHeight-(dual?38:0),fit=Math.min((availableWidth||640)/width,(availableHeight||340)/height),frameNode=$('#program-frame');frameNode.style.width=`${Math.round(width*fit)}px`;frameNode.style.height=`${Math.round(height*fit)}px`;ctx.fillStyle='#000';ctx.fillRect(0,0,width,height);
+  function draw(){const canvas=$('#program-canvas');if(!canvas)return;const ctx=canvas.getContext('2d');const tl=timeline();if(!tl){ctx.clearRect(0,0,canvas.width,canvas.height);return;}const ratio=project().aspect_ratio.split(':').map(Number);const fullWidth=1080*ratio[0]/ratio[1],factor=Math.min(1,1280/Math.max(fullWidth,1080));const width=Math.round(fullWidth*factor),height=Math.round(1080*factor);if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}const well=$('.program-well'),dual=well.classList.contains('dual-monitor'),availableWidth=dual?(well.clientWidth-20)/2:well.clientWidth,availableHeight=well.clientHeight-(dual?38:0),fit=Math.min((availableWidth||640)/width,(availableHeight||340)/height),frameNode=$('#program-frame');frameNode.style.width=`${Math.round(width*fit)}px`;frameNode.style.height=`${Math.round(height*fit)}px`;ctx.fillStyle='#000';ctx.fillRect(0,0,width,height);
     window.AudioMasterUI?.sync(s.time,s.playing);window.AudioMixer?.sync(s.audio,s.time,s.playing);const active=new Set();let loading='';
     for(const t of tl.tracks){if(!t.visible)continue;for(const c of [...tl.clips].filter(c=>c.track_id===t.id).sort((a,b)=>a.start_ms-b.start_ms)){
       if(s.time<c.start_ms||s.time>=c.start_ms+c.duration_ms)continue;const a=asset(c.asset_id);if(!a)continue;let image,visualTime=s.time;
@@ -227,7 +250,7 @@ window.NLE=(()=>{
     let lastTimelineWidth=-1;new ResizeObserver(()=>{const width=$('#nle-scroll').clientWidth;if(project()&&width>0&&width!==lastTimelineWidth&&!s.gesture&&!window.SubtitleStudio?.isEditing()){lastTimelineWidth=width;render();}}).observe($('#nle-scroll'));
     new ResizeObserver(()=>{if(project())draw();}).observe($('.program-well'));
   }
-  return{configure,update,select,selectObject,newObject,getObject:()=>object(s.objectSelected),seek,addAsset,pause,getTime:()=>s.time,isEditing:()=>Boolean(s.gesture)||s.objectDirty,draw,refreshControls:inspect};
+  return{configure,update,select,selectObject,newObject,getObject:()=>object(s.objectSelected),seek,addAsset,pause,getTime:()=>s.time,isEditing:()=>Boolean(s.gesture)||s.objectDirty,draw,refreshControls:inspect,unlinkAudio,relinkAudio};
 })();
 
 // Resizable desktop workspace. Preferences affect the UI only, never project data.
@@ -270,6 +293,6 @@ window.NLE=(()=>{
  toolbar.addEventListener('click',e=>{const mode=e.target.dataset.workspace;if(!mode)return;layout=mode==='graphics'?{left:210,right:360,height:Math.max(400,innerHeight-490)}:defaults();apply();save();if(mode==='graphics')document.querySelector('.inspector').scrollTop=0;});
  new ResizeObserver(()=>{if(studio.classList.contains('active')&&innerWidth>1020)apply();}).observe(grid);
  new ResizeObserver(()=>{if(innerWidth>1020)apply();}).observe(document.querySelector('#notice'));
- window.addEventListener('resize',()=>{if(innerWidth>1020)apply();});
+ window.addEventListener('resize',()=>{if(innerWidth>1020)apply();draw();});
  apply();
 })();

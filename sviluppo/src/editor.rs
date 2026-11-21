@@ -74,7 +74,14 @@ pub fn validate_timeline(project: &Project, timeline: &Timeline) -> anyhow::Resu
         );
         anyhow::ensure!(
             match asset.kind {
-                AssetKind::Video => track.kind != TrackKind::Audio,
+                // A video with audio can live on the audio track: it is the
+                // detached-audio clip Premiere-style unlink produces, and the
+                // compositor renders it as audio only (audio tracks are never
+                // drawn visually).
+                AssetKind::Video => {
+                    track.kind != TrackKind::Audio
+                        || asset.media.as_ref().is_some_and(|m| m.has_audio)
+                }
                 AssetKind::Audio => track.kind == TrackKind::Audio,
                 AssetKind::Image => track.kind != TrackKind::Audio,
                 _ => false,
@@ -689,5 +696,48 @@ mod tests {
             &json!({"segments":[{"start":2,"end":1,"text":"bad"}]})
         )
         .is_err());
+    }
+    #[test]
+    fn video_with_audio_can_be_detached_to_the_audio_track() {
+        let mut p = Project::new("Test".into(), None);
+        let asset = Asset {
+            id: Uuid::new_v4(),
+            name: "clip".into(),
+            kind: AssetKind::Video,
+            file_name: "clip.mp4".into(),
+            source_path: String::new(),
+            imported_at: Utc::now(),
+            media: Some(MediaInfo {
+                duration_ms: Some(10_000),
+                width: Some(1920),
+                height: Some(1080),
+                frame_rate: Some(30.0),
+                has_audio: true,
+            }),
+        };
+        p.assets.push(asset.clone());
+        let audio = p
+            .timeline
+            .tracks
+            .iter()
+            .find(|t| t.kind == TrackKind::Audio)
+            .unwrap()
+            .id;
+        p.timeline.clips.push(TimelineClip {
+            id: Uuid::new_v4(),
+            asset_id: asset.id,
+            track_id: audio,
+            start_ms: 0,
+            trim_in_ms: 0,
+            duration_ms: 2_000,
+            label: None,
+            volume: 1.0,
+            opacity: 1.0,
+            transform: VisualTransform::default(),
+        });
+        assert!(validate_timeline(&p, &p.timeline).is_ok());
+        // A silent video has nothing to detach: the audio track must refuse it.
+        p.assets[0].media.as_mut().unwrap().has_audio = false;
+        assert!(validate_timeline(&p, &p.timeline).is_err());
     }
 }
