@@ -9,7 +9,7 @@
   interface FullProject {
     id: string; title: string; updated_at: string;
     timeline: { tracks: Track[]; clips: Clip[] };
-    assets: { id: string; name: string; kind: string }[];
+    assets: AssetInfo[];
   }
 
   let {
@@ -24,7 +24,12 @@
     exposed?: (api: { seek: (ms: number) => void }) => void;
   } = $props();
 
-  interface AssetInfo { id: string; name: string; kind: string }
+  interface AssetInfo {
+    id: string;
+    name: string;
+    kind: string;
+    media?: { has_audio?: boolean } | null;
+  }
 
   let canvas = $state<HTMLCanvasElement | null>(null);
   let pps = $state(60); // pixels per second
@@ -50,6 +55,27 @@
     };
     img.onerror = () => posterPending.delete(asset.id);
     img.src = `/api/projects/${project.id}/assets/${asset.id}/thumbnail`;
+  }
+
+  const peakCache = new Map<string, { count: number; value: number }>();
+  const MAX_BOOST = 4;
+
+  function isSmallLane(h: number): boolean {
+    return h < 50;
+  }
+
+  function displayGain(assetId: string, wf: { peaks: [number, number][]; bin_ms: number }): number {
+    // Suite peaks are signed 16-bit samples (±32768), unlike float sources.
+    // Normalize the loudest bin to ~92 % of the zone, capped like FilmCraft's
+    // MAX_BOOST so near-silent sources are not amplified into noise.
+    const seen = peakCache.get(assetId);
+    if (!seen || seen.count !== wf.peaks.length) {
+      let peak = 0;
+      for (const pair of wf.peaks) peak = Math.max(peak, Math.abs(pair[0]), Math.abs(pair[1]));
+      peakCache.set(assetId, { count: wf.peaks.length, value: peak });
+      return peak > 0 ? Math.min((32768 / peak) * 0.92, MAX_BOOST) : 1;
+    }
+    return seen.value > 0 ? Math.min((32768 / seen.value) * 0.92, MAX_BOOST) : 1;
   }
 
   function loadWaveform(asset: AssetInfo) {
@@ -246,25 +272,50 @@
           }
           const wf = waveforms.get(asset.id);
           if (wf && w > 18) {
-            g.save();
-            g.beginPath();
-            g.roundRect(x0, yTop, w, h, 5);
-            g.clip();
-            g.strokeStyle = laneItem.kind === 'audio' ? 'rgba(139,228,230,0.8)' : 'rgba(236,234,246,0.35)';
-            g.beginPath();
-            const midY = yTop + h / 2;
-            const scale = (h / 2 - 2) / 32768;
-            const from = Math.max(0, Math.floor(x0));
-            for (let sx = from; sx < x0 + w; sx++) {
-              const timelineMs = xToTime(sx);
-              const sourceMs = clip.trim_in_ms + Math.max(0, timelineMs - start);
-              const pair = wf.peaks[Math.floor(sourceMs / wf.bin_ms)];
-              if (!pair) continue;
-              g.moveTo(sx + 0.5, midY - pair[1] * scale);
-              g.lineTo(sx + 0.5, midY - pair[0] * scale);
+            // Premiere-style audio band, following the FilmCraft timeline pattern:
+            // the zone is the lower 42 % of the clip body (all of it for tiny rows
+            // and for the audio lane), one column per screen pixel aggregating the
+            // source bins it covers, and a bounded peak-normalisation boost so a
+            // quiet voice still draws a readable envelope (never a fake curve).
+            const isAudioLane = laneItem.kind === 'audio';
+            const hasAudio = asset.media?.has_audio !== false;
+            if (hasAudio && (isAudioLane || laneItem.kind === 'video')) {
+              const zone = isAudioLane ? h - 4 : Math.max(8, isSmallLane(h) ? h - 2 : h * 0.42);
+              const areaTop = yTop + h - 2 - zone;
+              const bottom = yTop + h - 2;
+              const gain = displayGain(asset.id, wf);
+              const scale = (zone / 2 - 1) / 32768;
+              const midY = areaTop + zone / 2;
+              g.save();
+              g.beginPath();
+              g.roundRect(x0, yTop, w, h, 5);
+              g.clip();
+              if (isAudioLane) {
+                g.strokeStyle = 'rgba(236,234,246,0.14)';
+                g.beginPath();
+                g.moveTo(x0, midY + 0.5);
+                g.lineTo(x0 + w, midY + 0.5);
+                g.stroke();
+              }
+              g.fillStyle = isAudioLane ? 'rgba(139,228,230,0.8)' : 'rgba(139,228,230,0.55)';
+              const from = Math.max(0, Math.floor(x0));
+              for (let sx = from; sx < x0 + w; sx++) {
+                const t0 = xToTime(sx);
+                const t1 = xToTime(sx + 1);
+                const s0 = Math.floor((clip.trim_in_ms + Math.max(0, t0 - start)) / wf.bin_ms);
+                let s1 = Math.floor((clip.trim_in_ms + Math.max(0, t1 - start)) / wf.bin_ms);
+                if (s1 <= s0) s1 = s0 + 1;
+                let m = 0;
+                for (let i = s0; i < s1 && i < wf.peaks.length; i++) {
+                  const pair = wf.peaks[i];
+                  if (!pair) continue;
+                  m = Math.max(m, Math.abs(pair[0]), Math.abs(pair[1]));
+                }
+                const half = Math.min(zone / 2, Math.max(0.5, m * gain * scale));
+                g.fillRect(sx, midY - half, 1, half * 2);
+              }
+              g.restore();
             }
-            g.stroke();
-            g.restore();
           }
         }
         if (w > 46) {
@@ -318,6 +369,7 @@
       lastProjectId = project.id;
       posters.clear();
       waveforms.clear();
+      peakCache.clear();
       posterPending.clear();
       waveformPending.clear();
     }

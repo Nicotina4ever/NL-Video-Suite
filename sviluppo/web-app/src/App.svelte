@@ -12,6 +12,7 @@
   } from './lib/shell';
   import Splitter from './lib/Splitter.svelte';
   import Timeline from './lib/Timeline.svelte';
+  import Transcript from './lib/Transcript.svelte';
 
   interface FullProject {
     id: string;
@@ -40,6 +41,8 @@
   let project = $state<ProjectSummary | null>(null);
   let full = $state<FullProject | null>(null);
   let timelineApi = $state<{ seek: (ms: number) => void } | null>(null);
+  let timelineTab = $state<'cut' | 'transcript'>('cut');
+  const videoAsset = $derived(full?.assets.find((a) => a.kind === 'video') ?? full?.assets[0] ?? null);
   let layout = $state(loadLayout());
   let status = $state('Pronto.');
   let paletteOpen = $state(false);
@@ -197,8 +200,11 @@
   }
 
   $effect(() => {
-    refreshHealth();
-    refreshProjects();
+    void (async () => {
+      await refreshHealth();
+      await refreshProjects();
+      if (project) await selectProject(project.id); // reopen the remembered project, like the classic UI
+    })();
     const healthTimer = setInterval(refreshHealth, 15000);
     window.addEventListener('keydown', onWindowKeydown);
     return () => {
@@ -285,9 +291,16 @@
           </section>
           <Splitter axis="y" fraction={layout.timelineHeight} label="Altezza timeline" onchange={(v) => (layout.timelineHeight = v)} />
           <section class="panel timeline">
-            <h3>Timeline</h3>
-            {#if full}
-              <div class="timeline-host">
+            <div class="timeline-tabs">
+              <button class:active={timelineTab === 'cut'} onclick={() => (timelineTab = 'cut')}>Montaggio</button>
+              <button class:active={timelineTab === 'transcript'} onclick={() => (timelineTab = 'transcript')}>
+                Trascrizione
+              </button>
+              <div class="spacer"></div>
+              <span class="muted ticks">{#if full}{full.timeline.clips.length} clip · {videoAsset ? 'parlato indicizzato' : 'nessun media audio'}{/if}</span>
+            </div>
+            <div class="timeline-host" class:hidden={timelineTab !== 'cut'}>
+              {#if full}
                 <Timeline
                   project={full}
                   exposed={(api) => (timelineApi = api)}
@@ -297,10 +310,17 @@
                     status = `Timeline salvata (${p.timeline.clips.length} clip).`;
                   }}
                 />
-              </div>
-            {:else}
-              <p class="muted">Nessun progetto aperto.</p>
-            {/if}
+              {:else}
+                <p class="muted">Nessun progetto aperto.</p>
+              {/if}
+            </div>
+            <div class="transcript-host" class:hidden={timelineTab !== 'transcript'}>
+              {#if full && videoAsset}
+                <Transcript projectId={full.id} assetId={videoAsset.id} ontoseek={(ms) => timelineApi?.seek(ms)} />
+              {:else}
+                <p class="muted">Apri un progetto con un media video o audio.</p>
+              {/if}
+            </div>
           </section>
         </div>
       {:else if layout.workspace === 'social'}
@@ -389,9 +409,14 @@
   .edit-grid { flex: 1; display: flex; flex-direction: column; min-height: 0; gap: 0; }
   .monitors { flex: 1; display: flex; gap: 8px; }
   .monitor { flex: 1; border: 1px dashed var(--line-strong); border-radius: 8px; padding: 10px; min-width: 0; }
-  .timeline { height: var(--timeline); flex: none; }
-  .timeline-host { position: absolute; inset: 34px 12px 12px; }
-  .timeline { position: relative; }
+  .timeline { height: var(--timeline); flex: none; position: relative; }
+  .timeline-tabs { display: flex; gap: 6px; align-items: center; }
+  .timeline-tabs button { background: transparent; border-color: transparent; padding: 3px 9px; }
+  .timeline-tabs button.active { border-color: var(--accent); background: var(--bg-raised); }
+  .ticks { font-size: 11px; margin-left: auto; }
+  .timeline-host { position: absolute; inset: 38px 12px 12px; }
+  .transcript-host { position: absolute; inset: 38px 12px 12px; overflow: auto; }
+  .timeline-host.hidden, .transcript-host.hidden { visibility: hidden; pointer-events: none; }
   .statusbar {
     display: flex; gap: 14px; align-items: center; padding: 0 14px;
     background: var(--bg-raised); border-top: 1px solid var(--line); font-size: 12px;
