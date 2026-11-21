@@ -45,9 +45,58 @@
   let timelineTab = $state<'cut' | 'transcript' | 'inspector'>('cut');
   let selectedClipId = $state<string | null>(null);
 
+  // Undo/redo at the shell level: every accepted timeline snapshot is pushed
+  // before the edit, and undo writes the previous timeline back through the
+  // same revision-guarded PUT (the backend remains the source of truth).
+  type TimelineState = ProjectFull['timeline'];
+  let undoStack = $state<TimelineState[]>([]);
+  let redoStack = $state<TimelineState[]>([]);
+  const cloneTimeline = (timeline: TimelineState): TimelineState =>
+    JSON.parse(JSON.stringify(timeline)) as TimelineState;
+
+  function applyFull(next: ProjectFull, record = true) {
+    if (record && full && full.id === next.id) {
+      undoStack = [...undoStack.slice(-49), cloneTimeline(full.timeline)];
+      redoStack = [];
+    }
+    full = next;
+  }
+
+  async function writeTimeline(timeline: TimelineState, message: string) {
+    if (!full) return;
+    try {
+      const saved = await put<ProjectFull>(`/api/projects/${full.id}/timeline`, {
+        timeline,
+        expected_updated_at: full.updated_at,
+      });
+      full = saved;
+      status = message;
+    } catch (error) {
+      status = `Timeline non salvata: ${(error as Error).message}`;
+    }
+  }
+
+  async function undo() {
+    if (!full || !undoStack.length) return;
+    const previous = undoStack[undoStack.length - 1];
+    const current = cloneTimeline(full.timeline);
+    undoStack = undoStack.slice(0, -1);
+    redoStack = [...redoStack.slice(-49), current];
+    await writeTimeline(previous, 'Annullato: timeline ripristinata.');
+  }
+
+  async function redo() {
+    if (!full || !redoStack.length) return;
+    const next = redoStack[redoStack.length - 1];
+    const current = cloneTimeline(full.timeline);
+    redoStack = redoStack.slice(0, -1);
+    undoStack = [...undoStack.slice(-49), current];
+    await writeTimeline(next, 'Ripetuto: timeline riapplicata.');
+  }
+
   async function reloadFull() {
     if (!project) return;
-    full = await get<ProjectFull>(`/api/projects/${project.id}`);
+    applyFull(await get<ProjectFull>(`/api/projects/${project.id}`));
   }
   const videoAsset = $derived(full?.assets.find((a) => a.kind === 'video') ?? full?.assets[0] ?? null);
   let layout = $state(loadLayout());
@@ -88,10 +137,13 @@
     rememberProject(id || null);
     project = pickProjectSummary(projects, id || null);
     full = null;
+    undoStack = [];
+    redoStack = [];
     if (project) {
       try {
-        full = await get<ProjectFull>(`/api/projects/${project.id}`);
-        status = `Progetto aperto: ${project.title} · ${full.timeline.clips.length} clip.`;
+        const loaded = await get<ProjectFull>(`/api/projects/${project.id}`);
+        applyFull(loaded, false);
+        status = `Progetto aperto: ${project.title} · ${loaded.timeline.clips.length} clip.`;
       } catch (error) {
         status = (error as Error).message;
       }
@@ -210,6 +262,22 @@
     group: 'Playback',
     run: () => timelineApi?.seek(0),
     enabled: () => !!full?.timeline.clips.length,
+  });
+  commands.register({
+    id: 'edit.undo',
+    label: 'Annulla l’ultima modifica di timeline',
+    shortcut: 'Ctrl+Z',
+    group: 'Montaggio',
+    run: undo,
+    enabled: () => !!full && undoStack.length > 0,
+  });
+  commands.register({
+    id: 'edit.redo',
+    label: 'Ripeti la modifica annullata',
+    shortcut: 'Ctrl+Shift+Z',
+    group: 'Montaggio',
+    run: redo,
+    enabled: () => !!full && redoStack.length > 0,
   });
   commands.register({
     id: 'clip.razor',
@@ -456,6 +524,8 @@
               <button class:active={timelineTab === 'inspector'} onclick={() => (timelineTab = 'inspector')}>
                 Ispettore{selectedClipId ? ' · clip' : ''}
               </button>
+              <button class="ghost" title="Annulla (Ctrl+Z)" onclick={undo} disabled={!undoStack.length}>↶</button>
+              <button class="ghost" title="Ripeti (Ctrl+Shift+Z)" onclick={redo} disabled={!redoStack.length}>↷</button>
               <div class="spacer"></div>
               <span class="muted ticks">{#if full}{full.timeline.clips.length} clip · {videoAsset ? 'parlato indicizzato' : 'nessun media audio'}{/if}</span>
             </div>
@@ -469,7 +539,7 @@
                   exposed={(api) => (timelineApi = api)}
                   onstatus={(m) => (status = m)}
                   onupdate={(p) => {
-                    full = p;
+                    applyFull(p);
                     status = `Timeline salvata (${p.timeline.clips.length} clip).`;
                   }}
                 />
@@ -491,7 +561,7 @@
                   selectedId={selectedClipId}
                   {playheadMs}
                   onstatus={(m) => (status = m)}
-                  onupdate={(p) => (full = p)}
+                  onupdate={(p) => applyFull(p)}
                   onrazor={() => timelineApi?.razor()}
                 />
               {:else}
@@ -507,7 +577,7 @@
             <Shorts
               project={full}
               onstatus={(m) => (status = m)}
-              onupdate={(p) => (full = p)}
+              onupdate={(p) => applyFull(p)}
             />
           {:else}
             <p class="muted">Apri un progetto.</p>
