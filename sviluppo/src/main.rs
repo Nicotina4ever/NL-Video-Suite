@@ -304,7 +304,8 @@ async fn main() -> anyhow::Result<()> {
         });
     }
 
-    let app = Router::new()
+    let shell_dist = web_shell_dist();
+    let mut app = Router::new()
         .route("/", get(web::index))
         .route("/api/health", get(health))
         .route(
@@ -861,9 +862,17 @@ async fn main() -> anyhow::Result<()> {
             get(services::get_config).put(services::set_config),
         )
         .route("/api/services/start", post(services::start))
-        .route("/guida", get(web::guide))
-        .layer(TraceLayer::new_for_http())
-        .with_state(state);
+        .route("/guida", get(web::guide));
+    // The Svelte shell is served from disk when a build exists (next to the
+    // binary in packaged installs, or sviluppo/web-dist in development):
+    // UI iteration stops requiring an EXE rebuild, and nothing is embedded.
+    if let Some(dist) = shell_dist {
+        app = app.nest_service(
+            "/shell",
+            tower_http::services::ServeDir::new(dist).append_index_html_on_directories(true),
+        );
+    }
+    let app = app.layer(TraceLayer::new_for_http()).with_state(state);
 
     let address = SocketAddr::from(([127, 0, 0, 1], port));
     let listener = TcpListener::bind(address).await?;
@@ -1723,4 +1732,26 @@ fn filesystem_stem(value: &str) -> String {
 
 fn parse_id(value: &str) -> Result<Uuid, ApiError> {
     Uuid::parse_str(value).map_err(|_| ApiError::bad_request("invalid UUID"))
+}
+
+/// Where the built Svelte shell lives, checked next to the binary first
+/// (packaged app/web-dist after promotion), then the development checkout.
+fn web_shell_dist() -> Option<PathBuf> {
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            candidates.push(dir.join("web-dist"));
+            if let Some(parent) = dir.parent() {
+                candidates.push(parent.join("sviluppo").join("web-dist"));
+                candidates.push(parent.join("web-dist"));
+            }
+        }
+    }
+    if let Ok(cwd) = std::env::current_dir() {
+        candidates.push(cwd.join("sviluppo").join("web-dist"));
+        candidates.push(cwd.join("web-dist"));
+    }
+    candidates
+        .into_iter()
+        .find(|candidate| candidate.join("index.html").is_file())
 }

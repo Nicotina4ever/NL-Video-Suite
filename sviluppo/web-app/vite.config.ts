@@ -7,6 +7,9 @@ const backend = process.env.NL_SUITE_BACKEND || 'http://127.0.0.1:8099';
 
 export default defineConfig({
   plugins: [svelte()],
+  // The binary serves the built shell under /shell, so all asset URLs must
+  // be prefixed accordingly (dev server exposes /shell/ too).
+  base: '/shell/',
   build: { outDir: '../web-dist', emptyOutDir: true },
   server: {
     host: '127.0.0.1',
