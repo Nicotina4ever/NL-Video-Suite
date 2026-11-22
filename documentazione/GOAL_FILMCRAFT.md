@@ -59,7 +59,9 @@ Regola: una fase = commit con build + test + prova GUI. Nessuna fase a metà.
 - [x] Export end-to-end Short 01: 1080×1920, 30 fps, H.264/AAC, 30,25 s, 32,3 MB (`short01.mp4`, ffprobe ok)
 - [x] Salvataggio/riapertura `.fcproj`: 2 marker, bin `AI Shorts` 2, 377 parole transcript
 - [x] Screenshot `documentazione/prove/f4-shorts/`, commit `ca54d717`
-- [ ] Hook verificabile / ranking LLM (AutoClip) in F4b
+- [x] F4b: `Find Shorts with AI` con Ollama, job/progresso, hook verificabile (commit `f63c3ec3`)
+- [x] F4b: test con Ollama finto superato; test reale GTA6 bloccato da ComfyUI (0,1 GB VRAM, ~100 GB commit)
+- [ ] Ripetere il test reale F4b quando ComfyUI è libero
 - [ ] Longform (capitoli/pulizia) come comando
 
 ### F5 — Visual AI

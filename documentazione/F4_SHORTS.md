@@ -45,6 +45,26 @@ esterni: è il passo locale e deterministico del montaggio AI, dichiarato come t
 Prove: `documentazione/prove/f4-shorts/source-markers.png`,
 `short-sequence.png`, `short-transcript.png`.
 
+## F4b — ranking Ollama
+
+- `Sequence > Find Shorts with AI` / `sequence.findShortsAi`: job in background, modello
+  Ollama locale (`qwen3.5:9b` di default, `model`/`url` sovrascrivibili), progresso nella
+  finestra Progress.
+- Il modello riceve la trascrizione con indici globali e deve restituire clip, titolo, hook
+  verbatim, score e motivo. L'hook viene verificato contro il testo; se non combacia, il marker
+  lo segnala.
+- I candidati passano dallo stesso refinement e dalla stessa creazione di sequenze/marker di
+  Find Shorts; un secondo giro non duplica.
+- Test automatico con server Ollama finto: passa (`ai_job_applies_candidates_from_a_mock_ollama`).
+
+**Test reale GTA6:** Ollama è raggiungibile e risponde a prompt brevi, ma il test completo è
+stato bloccato da ComfyUI: la GPU era al 100%, con **0,1 GB VRAM liberi** e il processo Python di
+ComfyUI con **~100 GB di commit**. La richiesta Ollama è andata in timeout dopo 300 s; il job ha
+riportato l'errore senza modificare il progetto. Ripetere quando la coda ComfyUI è libera,
+eventualmente con finestre più piccole e `num_predict` ridotto.
+
+
+
 ## Export e persistenza
 
 - `Short 01` esportato con `file.exportMedia` (H.264, NVENC, 8 Mbps): **1080×1920, 30 fps,

@@ -13,6 +13,7 @@ Avvio: doppio clic, oppure `filmcraft.exe --control 9876` per l’automazione.
 | Correzione parola inline (doppio clic, Invio/Esc) | `Text > Trascrizione` | `prove/f3-text/text-panel.png` |
 | Mirror testo NL (`project.synced.json`) | `File > Sync NL Text to Mirror` | 3.545 parole, sezioni NL intatte |
 | Find Shorts locale | `Sequence > Find Shorts` | 2 short, marker, bin `AI Shorts` |
+| Find Shorts AI (Ollama) | `Sequence > Find Shorts with AI` | job + hook verificabile; test mock ok, test reale bloccato da ComfyUI |
 | Export short | `File > Export > Media` | 1080×1920, 30 fps, H.264/AAC, 30,25 s |
 | Salvataggio/riapertura `.fcproj` | `File > Save As` / `File > Open` | marker, bin, transcript presenti |
 
@@ -33,11 +34,22 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
 - **ASR selezionabile Qwen/WhisperX**: richiede il bridge Python del motore NL; oggi funziona
   l’ASR di FilmCraft/Whisper e l’import della trascrizione NL.
 - **Traduzioni EN/ES**: richiedono lo stesso bridge LLM.
-- **Ranking LLM e hook verificabile** per Find Shorts: F4b; l’attuale è un’euristica locale
-  dichiarata (`method: local-transcript-heuristic`).
+- **Ranking LLM**: `Find Shorts with AI` è implementato con Ollama e job in background; il test
+  con server finto passa. Il test reale GTA6 va ripetuto quando ComfyUI è libero: la GPU era al
+  100% con 0,1 GB VRAM liberi e il processo ComfyUI aveva ~100 GB di commit, quindi Ollama è
+  andato in timeout e il job ha riportato l'errore senza modificare il progetto.
 - **Longform** come comando: non ancora esposto.
 - **Pannello Generate/ComfyUI, copertina, autoprompter, MiniMax/AceStep**: F5/F6.
 - **Portable con motore AI e launcher unico**: F8.
+
+## Ottimizzazione spazio (22/11/2026)
+
+- Rimossa la cache debug `filmcraft-nl/target/debug`: **8,69 GB** liberati (rimane il binario
+  release e i sorgenti). Ricevuta: `da_eliminare/2026-11-22-ottimizzazione/ricevuta.json`.
+- Log di build/test F1–F4 spostati in `da_eliminare/2026-11-22-ottimizzazione/logs/`.
+- Spazio K: da 93,7 GB a **98,6 GB liberi**.
+- ComfyUI era ancora in esecuzione con un job H3 (1 running, 0 pending) e commit di sistema
+  quasi esaurito: build/test pesanti sospesi finché non libera GPU/RAM.
 
 ## Regole rispettate
 
