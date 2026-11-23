@@ -1,0 +1,39 @@
+{
+  "date": "2026-11-23",
+  "phase": "P8d (montage planner)",
+  "title": "Montage planner: piano di rimontaggio a durata fissa con applicazione in una nuova sequenza",
+  "intent": "Portare il «montage planner» della versione test classica: costruire un montaggio rapido dal materiale della sequenza, con inquadrature di durata fissa, e applicarlo senza toccare il montaggio corrente.",
+  "implemented": {
+    "engine": [
+      "crates/engine/src/nl/montage.rs: nl.montage.plan {targetSeconds?, shotSeconds?, transition?} — prende le clip video della sequenza attiva, genera in modo deterministico N inquadrature della durata richiesta (ciclando sulle sorgenti e avanzando dentro ciascuna), con sourceIn/start/durata e transizione cut|dissolve; nessuna modifica alla timeline",
+      "nl.montage.apply {plan?, createSequence?, name?, audio?, transition?} — per default crea una NUOVA sequenza (file.newSequence con le impostazioni della corrente) e piazza le inquadrature su V1 ai tempi del piano con timeline.place; applica i dissolve con sequence.applyVideoTransition e riporta clip/transizioni/errori; la sequenza originale resta intatta (test)",
+      "piano salvato in s.nl.montage per l'applicazione successiva",
+      "correzione collegata: i parametri di tempo passati a timeline.place usano tick interi (prima l'oggetto {\"seconds\"} veniva ignorato e il posizionamento cadeva sul playhead); sistemati story place/placeAll/placeAudio e album.insert"
+    ],
+    "gui": "pannello **NL Montage** (dock, Window): target secondi, durata inquadratura, transizione cut/dissolve, nome nuova sequenza, Plan montage con elenco inquadrature, Apply montage con esito"
+  },
+  "live_evidence": {
+    "run": "demo: nl.montage.plan targetSeconds=6 shotSeconds=1.5 transition=cut (4 inquadrature, 6 s, 6 sorgenti); nl.montage.apply createSequence=true name=Montaggio rapido",
+    "result": "nuova sequenza con 4 clip su V1 ai frame 0/36/72/108 (durata 144 frame = 6.006 s), nomi item 10/5/8/6; nessun errore",
+    "timing_check": "story.place atSeconds=1 e album.insert atSeconds=2: nuovo test mostra i clip ai frame 24 e 48, a conferma che i tempi espliciti ora sono rispettati",
+    "files": [
+      "documentazione/prove/p8d-montage/montage-run2.jsonl",
+      "documentazione/prove/p8d-montage/time-placement-run.jsonl"
+    ]
+  },
+  "checks": [
+    "nl::montage::tests (piano copre il target con durata richiesta; apply crea una nuova sequenza con tutte le inquadrature e lascia intatta l'originale; apply senza piano rifiutato)",
+    "cargo fmt, clippy -D warnings, test engine e UI"
+  ],
+  "limits": [
+    "Il planner usa le clip già presenti nella sequenza (non tutti i media del progetto) e non analizza i beat musicali: la durata dell'inquadratura è un parametro, non una onset detection.",
+    "Le transizioni dissolve possono essere rifiutate su clip senza handle: il piano riporta quante sono state applicate.",
+    "Restano di P8d: shot map, creative montage con analisi audio/beat, pipeline/flows."
+  ],
+  "rules_respected": [
+    "Nessun AI/GPU: pianificazione deterministica locale",
+    "L'originale non viene modificato (default: nuova sequenza; test che lo verifica)",
+    "Nessun download; nessun progetto utente toccato",
+    "Niente 'FilmCraft' nei testi visibili"
+  ]
+}

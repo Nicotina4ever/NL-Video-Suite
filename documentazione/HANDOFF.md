@@ -65,7 +65,7 @@ Matrice dettagliata: `documentazione/PARITA_FEATURE.md`.
 | P8c Traduzioni | **fatte** | `nl.translate.captions/text` (nuova traccia EN/ES) + pulsante in NL Analyze; `prove/p8c-translate/` |
 | P8c Assistente | **fatto** | `nl.assistant.ask` con citazioni dai documenti indicizzati; `prove/p8c-assistant/` |
 | P8e Sottotitoli/Titoli/Grafici/Audio | **fatta** | NL Subtitles, NL Titles, NL Graphics (`nl.graphics.add`), NL Audio (Essential Sound + mixer); `prove/p8e-studio/` |
-| P8f Delivery/Album/Social/Versions | **fatta** | `nl.delivery.qa/package/social`, `nl.storage.status`, pannello NL Delivery; `nl.album.*`, pannello NL Album; `nl.versions.*`, pannello NL Versions; prove `p8f-*` |
+| P8d Montage planner | **fatta la parte base** | `nl.montage.plan/apply`, pannello NL Montage, nuova sequenza e transizioni; `prove/p8d-montage/`. Restano shot map, beat/creative, flows |\n| P8f Delivery/Album/Social/Versions | **fatta** | `nl.delivery.qa/package/social`, `nl.storage.status`, pannello NL Delivery; `nl.album.*`, pannello NL Album; `nl.versions.*`, pannello NL Versions; prove `p8f-*` |
 | P9c Coda varianti | **fatta (manca free auto)** | `nl.queue.add/list/prepare/send/remove/free`, override widget (campo JSON in Generate/Queue), pannello NL Queue; `prove/p9c-queue/`; musica live `prove/p5-music/` |
 | Parità NL completa | in corso (P2, P3b, P4, P5, P6, P8c–f, P9b–d) | `documentazione/PARITA_FEATURE.md`, `TRACCIA_PARITA.md`, `inventario/versione_test.md` |
 | F8 portable | da fare | — |

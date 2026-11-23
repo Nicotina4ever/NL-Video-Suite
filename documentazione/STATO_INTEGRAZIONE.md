@@ -69,6 +69,18 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
   servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
 
+## Parità NL — P8d montage planner (23/11/2026)
+
+- `nl.montage.plan/apply`: piano deterministico di inquadrature a durata fissa dal materiale della
+  sequenza e applicazione (default in una **nuova sequenza**) con timeline.place e transizioni
+  dissolve; la sequenza originale resta intatta. Pannello **NL Montage** con target, durata
+  inquadratura, transizione, Plan e Apply.
+- Correzione collegata: i tempi espliciti passati a timeline.place sono ora tick interi (prima un
+  oggetto veniva ignorato e si posizionava al playhead); sistemati story place/placeAll/placeAudio e
+  album.insert, verificati ai frame 24/48 per 1 s/2 s.
+- Prova live: 4 inquadrature da 1,5 s in una nuova sequenza «Montaggio rapido» ai frame
+  0/36/72/108 (6.006 s), nessun errore; `documentazione/prove/p8d-montage/`.
+
 ## Parità NL — P8f versioni montaggio (23/11/2026)
 
 - `nl.versions.save/list/restore/delete`: snapshot della sequenza attiva in `nl/versions` accanto
