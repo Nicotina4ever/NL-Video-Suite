@@ -4,6 +4,23 @@ Data: 23/11/2026. Obiettivo: **tutte** le funzioni delle app NL originali devono
 `filmcraft-nl` e essere raggiungibili dalla GUI (menu, dialoghi, pannelli, impostazioni), non solo
 da comandi headless. Nessun download obbligatorio: i modelli già presenti sono selezionabili.
 
+Inventari verificati per app: `inventario/regista_ai.md`, `inventario/clipsai.md`,
+`inventario/calliope.md`, `inventario/zp_video.md`. Design esecutivo e comandi previsti:
+`TRACCIA_PARITA.md`. Stato reale delle fasi: `TODO.md`.
+
+### Screening operatore (23/11/2026)
+
+- **Già coperto dalla NL Video Suite precedente** (da preservare, non rifare): import progetto NL,
+  media in place, trascrizione e mirror testo, correzioni parole, Find Shorts locale e AI,
+  ComfyUI immagini di base, bridge ASR WhisperX. Restano da portare le funzioni elencate sotto.
+- **Fuori scope**: Calliope **Build Scene / AI Canvas / 3D** (Three.js/MediaRecorder: non è una
+  funzione NLE; eventuale P8 separato). **TTS/NL voce escluso**: l'operatore è doppiatore e un TTS
+  sarebbe un placeholder; il Text to Speech interno del fork resta com'è e non fa parte della
+  parità. Resta la **musica generativa**.
+- L'harness agente completo di Calliope e il server web di Regista non si replicano: se ne porta
+  il comportamento editoriale (chat minima opzionale, scritture testuali, coda), non
+  l'architettura.
+
 ## Sorgenti di riferimento (sola lettura)
 
 | App | Percorso | Ruolo |
@@ -77,7 +94,7 @@ Legenda: ✅ integrato e verificato; 🟡 codice pronto, verifica GUI in corso; 
 | Funzione | Fonte | Stato | Accesso GUI previsto |
 |---|---|---|---|
 | Musica Ace Step / MiniMax | F6 | 🟡 codice, test da rifare | Audio > Generate Music |
-| TTS Qwen3 / voci | Regista | ⬜ | Text to Speech |
+| TTS Qwen3 / voci | Regista | ➖ **escluso** (operatore doppiatore) | — |
 | Mixer, gain, pan, sends | FilmCraft | ✅ | Mixer |
 | Ducking/loudness/limiter | FilmCraft | ✅ base | Essential Sound |
 | Sgrossatura audio e fiati | ClipsAI | ⬜ | Sgrossa |
