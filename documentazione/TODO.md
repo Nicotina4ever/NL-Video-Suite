@@ -63,7 +63,7 @@ un modello piccolo (`lfm2.5:latest` o `granite4.2:3b`), poi scaricarlo prima di 
 - [x] Comando `audio.generateMusic` con workflow Ace Step/MiniMax, durata e testi.
 - [ ] Mixer NL: persistenza e ascolto reale (già presente la base FilmCraft).
 - [ ] Ducking/loudness/limiter in Essential Sound.
-- [ ] Test reale Ace Step, verifica durata/forma d'onda e ricevuta.
+- [x] Test reale Ace Step: musica 10 s 48 kHz stereo generata, collegata alla scena e messa su A1\n      (`prove/p5-music/`); forma d'onda verificata via ffprobe.
 
 ## Parità NL completa (Regista AI + ClipsAI + Calliope + ZP Video)
 
@@ -139,8 +139,8 @@ Inventario: `documentazione/inventario/prompter_comfyui.md`. Workflow copiati (8
 - [x] P9c (prima parte): **coda varianti** (`nl.queue.*`: seed deterministici, dedupe, prepare con
       dry run, send solo con `confirm:true`, remove, free VRAM confermato), **override dei widget**
       (`graphics.generateComfy overrides`), pannello NL Queue; prova live prepare+send
-      (`prove/p9c-queue/`). Restano: editing dei widget direttamente nel pannello e free automatico
-      ogni N invii.
+      (`prove/p9c-queue/`); **override JSON** anche nei pannelli Generate/Queue. Restano: free
+      automatico ogni N invii e editor campo-per-campo dei widget.
 - [ ] P9d: reference video/audio per v2v/r2v/extend, generazione e inserimento/estensione in
       timeline.
       Fatto (prima parte): staging reference image/video/audio con patch dei loader e rifiuto

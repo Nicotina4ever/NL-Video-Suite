@@ -69,6 +69,15 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
   servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
 
+## Parità NL — P5 musica di scena live (23/11/2026)
+
+- `nl.story.extendAudio` → `audio.generateMusic` con Ace Step (workflow regista/audio, doctor
+  pulito): musica **MP3 10 s 48 kHz stereo** generata in 250 s, importata, collegata alla scena e
+  posizionata su A1 con `nl.story.placeAudio`.
+- Campi **Widget overrides JSON** nei pannelli NL Generate e NL Queue (array node/field/value
+  validato dal motore: nodi o campi inesistenti rifiutati).
+- Evidenze: `documentazione/prove/p5-music/`.
+
 ## Parità NL — P9d video live con reference (23/11/2026)
 
 - Prova end-to-end riuscita: prompt H3 full-reference (`nl.prompt.h3`), due reference immagini
