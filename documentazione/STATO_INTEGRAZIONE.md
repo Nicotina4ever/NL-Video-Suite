@@ -69,6 +69,27 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
   servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
 
+## Parità NL — P7 release e performance (23/11/2026)
+
+- `cargo build --release -p filmcraft -p filmcraft-cli`: 422 s, nessun errore; `filmcraft.exe` 80,4 MB,
+  `filmcraft-cli.exe` 51,3 MB, **48 pannelli**.
+- Misure con binari release: avvio CLI warm **71–80 ms** (primo avvio a freddo 404 ms), demo
+  openDemo+inspect+storage **108 ms**, apertura/inspect progetto GTA6 (copia) **96 ms**, apertura +
+  export frame program 1080×1920 **1176 ms**. Evidenze in `prove/p7-release/`.
+- Restano: export/riproduzione completa GTA6, rigenerazione del portabile con la release,
+  ricevuta finale P7 e pulizia definitiva del progetto (target/cache, da_eliminare).
+
+## Parità NL — P7 regressione GTA6 read-only (23/11/2026)
+
+- Copia del progetto `documentazione/prove/f4-shorts/gta6-shorts.fcproj` in temp, aperta con la
+  suite: sequenza «Mi ficco in GTA6», 4476 frame, 2 tracce video, 3 audio, verticale 1080×1920.
+- `file.exportFrame` program a time 0 → PNG 1080×1920 (727 KB); `nl.delivery.qa` → ready=true
+  con 0 errori e 2 warning non bloccanti.
+- Hash SHA-256 dell'originale invariato prima/dopo: nessun progetto utente toccato.
+  Evidenze in `prove/p7-regression/`.
+- Restano di P7: release completa con tutti i pannelli, misure performance, export/riproduzione
+  completa e ricevuta finale.
+
 ## Parità NL — P12 manutenzione automatica dello spazio (23/11/2026)
 
 - `nl.storage.cleanup`: pulizia confinata alla cartella dati con categorie disposable

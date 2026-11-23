@@ -1,0 +1,32 @@
+{
+  "date": "2026-11-23",
+  "phase": "P7 (regressione progetto GTA6, sola lettura)",
+  "title": "Regressione read-only su una copia del progetto GTA6: apertura, ispezione, export frame e QA senza toccare l'originale",
+  "intent": "Verificare che il progetto verticale GTA6 (usato come riferimento operativo) continui ad aprirsi, ispezionarsi, renderizzare un frame e passare la QA nella suite NL, lavorando su una COPIA in temp e senza modificare l'originale.",
+  "implemented": "Nessuna modifica al codice: prova di regressione read-only con i comandi esistenti file.open, sequence.inspect, file.exportFrame (program) e nl.delivery.qa.",
+  "live_evidence": {
+    "original": "documentazione/prove/f4-shorts/gta6-shorts.fcproj",
+    "copy": "%TEMP%\\nl-p7-regression\\gta6-shorts-copy.fcproj",
+    "open": "file.open sulla copia: ok",
+    "sequence": "nome «Mi ficco in GTA6», 4476 frame (circa 3 min a 23.976 fps), 2 tracce video, 3 tracce audio, verticale 1080×1920",
+    "frame_export": "file.exportFrame target=program time=0 → PNG 1080×1920, 727 KB",
+    "qa": "nl.delivery.qa → ready=true, 0 errori, 2 warning (sottotitoli/audio, non bloccanti)",
+    "integrity": "hash SHA-256 dell'originale identico prima e dopo la prova; nessuna scrittura sull'originale, nessun progetto utente toccato",
+    "files": ["documentazione/prove/p7-regression/gta6-open.jsonl", "documentazione/prove/p7-regression/gta6-frame.png"]
+  },
+  "checks": [
+    "Apertura e ispezione della copia con il binario debug della suite",
+    "Render di un frame del programma a 1080×1920",
+    "QA di consegna sul progetto"
+  ],
+  "limits": [
+    "La prova apre una copia del progetto nell'ambiente temporaneo: i media restano letti dalle loro posizioni originali, in sola lettura.",
+    "Non è stata eseguita una riproduzione completa né un export video del progetto (fuori dal perimetro read-only).",
+    "La regressione completa su tutti i progetti utente e la release definitiva restano in P7."
+  ],
+  "rules_respected": [
+    "Progetti utente intatti: lavoro su copia, hash dell'originale invariato",
+    "Nessun servizio AI usato per la regressione",
+    "Niente 'FilmCraft' nei testi visibili"
+  ]
+}

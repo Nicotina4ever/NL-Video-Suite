@@ -46,9 +46,16 @@
       "attempt_1": "fallito in ComfyUI: RuntimeError shape … invalid for input of size 86400 — la latente del keyframe a 1280×720 ha altezza di 45 celle (dispari) e non è patchificabile; risolto arrotondando width/height a multipli di 32 per i workflow con keyframe (720 → 704)",
       "attempt_2": "generazione riuscita in 794 s: MiniMax_H3_00067_.mp4 importato come item 900016; il placement non è avvenuto perché il piano passava il nome visuale «Video 1» a timeline.place invece di «V1» — corretto mappando la traccia su V<n>",
       "placement_path_check": "graphics.generateComfy con z-image-turbo e place {track: V1}: PNG generato z-image-turbo_00013_.png importato e piazzato al frame 0 per 48 frame, prima delle clip esistenti; il percorso di auto-placement dopo import funziona",
-      "attempt_3": "timeout del client a 900 s (901 s trascorsi) mentre ComfyUI ha poi completato con successo; il timeout predefinito di nl.generate.text/nl.bridge.generate è stato portato a 1800 s (clamp 120–7200) — il rerun end-to-end automatico resta da fare nel prossimo giro",
+      "attempt_3": "timeout del client a 900 s (901 s trascorsi) mentre ComfyUI ha poi completato con successo (MiniMax_H3_00068_.mp4 nella history); il timeout predefinito dei comandi video è stato portato a 3600 s",
+      "attempt_4": "timeout del client a 1800 s mentre ComfyUI stava ancora generando (la GPU impiega oltre 30 minuti per la variante FLF con keyframe su questa macchina): la generazione è stata interrotta e il file è stato recuperato con nl.bridge.place",
       "gap_fill_check": "il file generato MiniMax_H3_00067_.mp4 è stato inserito nel gap con nl.album.insert atSeconds=2 seconds=2: sequenza 0–48 (uscente), 48–96 (ponte), 96–144 (entrante), durata esatta del gap e clip entrante intatta",
-      "auto_place": "percorso di auto-placement verificato con una generazione z-image + place: PNG importato e piazzato al frame 0 per 48 frame"
+      "auto_place": "percorso di auto-placement verificato con una generazione z-image + place: PNG importato e piazzato al frame 0 per 48 frame",
+      "bridge_place_recovery": {
+        "run": "nl.bridge.place {path: MiniMax_H3_00067_.mp4, outgoing, incoming} sul progetto con gap di 2 s",
+        "result": "item 900016 importato e clip 900018/900019 piazzati a 48 frame (=2 s) con durata esatta del gap; sequenza 0–48 uscente, 48–96 ponte generato, 96–144 entrante",
+        "why": "su questa GPU la generazione FLF con keyframe ha impiegato più di 1800 s (ComfyUI ha poi completato in background): il comando di recovery permette di piazzare il file generato quando il client è andato in timeout, senza tagli manuali",
+        "file": "documentazione/prove/p11-generative/bridge-place.jsonl"
+      }
     }
   },
   "checks": [

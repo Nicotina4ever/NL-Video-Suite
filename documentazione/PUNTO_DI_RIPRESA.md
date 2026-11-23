@@ -25,6 +25,14 @@ Stato aggiornato dopo P10 (provider modulari e distribuzione) e P11 (text-to-vid
   cache vecchie in `%APPDATA%\NL Video Suite`; media generati protetti salvo `cleanupGenerated` con
   retention; impostazioni e pulsanti Preview/Clean up now. Prova live: frame vecchio rimosso, nuovo
   e media intatti. `prove/p12-maintenance/`.
+- **P7 release e performance**: release build con 48 pannelli in 422 s (`filmcraft.exe` 80,4 MB,
+  `filmcraft-cli.exe` 51,3 MB); avvio CLI warm 71–80 ms, demo open+inspect+storage 108 ms, GTA6 open
+  96 ms, frame 1080×1920 1176 ms. Regressione GTA6 read-only su copia (hash originale invariato).
+  `prove/p7-release/`, `prove/p7-regression/`.
+- **Pulizia spazio in corso**: rimossa la cache `target/debug/incremental` (11,9 GB) che causava anche
+  errori di link con artefatti stale; test engine 1042 verdi dopo la ricostruzione. Alla chiusura del
+  progetto restano da svuotare `target/` (deps debug/release dopo aver copiato gli eseguibili) e
+  `da_eliminare/`; prove, ricevute e media generati non si toccano.
 - **Da fare subito dopo**: rerun end-to-end automatico del bridge con timeout 1800 s (la generazione
   e il placement sono verificati separatamente), prompt bridge con analisi vision del frame entrante,
   transizioni/audio del ponte, estensione v2v; rename NL degli installer upstream e prova reale degli
