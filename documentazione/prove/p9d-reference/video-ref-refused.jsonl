@@ -1,0 +1,2 @@
+{"id":"file.openDemoProject","line":1,"ok":true,"result":{"sequence":21}}
+{"error":"invalid parameters for `graphics.generateComfy`: the workflow has no video input (LoadVideo or VHS_LoadVideo): pick a workflow that declares it","id":"graphics.generateComfy","line":2,"ok":false}

@@ -69,6 +69,16 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
   servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
 
+## Parità NL — P9d reference media (23/11/2026)
+
+- `graphics.generateComfy` accetta reference **image/video/audio**: le carica in ComfyUI e
+  patcha i loader per ruolo (`LoadImage`; `LoadVideo`/`VHS_LoadVideo`;
+  `LoadAudio`/`LoadAudioUI`) in ordine di node-id; un workflow senza l'input richiesto viene
+  rifiutato con un messaggio esplicito, senza inviare nulla.
+- `nl.story.generate kind=video` parte dalla keyframe della scena (image-to-video) e con
+  `extendFromScene` usa il video di un'altra scena come reference (v2v extend); il media
+  importato viene collegato alla scena. Prova live: `documentazione/prove/p9d-reference/`.
+
 ## Parità NL — P8d prima verticale: storia AI → timeline (23/11/2026)
 
 - Pannello **NL Story** e comandi `nl.story.*`: idea → bozza di storia con Ollama (JSON validato,

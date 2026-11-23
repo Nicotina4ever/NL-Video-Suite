@@ -127,6 +127,11 @@ Inventario: `documentazione/inventario/prompter_comfyui.md`. Workflow copiati (8
       controllato ogni N generazioni.
 - [ ] P9d: reference video/audio per v2v/r2v/extend, generazione e inserimento/estensione in
       timeline.
+      Fatto (prima parte): staging reference image/video/audio con patch dei loader e rifiuto
+      esplicito se il workflow non ha l input; `nl.story.generate kind=video` usa la keyframe e
+      `extendFromScene` per il video da estendere; `nl.story.extendAudio`/`placeAudio` per la musica
+      di scena con pulsanti nel pannello. Prova: `prove/p9d-reference/`. Restano: generazione video
+      live con workflow v2v/r2v e prova audio live (Ace Step).
 
 ## F8 — Consegna
 

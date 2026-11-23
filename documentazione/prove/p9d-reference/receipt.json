@@ -1,0 +1,34 @@
+{
+  "date": "2026-11-23",
+  "phase": "P9d (prima parte)",
+  "title": "Reference media per le generazioni (image/video/audio) e generazione video di scena con keyframe",
+  "intent": "Permettere a una generazione di partire da un media scelto (frame, video da estendere, audio) invece che solo da un prompt, prerequisito per v2v/r2v, estensione video e copertine guidate.",
+  "implemented": {
+    "engine": [
+      "comfy.rs: upload_file generico (immagini, video, audio) su /upload/image con content-type corretto; patch dei loader per ruolo in ordine di node-id (LoadImage; LoadVideo/VHS_LoadVideo; LoadAudio/LoadAudioUI) con rifiuto esplicito se il workflow non dichiara l'input",
+      "graphics.generateComfy accetta `image` (o `images` ordinato) / `video` / `audio` e restituisce `references` con file caricati e nodi patchati",
+      "nl.story.generate kind=video: usa la keyframe della scena come reference (image-to-video) e, con `extendFromScene`, il video della scena indicata come reference video (v2v extend)",
+      "nl.story.assign riconosce il ruolo audio (scene.audio)",
+      "nl.story.extendAudio: musica per la durata della scena (prompt esplicito o derivato da style/heading) collegata alla scena; nl.story.placeAudio la mette su una traccia audio (A1), con pulsanti nel pannello NL Story"
+    ]
+  },
+  "live_evidence": {
+    "success": "filmcraft-cli: workflow regista/image_edit/z-image-edit-immagini.json a 512x512 con image=documentazione/prove/p8d-story/scene1-keyframe.png → references role=image, files=[scene1-keyframe.png], patched=1, job ok (exit 0)",
+    "refusal": "stesso workflow con video=... → errore esplicito 'the workflow has no video input (LoadVideo or VHS_LoadVideo)' senza invio (exit 1 atteso)",
+    "files": [
+      "documentazione/prove/p9d-reference/image-ref-run.jsonl",
+      "documentazione/prove/p9d-reference/video-ref-refused.jsonl"
+    ]
+  },
+  "checks": [
+    "comfy::cover_tests::reference_nodes_are_patched_in_node_id_order",
+    "comfy::cover_tests::video_and_audio_loaders_get_their_own_input_key",
+    "comfy::cover_tests::a_workflow_without_the_input_reports_zero_patches",
+    "cargo fmt, clippy -D warnings, test engine/UI"
+  ],
+  "limits": [
+    "La generazione video live con workflow v2v/r2v non è stata ancora eseguita (richiede un workflow video con input e tempo GPU): staging e patch sono verificati su un workflow con input immagine.",
+    "La generazione audio live (Ace Step) non è stata eseguita: il comando avvia un job ComfyUI e richiede GPU; la messa in timeline è verificata solo come comando (rifiuto esplicito senza musica generata).",
+    "Nessun file utente usato come reference: la prova usa la keyframe generata in P8d."
+  ]
+}

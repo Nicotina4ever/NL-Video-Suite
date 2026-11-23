@@ -58,6 +58,7 @@ Matrice dettagliata: `documentazione/PARITA_FEATURE.md`.
 | P8b Default rapido | **fatto** | workspace **Quick Edit** disponibile, nessun pannello NL docked di default, nessun AI all'apertura, `PERFORMANCE.md`; `prove/p8b-performance/` |
 | P9a Workflow doctor + API | **fatto** | `nl.workflows.verify/diagnose/fix/import`, pannello NL Workflows, 8 workflow Prompter copiati; `prove/p9-workflows/` |
 | P8d Storia AI → timeline | **prima verticale fatta** | pannello NL Story, `nl.story.*`, keyframe ComfyUI + place/placeAll; `prove/p8d-story/` |
+| P9d Reference media | **prima parte fatta** | image/video/audio refs con patch loader, video di scena da keyframe e `extendFromScene`; `prove/p9d-reference/` |
 | Parità NL completa | in corso (P2, P3b, P4, P5, P6, P8c–f, P9b–d) | `documentazione/PARITA_FEATURE.md`, `TRACCIA_PARITA.md`, `inventario/versione_test.md` |
 | F8 portable | da fare | — |
 
