@@ -51,7 +51,8 @@ Matrice dettagliata: `documentazione/PARITA_FEATURE.md`.
 | F3b ASR | bridge verificato, comando pronto | `documentazione/prove/f3b-asr/`, `nl_asr.rs` |
 | F3b traduzioni | da fare | — |
 | GUI NL | dialoghi Generate/Music/ASR aggiunti; clippy pulito | `menu_dialogs.rs`, `text.rs` |
-| Parità completa NL | da fare, matrice pronta | `documentazione/PARITA_FEATURE.md` |
+| P1 Impostazioni NL | **fatto** | categoria `nl` in `preferences.json`, wiring comfy/ASR/shorts, `nl/size.rs`; `prove/p1-settings/` |
+| Parità completa NL | in corso (P2–P7) | `documentazione/PARITA_FEATURE.md`, `TRACCIA_PARITA.md` |
 | F8 portable | da fare | — |
 
 Ultimi test (23/11/2026): clippy engine+UI pulito; UI 367 + 815 passati, 0 falliti;
@@ -108,16 +109,16 @@ python K:\AI\NL_Video_Suite\documentazione\prove\f6-audio\real_test.py
 
 ## Prossimi passi
 
-1. Rifare il test F6 in un'app pulita (una sola istanza, controllo 9876 libero), con il job
-   selezionato per id; verificare audio importato, durata e ricevuta.
-2. Testare `transcript.transcribeNl` sul progetto demo (sample.wav 12 s) e su GTA6; poi traduzioni.
-3. Compilare la release con i dialoghi GUI e verificare con screenshot:
-   Grafica > Generate, Audio > Generate Music, Text > Transcribe; aprire i dialoghi e controllare
-   che siano usabili senza JSON.
-4. Impostazioni NL uniche (ComfyUI/Ollama/ASR/workflow) persistite.
-5. Pannelli Clipping, Sgrossa, Storyboard/Storia, TTS, Coda: seguire `PARITA_FEATURE.md`.
-6. Portable, regressione GTA6, documentazione e ottimizzazione finale (eliminare la cache debug
-   ricreata e aggiornare la ricevuta).
+1. **P2b**: pannelli NL dedicati (Genera, Musica, ASR, Clipping, Sgrossa, Storyboard, Coda,
+   Impostazioni NL) e rimozione di “FilmCraft” dai testi visibili.
+2. **P2**: pannello ASR completo (import SRT/VTT, traduzioni EN/ES) con device/fallback visibile.
+3. **P3**: Clipping e Sgrossa via bridge esistente (`sviluppo/bridge/clipsai_bridge.py`), con
+   pannelli, piano tagli, report e anteprima.
+4. **P4**: Storyboard/Storia con generazione immagini/video per scena e coda.
+5. **P5**: musica con workflow/modelli installati selezionabili (TTS escluso su richiesta).
+6. **P6/P7**: riparazione workflow, servizi, parità verificata, portable, regressione GTA6, docs.
+7. Restano validi: retest F6 in app pulita, prova `transcript.transcribeNl` su demo/GTA6, e alla
+   fine pulizia cache debug con ricevuta.
 
 ## Se si migra a un altro harness
 

@@ -69,11 +69,19 @@ un modello piccolo (`lfm2.5:latest` o `granite4.2:3b`), poi scaricarlo prima di 
 
 Matrice: `documentazione/PARITA_FEATURE.md`. Ogni voce deve avere GUI e comando.
 
-- [ ] P1: impostazioni NL uniche (ComfyUI, Ollama, ASR provider/modello/device, workflow default,
+- [x] P1: impostazioni NL uniche (ComfyUI, Ollama, ASR provider/modello/device, workflow default,
       profilo risoluzione immagini 1×/2× e video 2/3–1/2 (720p/540p), GPU-first con fallback CPU).
+      Fatto: categoria `nl` persistita in `preferences.json`, wiring comfy/ASR/shorts,
+      risoluzione unica `nl/size.rs`, comandi `nl.*`. Prova: `documentazione/prove/p1-settings/receipt.json`.
 - [ ] P2: pannello ASR completo + traduzioni EN/ES; device automatico CUDA→CPU con esito visibile.
 - [ ] P2b: rimuovere “FilmCraft” da tutti i testi visibili e creare i pannelli NL dedicati
       (Genera, Musica, ASR, Clipping, Sgrossa, Storyboard, Coda, Impostazioni NL).
+      Stato 23/11: 8 pannelli creati e apribili da Window; testi visibili ripuliti (About, link
+      upstream, export progetto). Clipping/Sgrossa/Storia mostrano lo stato onesto “engine step
+      P3/P4” finché i comandi non esistono; ASR e Coda funzionano già.
+- [ ] P4b (richiesta operatore): **copertine AI/thumbnail** stile YouTube — frame scelto dalla
+      timeline + contesto discusso nel video, workflow immagine selezionabile, import come cover
+      del progetto. Da implementare dopo P3/P4 (serve l'upload reference a ComfyUI).
 - [ ] P3: pannello Clipping (analisi, selezione, reframe 9:16, SRT, burn) e Sgrossa (tagli,
       waveform manuale, report, anteprima).
 - [ ] P4: pannello Storyboard/Storia (Calliope/Regista) con image/video per scena e coda.

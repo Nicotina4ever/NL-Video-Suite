@@ -52,6 +52,19 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   gestita dalla propria coda.
 - **Portable con motore AI e launcher unico**: F8.
 
+## Parità NL — P1 impostazioni (23/11/2026)
+
+- Nuova categoria Impostazioni **NL Video Suite** (`nl.*`) persistita in `preferences.json`:
+  endpoint ComfyUI/Ollama, workflow per tipo, modelli installati, profili risoluzione dalla
+  sequenza (immagini 1×/2×, video 2/3 o 1/2, arrotondamento 8/16 px), ASR (device GPU-first,
+  lingua, modello, cache), timeout coda e percorsi servizi.
+- I comandi leggono **parametro → impostazione → variabile d'ambiente → default**: nessun
+  workflow video viene inventato, la sequenza resta la fonte di verità per le dimensioni.
+- `nl_asr` usa lingua/device/modello/cache dalle impostazioni, con un solo ripiego CPU dichiarato
+  e cartella cache stabile per media; `shorts` usa URL/modello Ollama dalle impostazioni.
+- Comandi nuovi: `nl.models.workflows`, `nl.models.ollama`, `nl.services.status`,
+  `nl.diagnostics`, `nl.size.preview`. Prova: `documentazione/prove/p1-settings/receipt.json`.
+
 ## Ottimizzazione spazio (22/11/2026)
 
 - Rimossa la cache debug `filmcraft-nl/target/debug`: **8,69 GB** liberati (rimane il binario
