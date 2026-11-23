@@ -64,7 +64,8 @@ Matrice dettagliata: `documentazione/PARITA_FEATURE.md`.
 | P8c Ricerca progetto | **fatta** | `nl.search.index/query` (clip, marcatori, sottotitoli, storia, trascrizioni) + riquadro in NL Analyze; `prove/p8c-search/` |
 | P8c Traduzioni | **fatte** | `nl.translate.captions/text` (nuova traccia EN/ES) + pulsante in NL Analyze; `prove/p8c-translate/` |
 | P8c Assistente | **fatto** | `nl.assistant.ask` con citazioni dai documenti indicizzati; `prove/p8c-assistant/` |
-| P8e Sottotitoli/Titoli | **fatta la parte principale** | pannelli NL Subtitles e NL Titles, `nl.titles.add`, responsive time; `prove/p8e-studio/` |
+| P8e Sottotitoli/Titoli/Grafici/Audio | **fatta** | NL Subtitles, NL Titles, NL Graphics (`nl.graphics.add`), NL Audio (Essential Sound + mixer); `prove/p8e-studio/` |
+| P8f Delivery | **prima parte fatta** | `nl.delivery.qa/package`, `nl.storage.status`, pannello NL Delivery con thumbnail nel pacchetto; `prove/p8f-delivery/` |
 | P9c Coda varianti | **fatta (manca free auto)** | `nl.queue.add/list/prepare/send/remove/free`, override widget (campo JSON in Generate/Queue), pannello NL Queue; `prove/p9c-queue/`; musica live `prove/p5-music/` |
 | Parità NL completa | in corso (P2, P3b, P4, P5, P6, P8c–f, P9b–d) | `documentazione/PARITA_FEATURE.md`, `TRACCIA_PARITA.md`, `inventario/versione_test.md` |
 | F8 portable | da fare | — |

@@ -1,0 +1,4 @@
+{"id":"file.openDemoProject","line":1,"ok":true,"result":{"sequence":21}}
+{"id":"nl.graphics.add","line":2,"ok":true,"result":{"clip":900012,"fill":null,"kind":"rectangle"}}
+{"id":"nl.graphics.add","line":3,"ok":true,"result":{"clip":900014,"fill":null,"kind":"ellipse"}}
+{"id":"nl.graphics.add","line":4,"ok":true,"result":{"clip":900016,"fill":null,"kind":"text"}}

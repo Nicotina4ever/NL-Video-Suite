@@ -1,0 +1,59 @@
+{
+  "chapters": 0,
+  "checks": [
+    {
+      "detail": "1920 × 1080 @ 23.98 fps",
+      "id": "sequence",
+      "status": "ok"
+    },
+    {
+      "detail": "1920×1080 is at least 720p",
+      "id": "resolution",
+      "status": "ok"
+    },
+    {
+      "detail": "26.8 s",
+      "id": "duration",
+      "status": "ok"
+    },
+    {
+      "detail": "2 cue(s) in 1 track(s)",
+      "id": "captions",
+      "status": "ok"
+    },
+    {
+      "detail": "7 audio clip(s), master Stereo",
+      "id": "audio",
+      "status": "ok"
+    },
+    {
+      "detail": "7 video clip(s)",
+      "id": "video",
+      "status": "ok"
+    },
+    {
+      "detail": "No longform chapters (optional)",
+      "id": "chapters",
+      "status": "info"
+    },
+    {
+      "detail": "No AI story (optional)",
+      "id": "story",
+      "status": "info"
+    },
+    {
+      "detail": "12 generated file(s), 4.5 MB",
+      "id": "generated",
+      "status": "info"
+    }
+  ],
+  "createdBy": "filmcraft-nl",
+  "sequence": {
+    "durationSeconds": 26.77675,
+    "fps": 23.976023976023978,
+    "height": 1080,
+    "width": 1920
+  },
+  "story": false,
+  "tool": "NL Video Suite"
+}

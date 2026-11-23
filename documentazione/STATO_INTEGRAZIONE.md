@@ -69,6 +69,30 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
   servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
 
+## Parità NL — P8f delivery: QA, spazio e production package (23/11/2026)
+
+- `nl.delivery.qa`: controlli deterministici prima della consegna (risoluzione ≥720p, durata, cue
+  sottotitoli, clip audio/video, master, capitoli/storia informativi, media generati) con esito
+  errors/warnings/ready.
+- `nl.delivery.package {path}`: cartella nuova con manifest.json, captions.srt, chapters.json,
+  story.json, **thumbnail.png dal playhead**, copia del progetto e README; i media non vengono
+  copiati e il manifest lo dichiara. `nl.storage.status`: spazio di data/generated/progetto.
+- Pannello **NL Delivery** con Run checks, Storage report ed Export production package.
+- Prova live: QA 0 errori/0 warning ready, storage 5 MB/22 file, pacchetto creato con manifest,
+  captions, thumbnail 367 KB e README; `documentazione/prove/p8f-delivery/`.
+
+## Parità NL — P8e completa: grafici e audio master (23/11/2026)
+
+- Pannello **NL Graphics**: `nl.graphics.add` crea rettangolo/ellisse/testo con colore di
+  riempimento, posizione, dimensioni, dimensione font e durata (preset Lower bar / Badge / Text
+  title), sopra `graphics.newShape/newText` e `graphics.set`.
+- Pannello **NL Audio**: master della sequenza in vista; Essential Sound sui clip selezionati
+  (Set type, Apply preset, Auto match LUFS, Generate ducking) e mixer strip (volume/mute/solo).
+  La narrazione resta la registrazione voiceover della suite; TTS escluso.
+- Prove live: 3 oggetti grafici creati (clip 900012/900014/900016); clip audio 30 classificato
+  Dialogue con preset Podcast Voice, target -16 LUFS (misurato -27.17 → gain +11.17 dB) e strip A1 a
+  -3 dB; `documentazione/prove/p8e-studio/`.
+
 ## Parità NL — P8e sottotitoli e titoli (23/11/2026)
 
 - Pannello **NL Subtitles**: cue list della traccia sottotitoli con editing del testo, split al

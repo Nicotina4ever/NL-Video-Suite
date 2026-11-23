@@ -118,8 +118,8 @@ Regola: tutte come pannelli/menù/comandi, ma **default rapido** invariato.
       risoluzione, 425 s) con place in timeline; prove in `documentazione/prove/p8d-story/` e
       `p9d-reference/`. Restano: keyframe con reference live (serve un workflow Flux2-Klein 2 ref),
       estensione sezioni, narration, montage planner, shot map, flows.
-- [ ] P8e: **subtitle studio e motion/titoli fatti** — pannelli **NL Subtitles** (cue list,\n      setText/split/merge/delete, import/export SRT/VTT) e **NL Titles** (template con controlli\n      editabili, responsive intro/outro, `nl.titles.add`); prove `prove/p8e-studio/`. Restano:\n      graphic objects e narration/audio master.
-- [ ] P8f: workflow doctor+API (unito P9a), versioni montaggio, album, production package,
+- [x] P8e: **fatta** — pannelli **NL Subtitles** (cue list, setText/split/merge/delete, import/export\n      SRT/VTT), **NL Titles** (template con controlli editabili, responsive intro/outro, `nl.titles.add`),\n      **NL Graphics** (`nl.graphics.add`: rettangolo/ellisse/testo con fill/posizione/durata) e\n      **NL Audio** (Essential Sound type/preset/auto-match/ducking + mixer strip; narrazione = voiceover,\n      niente TTS). Prove `prove/p8e-studio/`.
+- [ ] P8f: workflow doctor+API (unito P9a) **fatto**, **delivery/QA/storage/production package/thumbnail\n      fatti** (`nl.delivery.*`, `nl.storage.status`, pannello NL Delivery, `prove/p8f-delivery/`). Restano:\n      versioni montaggio, album, social QA/export dedicati;
       storage, social QA/export, thumbnail nativa.
 
 ## P9 — Prompter_Comfyui
