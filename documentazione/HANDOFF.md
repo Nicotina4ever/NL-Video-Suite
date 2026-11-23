@@ -60,6 +60,8 @@ Matrice dettagliata: `documentazione/PARITA_FEATURE.md`.
 | P8d Storia AI → timeline | **prima verticale + libreria reference** | pannello NL Story, `nl.story.*`, sheet/plate + keyframe con reference, place/placeAll; `prove/p8d-story/` |
 | P9d Reference media | **prima parte fatta** | image/video/audio refs con patch loader, video di scena da keyframe e `extendFromScene`; `prove/p9d-reference/` |
 | P9b Prompt AI/parametri/dry run | **prima parte fatta** | `nl.prompt.enhance`, `nl.prompt.h3` (schema MiniMax H3), `nl.workflows.parameters`, `dryRun` + pulsanti pannelli; `prove/p9b-prompt-params/` |
+| P8c Longform/analisi | **prima parte fatta** | pannello NL Analyze, `nl.longform.*` (capitoli da ASR + marcatori); `prove/p8c-longform/` |
+| P8c Ricerca progetto | **fatta** | `nl.search.index/query` (clip, marcatori, sottotitoli, storia, trascrizioni) + riquadro in NL Analyze; `prove/p8c-search/` |
 | Parità NL completa | in corso (P2, P3b, P4, P5, P6, P8c–f, P9b–d) | `documentazione/PARITA_FEATURE.md`, `TRACCIA_PARITA.md`, `inventario/versione_test.md` |
 | F8 portable | da fare | — |
 

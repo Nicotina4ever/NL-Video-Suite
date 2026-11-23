@@ -102,8 +102,10 @@ Regola: tutte come pannelli/menù/comandi, ma **default rapido** invariato.
 
 - [x] P8b: workspace di avvio **Quick Edit** (nessun pannello NL agganciato), nessun lavoro AI
       all'apertura (`nl::performance_tests`), `documentazione/PERFORMANCE.md`, cache liste.
-- [ ] P8c: longform/topics/chapters/rough-cut, indice FTS e ricerca, assistente correzioni,
-      import SRT/VTT, traduzioni EN/ES.
+- [ ] P8c: **longform/capitoli fatto** — `nl.longform.analyze/get/markers`, pannello **NL
+      Analyze**, prova live `prove/p8c-longform/`. **Indice e ricerca fatti** (`nl.search.*`, riquadro
+      nel pannello, `prove/p8c-search/`). Restano: topics/rough-cut, assistente correzioni con
+      citazioni, export MD/JSON, import SRT/VTT (già in `captions.import`), traduzioni EN/ES.
 - [ ] P8d: montage planner/creative montage/audio onset, story/narrative + assistente + reference,
       shot map, pipeline/flows.
       Fatto: pannello **NL Story** — idea → bozza storia con Ollama, affinamenti (update/refine),

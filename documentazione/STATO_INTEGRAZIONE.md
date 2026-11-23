@@ -69,6 +69,22 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
   servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
 
+## Parità NL — P8c ricerca del progetto (23/11/2026)
+
+- Indice e ricerca locale (`nl.search.index`/`nl.search.query`): clip, marcatori, sottotitoli,
+  storia (scene comprese) e trascrizioni ASR; risultati con fonte, tempo, titolo ed estratto,
+  mostrati nel pannello **NL Analyze** (campo + Search + Rebuild index).
+- Prova live: 21 documenti indicizzati e tre domande con risultati corretti (respirazione → scena e
+  trascrizione; Ada studio → scena e storia; Open → marcatore); `documentazione/prove/p8c-search/`.
+
+## Parità NL — P8c longform: capitoli e marcatori (23/11/2026)
+
+- Nuovo pannello **NL Analyze** e comandi `nl.longform.*`: dalla trascrizione ASR il modello locale
+  propone i capitoli, che vengono agganciati ai confini reali dei blocchi (nessun tempo inventato),
+  ordinati e limitati alla durata; un clic li trasforma in marcatori di timeline (`markers.add`).
+- Prova live: 46 parole → 6 blocchi → 2 capitoli (qwen3.5:9b), 2 marcatori aggiunti, 26 s;
+  `documentazione/prove/p8c-longform/`.
+
 ## Parità NL — P9b prompt AI, parametri e dry run (23/11/2026)
 
 - **Prompt AI** (
