@@ -18,6 +18,17 @@ Percorsi di riferimento (sola lettura, niente copia di codice/wording):
 `K:\AI\ZioPaolo Video`, `K:\AI\Regista_AI`, `K:\AI\ClipsAI`, `K:\AI\Calliope`.
 Matrice dettagliata: `documentazione/PARITA_FEATURE.md`.
 
+**Requisiti aggiunti il 23/11/2026 (vincolanti):**
+
+- **Risoluzione dalla sequenza**: immagini a 1× o 2× la sequenza; video a 2/3 (riduzione di
+  1/3) o metà (1080p → 720p/540p; 2048 → 1024). Regole configurabili e forzabili nelle
+  Impostazioni NL, con override nel dialogo; arrotondamento a 8/16 px.
+- **GPU-first**: ASR/WhisperX prova CUDA e ripiega su CPU una sola volta, dichiarandolo;
+  ComfyUI gestisce la propria GPU; nessun download implicito.
+- **Branding**: niente “FilmCraft” nell’interfaccia visibile; resta solo in licenza/attribuzione.
+  Ogni funzione NL ha un pannello dedicato (Genera, Musica, ASR, Clipping, Sgrossa,
+  Storyboard/Storia, Coda, Impostazioni NL), non solo una voce di menu.
+
 ## Stato verificato
 
 | Fase | Stato | Prova |
@@ -101,6 +112,9 @@ python K:\AI\NL_Video_Suite\documentazione\prove\f6-audio\real_test.py
 ## Se si migra a un altro harness
 
 Non è necessario per il codice: tutto è su disco e documentato. Se serve, usare come prompt:
-"Leggi `K:\AI\NL_Video_Suite\documentazione\HANDOFF.md` e `TODO.md`; riprendi dal primo passo
-non fatto. Non toccare i progetti utente, non sovrapporre Ollama e ComfyUI, testa e documenta
-ogni fase."
+"Leggi `K:\AI\NL_Video_Suite\documentazione\HANDOFF.md`, `PARITA_FEATURE.md` e `TODO.md`.
+Riprendi dal primo passo non fatto. Obiettivo: tutte le funzioni di Regista AI, ClipsAI, Calliope
+e ZioPaolo Video dentro NL Video Suite, con pannelli dedicati e impostazioni. Risoluzioni derivate
+dalla sequenza (immagini 1×/2×, video 2/3 o 1/2), GPU-first con fallback CPU, niente ‘FilmCraft’
+nei testi visibili. Usa i percorsi indicati in sola lettura, non copiare codice o wording, non
+toccare i progetti utente, non sovrapporre Ollama e ComfyUI, testa e documenta ogni fase."

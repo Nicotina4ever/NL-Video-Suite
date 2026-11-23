@@ -27,6 +27,14 @@ prompt, negative, workflow e pulsante Generate. Comandi headless equivalenti:
    panel con un solo passo di undo. Il job è in background e compare nella finestra Progress.
 5. Non decide il modello: usa quello scritto nel workflow dell'operatore. Non scarica pesi.
 
+## Risoluzione dalla sequenza
+
+- **Immagine**: default = risoluzione della sequenza; `imageScale: 2` = doppia.
+- **Video**: `resolutionMode: "video"` con `videoScale: "2/3"` (es. 1080p → 720p) o `"1/2"`
+  (es. 2048 → 1024); arrotondamento a 8 px.
+- `width`/`height` espliciti hanno precedenza. Se il workflow non ha un nodo latente
+  dimensionabile la regola non viene applicata silenziosamente: il risultato va verificato.
+
 ## Limiti dichiarati
 
 - Solo workflow in formato API; un workflow salvato dall'interfaccia ComfyUI (formato UI) va

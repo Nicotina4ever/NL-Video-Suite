@@ -107,6 +107,38 @@ Legenda: ✅ integrato e verificato; 🟡 codice pronto, verifica GUI in corso; 
 | Diagnostica/versioni/porte | NL/Regista | ⬜ | Aiuto > Diagnostica |
 | Nessun download implicito | tutte | ✅ regola | ovunque |
 
+## Politica risoluzione (obbligatoria, da impostazioni)
+
+La sequenza aperta è la fonte di verità. Le generazioni non devono inventare risoluzioni.
+
+| Tipo | Regola | Esempio |
+|---|---|---|
+| Immagine | pari alla sequenza **oppure** doppia (1×/2×) | seq 1920×1080 → 1920×1080 o 3840×2160 |
+| Video | **2/3** (riduzione di 1/3) **oppure** metà della sequenza, arrotondato a 8/16 | seq 1920×1080 → 1280×720 o 960×540 |
+| Audio | durata dalla sequenza o dal campo durata | 30 s, 60 s… |
+
+- Le regole sono **forzabili** in Impostazioni NL: profilo immagine (1×/2×) e profilo video
+  (1/2, 1/3, 720p standard), con override esplicito nel dialogo.
+- Se il workflow non ha un nodo latente dimensionabile, il motore lo dichiara e non finge.
+- I valori vanno arrotondati alla granularità del modello (8 o 16 px) e mostrati nel dialogo.
+
+## GPU-first, fallback CPU
+
+- ASR/WhisperX: provare **CUDA** per default; se il modello o l'allineamento non partono,
+  riprovare in CPU una volta e dichiararlo nel risultato.
+- ComfyUI: la GPU è gestita da ComfyUI; la suite non forza CPU e non uccide modelli di altre app.
+- Ollama: modello piccolo, `num_gpu` automatico; niente download impliciti.
+- Ogni job mostra device e fallback nella ricevuta, non solo nel log.
+
+## Branding e pannelli
+
+- L'interfaccia visibile è **NL Video Suite**: niente “FilmCraft” nei menu, titoli, dialoghi,
+  status, messaggi o nomi dei pannelli. Il nome resta solo in licenza/attribuzione e nei file
+  interni del fork.
+- Ogni funzione NL ha un **pannello dedicato**: Genera, Musica, ASR, Clipping, Sgrossa,
+  Storyboard/Storia, Coda, Impostazioni NL. I menu FilmCraft non bastano.
+- I pannelli usano la palette NL viola/magenta/ciano e possono essere aperti da Window/Workspace.
+
 ## Ordine di lavoro proposto
 
 1. **P1** Impostazioni NL uniche (URL, modelli, workflow, ASR, lingua) + persistenza.

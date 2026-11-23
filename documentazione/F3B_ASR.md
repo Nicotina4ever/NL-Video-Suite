@@ -41,6 +41,7 @@ log completo in `da_eliminare/2026-11-23-ottimizzazione/asr-check/`.
 ```
 
 - richiede un media file nella timeline o nel Project panel;
+- device `auto` (default): prova CUDA, poi ripiega su CPU una sola volta dichiarandolo;
 - job in background, stesso modello di F4b/F5;
 - al termine importa la trascrizione con timing di parola nel progetto FilmCraft;
 - il progetto NL non viene modificato.
