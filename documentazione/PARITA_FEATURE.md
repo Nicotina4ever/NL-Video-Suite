@@ -182,7 +182,7 @@ versione test della suite già faceva**. Inventario verificato (165 route, ~80 m
   storia con Ollama, affinamenti (campi scena + refine), library reference (character sheet +
   location plate generati una volta), keyframe per scena che usano le reference, video di scena,
   musica di scena e **posizionamento in timeline** (`nl.story.*`); prove `prove/p8d-story/`.
-- **P8c prima parte fatta**: pannello **NL Analyze** — capitoli dalla trascrizione ASR agganciati a\n  tempi reali e trasformabili in marcatori (`nl.longform.*`); prova `prove/p8c-longform/`.\n- **Da fare**: P8c resto (ricerca/indice, assistente, traduzioni), P8d resto (video per scena,
+- **P8c prima parte fatta**: pannello **NL Analyze** — capitoli dalla trascrizione ASR agganciati a\n  tempi reali e trasformabili in marcatori (`nl.longform.*`); prova `prove/p8c-longform/`.\n- **P8c ricerca e traduzioni fatte**: `nl.search.*` e `nl.translate.*` (nuova traccia EN/ES),\n  entrambi nel pannello NL Analyze; prove `prove/p8c-search/`, `prove/p8c-translate/`.\n- **P9c prima parte fatta**: coda varianti con prepare/send confermati e free VRAM.\n- **Da fare**: P8c resto (assistente con citazioni, export capitoli, topics), P8d resto (video per scena,
   v2v/r2v, estensione sezioni, montage planner, shot map, flows), P8e (sottotitoli studio, motion,
   graphic objects, audio master), P8f (servizi/versioni/album/production package/storage/social),
   P9b–d (parametri reali + Prompt AI, coda varianti/prepara/invia, v2v con reference video/audio e

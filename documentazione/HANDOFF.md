@@ -62,6 +62,8 @@ Matrice dettagliata: `documentazione/PARITA_FEATURE.md`.
 | P9b Prompt AI/parametri/dry run | **prima parte fatta** | `nl.prompt.enhance`, `nl.prompt.h3` (schema MiniMax H3), `nl.workflows.parameters`, `dryRun` + pulsanti pannelli; `prove/p9b-prompt-params/` |
 | P8c Longform/analisi | **prima parte fatta** | pannello NL Analyze, `nl.longform.*` (capitoli da ASR + marcatori); `prove/p8c-longform/` |
 | P8c Ricerca progetto | **fatta** | `nl.search.index/query` (clip, marcatori, sottotitoli, storia, trascrizioni) + riquadro in NL Analyze; `prove/p8c-search/` |
+| P8c Traduzioni | **fatte** | `nl.translate.captions/text` (nuova traccia EN/ES) + pulsante in NL Analyze; `prove/p8c-translate/` |
+| P9c Coda varianti | **prima parte fatta** | `nl.queue.add/list/prepare/send/remove/free`, override widget, pannello NL Queue; `prove/p9c-queue/` |
 | Parità NL completa | in corso (P2, P3b, P4, P5, P6, P8c–f, P9b–d) | `documentazione/PARITA_FEATURE.md`, `TRACCIA_PARITA.md`, `inventario/versione_test.md` |
 | F8 portable | da fare | — |
 

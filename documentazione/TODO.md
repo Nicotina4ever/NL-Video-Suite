@@ -104,8 +104,9 @@ Regola: tutte come pannelli/menù/comandi, ma **default rapido** invariato.
       all'apertura (`nl::performance_tests`), `documentazione/PERFORMANCE.md`, cache liste.
 - [ ] P8c: **longform/capitoli fatto** — `nl.longform.analyze/get/markers`, pannello **NL
       Analyze**, prova live `prove/p8c-longform/`. **Indice e ricerca fatti** (`nl.search.*`, riquadro
-      nel pannello, `prove/p8c-search/`). Restano: topics/rough-cut, assistente correzioni con
-      citazioni, export MD/JSON, import SRT/VTT (già in `captions.import`), traduzioni EN/ES.
+      nel pannello, `prove/p8c-search/`). **Traduzioni fatte** (`nl.translate.captions/text`, nuova
+      traccia EN/ES, `prove/p8c-translate/`). Restano: topics/rough-cut, assistente correzioni con
+      citazioni, export MD/JSON dei capitoli, import SRT/VTT (già in `captions.import`).
 - [ ] P8d: montage planner/creative montage/audio onset, story/narrative + assistente + reference,
       shot map, pipeline/flows.
       Fatto: pannello **NL Story** — idea → bozza storia con Ollama, affinamenti (update/refine),
@@ -133,8 +134,11 @@ Inventario: `documentazione/inventario/prompter_comfyui.md`. Workflow copiati (8
       Fatto anche il **compilatore H3** (`nl.prompt.h3`: schema base/keyframe/full-reference,
       validazione, riparazione tag dialogo, retry) e le chat testuali Ollama. Restano: modifica
       interattiva dei widget del workflow (con P9c).
-- [ ] P9c: coda varianti (seed deterministici, prepara/invia con conferma, dedupe) + free VRAM
-      controllato ogni N generazioni.
+- [x] P9c (prima parte): **coda varianti** (`nl.queue.*`: seed deterministici, dedupe, prepare con
+      dry run, send solo con `confirm:true`, remove, free VRAM confermato), **override dei widget**
+      (`graphics.generateComfy overrides`), pannello NL Queue; prova live prepare+send
+      (`prove/p9c-queue/`). Restano: editing dei widget direttamente nel pannello e free automatico
+      ogni N invii.
 - [ ] P9d: reference video/audio per v2v/r2v/extend, generazione e inserimento/estensione in
       timeline.
       Fatto (prima parte): staging reference image/video/audio con patch dei loader e rifiuto

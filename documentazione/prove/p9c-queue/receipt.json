@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-23",
+  "phase": "P9c",
+  "title": "Coda varianti con seed deterministici, payload preparato e invio solo su conferma; override dei widget; free VRAM controllato",
+  "intent": "Generare più varianti dello stesso prompt in modo riproducibile, vedere prima cosa verrà inviato a ComfyUI, inviare solo dopo una conferma esplicita e poter liberare la VRAM in modo controllato (come la coda varianti del Prompter).",
+  "implemented": {
+    "engine": [
+      "crates/engine/src/nl/queue.rs: nl.queue.add {prompt, kind?, workflow?, count?, seed?, seeds?, overrides?} crea varianti con seed deterministici (base+i) e deduplica (prompt+kind+workflow+seed) segnalando i duplicati; massimo 64 in coda",
+      "nl.queue.list; nl.queue.prepare {id?} costruisce con un dry run l'esatto payload (prompt, size, workflow, reference, override) e lo salva nella voce (status prepared/error); nessun invio",
+      "nl.queue.send {id?, confirm, wait?, timeoutSeconds?}: senza confirm:true rifiuta; invia solo le voci prepared e le marca sent con il job id; wait:true esegue fino all'import (utile da CLI)",
+      "nl.queue.remove {id | finished:true}; nl.queue.free {confirm:true} chiama POST /free di ComfyUI solo su endpoint loopback e solo dopo conferma",
+      "graphics.generateComfy accetta overrides [{node, field, value}]: applica valori ai widget del workflow rifiutando nodi/campi inesistenti (niente override ignorati in silenzio); il conteggio applicato è nella risposta e nel dry run"
+    ],
+    "gui": "pannello **NL Queue**: prompt, tipo, numero varianti e seed iniziale, Add variants; elenco con seed/stato/qualità del payload; Prepare variants; Send prepared con doppia conferma (Conferma/Annulla); Remove finished; Free ComfyUI VRAM con doppia conferma; elenco dei job di background"
+  },
+  "live_evidence": {
+    "prepare": "3 varianti seed 100/101/102 preparate con dry run: status prepared, submitted=false, size 512×512 (workflow z-image-turbo) — `prove/p9c-queue/prepare-run.jsonl`",
+    "send": "1 variante (seed 4242) preparata e inviata con confirm:true e wait:true: sent=1, job=1, status sent, generazione reale completata in 182 s a 512×512 — `prove/p9c-queue/send-run.jsonl`",
+    "confirm_guard": "nl.queue.send senza confirm rifiutato (exit 1 atteso) — `prove/p9c-queue/send-without-confirm.jsonl`"
+  },
+  "checks": [
+    "nl::queue::tests (seed deterministici e dedupe, send senza conferma rifiutato, prepare costruisce payload submitted=false, remove finished, free senza conferma rifiutato)",
+    "comfy::cover_tests::overrides_change_widgets_and_unknown_ones_are_refused",
+    "cargo fmt, clippy -D warnings (engine, ui, cli), test engine e UI"
+  ],
+  "limits": [
+    "La coda vive nella sessione (non è persistita su disco tra riavvii).",
+    "Il free VRAM è manuale e confermato, non automatico ogni N invii; con generazioni in corso ComfyUI ricarica i modelli al job successivo.",
+    "wait:true è pensato per CLI/test: nella GUI il send è asincrono e l'import si vede nel pannello dei job."
+  ],
+  "rules_respected": [
+    "Niente invii senza conferma esplicita; prepare non invia nulla",
+    "Nessun download; modelli e workflow già installati",
+    "Override validati (nodi/campi inesistenti rifiutati)",
+    "Nessun 'FilmCraft' nei testi visibili del pannello"
+  ]
+}

@@ -69,6 +69,18 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
   servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
 
+## Parità NL — P9c coda varianti e P8c traduzioni (23/11/2026)
+
+- **Coda varianti** (`nl.queue.*`): seed deterministici, dedupe, `prepare` che costruisce con un
+  dry run l'esatto payload (niente invii), `send` solo con `confirm: true`, rimozione e
+  **free VRAM** confermato su endpoint loopback. Pannello **NL Queue** con doppia conferma per invio
+  e free. `graphics.generateComfy` accetta ora `overrides` [{node, field, value}] validati.
+  Prova live: 3 varianti preparate (100/101/102) e una inviata davvero (seed 4242, 512×512,
+  completata in 182 s); `documentazione/prove/p9c-queue/`.
+- **Traduzione sottotitoli** (`nl.translate.captions/text`): batch da 40 cue, validazione id/testo,
+  nuova traccia con gli stessi tempi, originale intatta; nel pannello NL Analyze. Prova live: 3 cue
+  IT → EN con qwen3.5:9b e nuova traccia «cues · EN»; `documentazione/prove/p8c-translate/`.
+
 ## Parità NL — P8c ricerca del progetto (23/11/2026)
 
 - Indice e ricerca locale (`nl.search.index`/`nl.search.query`): clip, marcatori, sottotitoli,
