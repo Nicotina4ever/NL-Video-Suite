@@ -79,9 +79,11 @@ Matrice: `documentazione/PARITA_FEATURE.md`. Ogni voce deve avere GUI e comando.
       Stato 23/11: 8 pannelli creati e apribili da Window; testi visibili ripuliti (About, link
       upstream, export progetto). Clipping/Sgrossa/Storia mostrano lo stato onesto “engine step
       P3/P4” finché i comandi non esistono; ASR e Coda funzionano già.
-- [ ] P4b (richiesta operatore): **copertine AI/thumbnail** stile YouTube — frame scelto dalla
-      timeline + contesto discusso nel video, workflow immagine selezionabile, import come cover
-      del progetto. Da implementare dopo P3/P4 (serve l'upload reference a ComfyUI).
+- [x] P4b (richiesta operatore): **copertine AI/thumbnail** stile YouTube — frame dal playhead,
+      contesto dal parlato vicino al frame, workflow immagine selezionabile, upload del frame a
+      ComfyUI (`/upload/image` + patch `LoadImage`), pannello NL Cover, marcatura copertina in
+      `nl/cover.json`. Prova: `documentazione/prove/p4b-cover/receipt.json` (payload verificato;
+      generazione live da fare con ComfyUI libero).
 - [x] P3a: pannello Clipping (analisi, selezione, SRT normal/hormozi, render 16:9+9:16) e
       Sgrossa (piano tagli con motivi, avviso parlato, selezione pezzi, render, report) sopra il
       bridge ClipsAI esistente; comandi `nl.clipping.*`, `nl.sgrossa.*`, `nl.subtitles.srt`,

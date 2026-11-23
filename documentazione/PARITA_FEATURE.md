@@ -82,7 +82,7 @@ Legenda: ✅ integrato e verificato; 🟡 codice pronto, verifica GUI in corso; 
 |---|---|---|---|
 | Immagine da prompt via ComfyUI | F5 | ✅ | Grafica > Generate |
 | Scelta workflow/seed/size | F5 | ✅ | dialogo Generate |
-| Cover da frame + prompt | NL/F5 | ⬜ | Grafica > Generate Cover |
+| Cover AI da frame + contesto parlato | NL/F5 + GOAL_UX R7 | ✅ P4b (payload verificato, live da provare) | pannello NL Cover + Graphics ▸ Generate Cover from Frame… |
 | Storyboard/character sheet | Regista/Calliope | ⬜ | pannello Storyboard |
 | Image/video generation per scena | Regista/Calliope | ⬜ | pannello Storyboard |
 | Vision/analyze asset | Regista | ⬜ | pannello Asset |

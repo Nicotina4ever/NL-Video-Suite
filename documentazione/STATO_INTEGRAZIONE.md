@@ -52,6 +52,19 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   gestita dalla propria coda.
 - **Portable con motore AI e launcher unico**: F8.
 
+## Parità NL — P3a/P4b clipping, sgrossa e copertine (23/11/2026)
+
+- **Clipping e Sgrossatura** girano sul bridge della suite (`clipsai_bridge.py`, motori vendored in
+  `engines/clipsai`): proposte con score/dedupe, piano tagli con motivi e avviso
+  parlato-dentro-i-tagli, render dei soli pezzi scelti, SRT normal/hormozi dai timestamp parola,
+  report `sgrossa_report.json`. Pannelli **NL Clipping** e **NL Rough Cut**.
+- **Copertine AI**: pannello **NL Cover** e comando `graphics.generateCover` — frame al playhead
+  esportato a piena risoluzione, upload a ComfyUI (`/upload/image`), patch del nodo `LoadImage`,
+  prompt derivato dal parlato vicino al frame (`nl.cover.prompt`), scelta workflow immagine,
+  dimensione dal profilo NL, review e marcatura con `nl.cover.set` (`nl/cover.json`).
+- Prova: `documentazione/prove/p3-clipping-sgrossa/` e `prove/p4b-cover/`. La generazione
+  copertina live va provata con ComfyUI libero (nessun servizio avviato durante lo sviluppo).
+
 ## Parità NL — P1 impostazioni (23/11/2026)
 
 - Nuova categoria Impostazioni **NL Video Suite** (`nl.*`) persistita in `preferences.json`:
