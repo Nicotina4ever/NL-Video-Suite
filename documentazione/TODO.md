@@ -3,6 +3,18 @@
 Aggiornato: 23/11/2026. Regola di scheduling: **mai Ollama e ComfyUI insieme**; per Ollama usare
 un modello piccolo (`lfm2.5:latest` o `granite4.2:3b`), poi scaricarlo prima di un job ComfyUI.
 
+## Punto di ripresa (leggere prima di tutto)
+
+- F1–F4b sono fatti e verificati; F4b reale: `documentazione/prove/f4b-ollama/receipt.json`.
+- F5/F6: codice e test unitari fatti (clippy pulito, engine 931+17 passati). Build release in
+  corso; test reali ComfyUI da eseguire con `prove/f5-comfy/real_test.py` e
+  `prove/f6-audio/real_test.py`.
+- F3b: bridge ASR in verifica su 12 s (`da_eliminare/.../asr-check`); poi comando
+  `transcript.transcribeNl`.
+- Handoff completo: `documentazione/HANDOFF.md`.
+- Ottimizzazione 23/11 già eseguita (~2,84 GB netti); alla fine eliminare la cache debug
+  ricreata dai test e aggiornare la ricevuta.
+
 ## Fatto ora
 
 - [x] Ottimizzazione spazio 23/11: ~3,9 GB di media di test completati, cache debug `sviluppo/target/debug`,
@@ -30,21 +42,21 @@ un modello piccolo (`lfm2.5:latest` o `granite4.2:3b`), poi scaricarlo prima di 
 
 ## F5 — Visual AI / ComfyUI
 
-- [ ] Client ComfyUI nel motore: submit `/prompt`, poll `/history`, download `/view`, import nel
-      Project panel; coda unica e job in background.
-- [ ] `Generate` immagine da prompt con workflow locale; scelta modello e seed.
-- [ ] `Graphics > Generate Cover` da frame corrente + prompt.
+- [x] Client ComfyUI nel motore: submit `/prompt`, poll `/history`, download `/view`, import nel
+      Project panel; job in background (`comfy.rs`, `graphics.generateComfy`).
+- [x] `Generate` immagine da prompt con workflow locale; scelta workflow/seed/size.
+- [ ] `Graphics > Generate Cover` da frame corrente + prompt (serve upload reference).
 - [ ] Reframe verticale 9:16 con sfondo sfocato in Effect Controls.
 - [ ] Maschere/guide social in View > Guide Templates.
 - [ ] Autoprompter: brief → prompt e varianti seed.
-- [ ] Test con ComfyUI libero, salvataggio ricevute e screenshot.
+- [ ] Test reale con ComfyUI libero, ricevute e screenshot.
 
 ## F6 — Audio
 
-- [ ] Mixer NL: persistenza e ascolto reale.
+- [x] Comando `audio.generateMusic` con workflow Ace Step/MiniMax, durata e testi.
+- [ ] Mixer NL: persistenza e ascolto reale (già presente la base FilmCraft).
 - [ ] Ducking/loudness/limiter in Essential Sound.
-- [ ] MiniMax Music / Ace Step da ComfyUI: workflow, download audio, import nel progetto.
-- [ ] Test con traccia reale e verifica forma d'onda/durata.
+- [ ] Test reale Ace Step, verifica durata/forma d'onda e ricevuta.
 
 ## F8 — Consegna
 

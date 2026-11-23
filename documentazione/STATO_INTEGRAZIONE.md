@@ -40,7 +40,9 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   aggiunti `think: false`, `num_ctx: 16384` e un messaggio d'errore con anteprima della risposta.
   Il retest reale con un modello piccolo è in corso.
 - **Longform** come comando: non ancora esposto.
-- **Pannello Generate/ComfyUI, copertina, autoprompter, MiniMax/AceStep**: F5/F6.
+- **ComfyUI**: client nel motore e comandi `graphics.generateComfy` / `audio.generateMusic`
+  implementati (F5/F6); clippy e test engine passano. Restano cover da frame, reframe, guide e
+  autoprompter, e la verifica reale sui workflow.
 - **Portable con motore AI e launcher unico**: F8.
 
 ## Ottimizzazione spazio (22/11/2026)
