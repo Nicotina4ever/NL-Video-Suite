@@ -16,6 +16,11 @@
       "result": "MP4 1080×1920, 60 frame, 2,005 s, 0,41 MB, encoder software, render 28,2 fps; export completo in 2,3 s (apertura inclusa)",
       "file": "documentazione/prove/p7-regression/gta6-export.jsonl"
     },
+    "full_export": {
+      "run": "file.exportMedia range=entire, h264 crf 23, wait=true, binario release",
+      "result": "intera sequenza GTA6: 4476 frame, durata 149,205 s, 1080×1920, 40,7 MB, render 43,7 fps, 103,3 s totali (apertura inclusa), offlineMedia vuoto, nessun warning",
+      "file": "documentazione/prove/p7-regression/gta6-full-export.jsonl"
+    },
     "integrity": "hash SHA-256 dell'originale identico prima e dopo la prova; nessuna scrittura sull'originale, nessun progetto utente toccato",
     "files": ["documentazione/prove/p7-regression/gta6-open.jsonl", "documentazione/prove/p7-regression/gta6-frame.png", "documentazione/prove/p7-regression/gta6-export.jsonl"]
   },

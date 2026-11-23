@@ -1,0 +1,36 @@
+{
+  "date": "2026-11-23",
+  "phase": "P10c (installer NL per-utente)",
+  "title": "Installer NL Video Suite senza admin: Windows per-utente testato, script Linux/macOS e Inno Setup",
+  "intent": "Oltre al portabile, dare un'installazione per-utente che ricrei l'app completa (eseguibile, workflow, tools, documentazione, launcher, voce di disinstallazione) senza privilegi di amministratore e senza installare servizi AI.",
+  "implemented": {
+    "windows": "packaging/nl/install.ps1: copia il bundle in %LOCALAPPDATA%\\Programs\\NL Video Suite, crea scorciatoie Start Menu/desktop opzionali e la voce HKCU di disinstallazione; -Uninstall rimuove tutto; -NoShortcuts per test/portatile. Testato install+uninstall su %TEMP%.",
+    "inno": "packaging/nl/installer.iss: installer Inno Setup 6 per-utente (stesso layout, Start Menu, desktop opzionale, uninstaller, licenza); richiede iscc per la compilazione, non presente su questa macchina (script fornito e documentato).",
+    "linux": "packaging/nl/install.sh: installa in ~/.local/opt/nl-video-suite, launcher in ~/.local/bin e .desktop in ~/.local/share/applications; --uninstall; nessun root.",
+    "macos": "packaging/nl/install-macos.sh: crea 'NL Video Suite.app' minimale in ~/Applications con Info.plist, launcher che imposta NL_SUITE_ROOT e risorse; --uninstall; per DMG firmato resta packaging/macos/package.sh.",
+    "docs": "packaging/nl/README.md e documentazione/DISTRIBUZIONE.md aggiornati con i tre percorsi (portabile, install per-utente, installer nativo) e la nota che ComfyUI/Ollama/modelli restano esterni."
+  },
+  "live_evidence": {
+    "windows_install": {
+      "command": "install.ps1 -Bundle <bundle 0.2.0> -Destination %TEMP%\\nl-install-test\\NL Video Suite -NoShortcuts",
+      "result": "installazione ok (exe 84,3 MB, workflows, tools, documentazione, launcher); uninstall ok, cartella rimossa",
+      "file": "documentazione/prove/p10-installers/install-run.txt"
+    },
+    "shell_syntax": "Git Bash: bash -n install.sh e install-macos.sh → exit 0 per entrambi"
+  },
+  "checks": [
+    "Install/uninstall Windows realmente eseguiti su una destinazione temporanea",
+    "Sintassi degli script shell verificata",
+    "Nessuna modifica a servizi AI, modelli o progetti utente"
+  ],
+  "limits": [
+    "L'installer Inno Setup non è stato compilato (iscc non installato): lo script è pronto per Inno Setup 6.",
+    "Gli script Linux/macOS non sono stati eseguiti su quelle piattaforme: sintassi verificata, prova reale sul campo da fare (P10).",
+    "L'installazione per-utente non firma l'eseguibile: per la distribuzione pubblica serve la firma (sign.ps1 / import-cert.sh)."
+  ],
+  "rules_respected": [
+    "Nessun download o servizio installato",
+    "Nessun privilegio di amministratore, nessuna modifica fuori dalla cartella scelta (tranne scorciatoie/registro HKCU per l'installazione per-utente)",
+    "Niente 'FilmCraft' nei testi visibili"
+  ]
+}

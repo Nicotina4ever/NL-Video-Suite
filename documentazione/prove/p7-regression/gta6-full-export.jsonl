@@ -1,0 +1,2 @@
+{"id":"file.open","line":1,"ok":true,"result":{"migrated":false,"missingMedia":0,"path":"C:\\Users\\Nicola\\AppData\\Local\\Temp\\nl-p7-regression\\gta6-shorts-copy.fcproj","schemaVersion":17}}
+{"id":"file.exportMedia","line":2,"ok":true,"result":{"job":1,"offlineMedia":[],"path":"C:\\Users\\Nicola\\AppData\\Local\\Temp\\nl-p7-full\\gta6-full.mp4","result":{"bytes":42670811,"encoder":"software","frames":4476,"path":"C:\\Users\\Nicola\\AppData\\Local\\Temp\\nl-p7-full\\gta6-full.mp4","render_fps":43.66433051767664,"seconds":102.509301},"warnings":[]}}

@@ -39,6 +39,10 @@ Stato aggiornato dopo P10 (provider modulari e distribuzione) e P11 (text-to-vid
 - **P11d estensione v2v**: `nl.generate.extend` (estratto h264 della coda + due frame, workflow
   extend R2V 2refs+video, placement dopo la clip) e pulsante nel pannello Generate; dry run live
   32 nodi con 2 reference immagini + 1 video. Resta la generazione reale su GPU più veloce.
+- **P10c installer per-utente**: `install.ps1` Windows testato (install+uninstall), Inno Setup
+  `installer.iss`, `install.sh` Linux e `install-macos.sh` (sintassi verificata); nessun servizio AI.
+- **P7 export completo GTA6**: 4476 frame, 149,2 s, 1080×1920, 40,7 MB, 43,7 fps in 103,3 s (copia
+  read-only, nessun media offline).
 - **Da fare subito dopo**: rerun end-to-end automatico del bridge con timeout 1800 s (la generazione
   e il placement sono verificati separatamente), prompt bridge con analisi vision del frame entrante,
   transizioni/audio del ponte, estensione v2v; rename NL degli installer upstream e prova reale degli

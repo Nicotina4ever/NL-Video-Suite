@@ -125,6 +125,20 @@ cache ASR. I **media generati non vengono mai cancellati automaticamente**: per 
 fare un'anteprima (`Preview cleanup`) o eseguire subito (`Clean up now`); da CLI:
 `filmcraft-cli exec nl.storage.cleanup '{"dryRun":true}'`. Nessuna cancellazione fuori dalla cartella
 dati.
+### Installer per-utente NL (senza amministratore)
+
+| Piattaforma | Comando | Cosa fa |
+|---|---|---|
+| Windows | `packaging\nl\install.ps1 -Bundle <cartella portabile>` | copia in `%LOCALAPPDATA%\Programs\NL Video Suite`, scorciatoie Start Menu/desktop opzionali, voce di disinstallazione HKCU; `-Uninstall` rimuove tutto; `-NoShortcuts` per uso portatile |
+| Windows (Inno) | `iscc /DMyAppVersion=… /DSourceBundle=<cartella> packaging\nl\installer.iss` | installer Inno Setup 6 per-utente, con licenza, scorciatoie e uninstaller (richiede Inno Setup installato) |
+| Linux | `packaging/nl/install.sh` | installa in `~/.local/opt/nl-video-suite`, launcher in `~/.local/bin`, voce `.desktop`; `--uninstall` |
+| macOS | `packaging/nl/install-macos.sh` | crea `NL Video Suite.app` in `~/Applications` dal bundle portabile; `--uninstall` |
+
+Nessuno di questi installer include o avvia ComfyUI, Ollama, modelli o servizi: restano esterni e si
+configurano in Impostazioni ▸ NL Video Suite. L'installer Windows per-utente è stato provato davvero
+(install + uninstall su cartella temporanea); gli script Linux/macOS hanno la sintassi verificata e
+vanno provati sulla rispettiva piattaforma; l'installer Inno Setup è pronto ma va compilato con Inno
+Setup 6 (qui non installato).
 ## Installer come "ricreano tutto"
 
 - **Windows**: `packaging\windows\package.ps1` produce l'MSI con WiX (file `.wxs`, policy di

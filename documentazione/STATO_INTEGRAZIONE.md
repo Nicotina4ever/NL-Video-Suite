@@ -69,6 +69,17 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
   servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
 
+## Parità NL — P10c installer per-utente e P7 export completo (23/11/2026)
+
+- **Installer per-utente**: `packaging/nl/install.ps1` (Windows, testato install+uninstall su
+  cartella temporanea), `installer.iss` (Inno Setup 6, da compilare), `install.sh` (Linux) e
+  `install-macos.sh` (macOS, app minimale): eseguibile, workflows, tools e docs sotto la cartella
+  utente, launcher e disinstallazione; nessun servizio AI incluso. Evidenze in
+  `prove/p10-installers/`.
+- **Export completo GTA6** (copia read-only): `file.exportMedia range=entire` → 4476 frame,
+  149,205 s, 1080×1920, 40,7 MB, render 43,7 fps, 103,3 s totali, nessun media offline.
+  `prove/p7-regression/`.
+
 ## Parità NL — P11d estensione v2v (23/11/2026)
 
 - `nl.generate.extend`: dalla clip selezionata (o `clip`) esporta un estratto h264 della coda
