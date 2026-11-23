@@ -106,10 +106,13 @@ Regola: tutte come pannelli/menù/comandi, ma **default rapido** invariato.
       import SRT/VTT, traduzioni EN/ES.
 - [ ] P8d: montage planner/creative montage/audio onset, story/narrative + assistente + reference,
       shot map, pipeline/flows.
-      Fatto (prima verticale): pannello **NL Story** — idea → bozza storia con Ollama, affinamenti
-      (update/refine), keyframe ComfyUI per scena, **posizionamento in timeline** (place/placeAll);
-      prova live in `documentazione/prove/p8d-story/`. Restano: video per scena, v2v/r2v,
-      estensione sezioni, narration/audio, montage planner, shot map, flows.
+      Fatto: pannello **NL Story** — idea → bozza storia con Ollama, affinamenti (update/refine),
+      **libreria reference** (character sheet + location plate generati una volta, usati
+      automaticamente dalle keyframe di scena con ordine background→personaggi), keyframe ComfyUI per
+      scena, video di scena da keyframe, musica di scena, **posizionamento in timeline**
+      (place/placeAll); prove live/dry run in `documentazione/prove/p8d-story/` e `p9d-reference/`.
+      Restano: keyframe con reference live (serve un workflow Flux2-Klein 2 ref), v2v live,
+      estensione sezioni, narration, montage planner, shot map, flows.
 - [ ] P8e: subtitle studio, motion/titoli, graphic objects, narration/audio master.
 - [ ] P8f: workflow doctor+API (unito P9a), versioni montaggio, album, production package,
       storage, social QA/export, thumbnail nativa.

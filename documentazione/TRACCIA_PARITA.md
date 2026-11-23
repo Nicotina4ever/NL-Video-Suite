@@ -151,8 +151,8 @@ il default rapido**. Sotto-fasi:
   pipeline/flows review-gated. Include P4: storia AI con affinamenti e **posizionamento in
   timeline** degli elementi generati. *Prima verticale fatta (23/11):* `nl/story.rs` + pannello
   NL Story (draft/refine/update, keyframe ComfyUI con storyTarget, place/placeAll, sidecar
-  `nl/story.json`); prova live in `prove/p8d-story/`. Restano video per scena, v2v, estensione
-  sezioni e gli strumenti di montaggio.
+  `nl/story.json`) e libreria reference (sheet/plate usati dalle keyframe); prove in
+  `prove/p8d-story/`. Restano video live, v2v, estensione sezioni e gli strumenti di montaggio.
 - **P8e sottotitoli/grafica/audio**: subtitle studio completo (struttura, sync, align, export),
   motion/titoli nativi, graphic objects, narration/audio master.
 - **P8f servizi/workflow/progetto**: workflow doctor + verifica API (unione P9a), import/parametri

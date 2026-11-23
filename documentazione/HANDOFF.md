@@ -57,7 +57,7 @@ Matrice dettagliata: `documentazione/PARITA_FEATURE.md`.
 | P4b Copertine AI dal frame | **fatto** | `graphics.generateCover`, `nl.cover.*`, pannello NL Cover; `prove/p4b-cover/` |
 | P8b Default rapido | **fatto** | workspace **Quick Edit** disponibile, nessun pannello NL docked di default, nessun AI all'apertura, `PERFORMANCE.md`; `prove/p8b-performance/` |
 | P9a Workflow doctor + API | **fatto** | `nl.workflows.verify/diagnose/fix/import`, pannello NL Workflows, 8 workflow Prompter copiati; `prove/p9-workflows/` |
-| P8d Storia AI → timeline | **prima verticale fatta** | pannello NL Story, `nl.story.*`, keyframe ComfyUI + place/placeAll; `prove/p8d-story/` |
+| P8d Storia AI → timeline | **prima verticale + libreria reference** | pannello NL Story, `nl.story.*`, sheet/plate + keyframe con reference, place/placeAll; `prove/p8d-story/` |
 | P9d Reference media | **prima parte fatta** | image/video/audio refs con patch loader, video di scena da keyframe e `extendFromScene`; `prove/p9d-reference/` |
 | P9b Prompt AI/parametri/dry run | **prima parte fatta** | `nl.prompt.enhance`, `nl.prompt.h3` (schema MiniMax H3), `nl.workflows.parameters`, `dryRun` + pulsanti pannelli; `prove/p9b-prompt-params/` |
 | Parità NL completa | in corso (P2, P3b, P4, P5, P6, P8c–f, P9b–d) | `documentazione/PARITA_FEATURE.md`, `TRACCIA_PARITA.md`, `inventario/versione_test.md` |
