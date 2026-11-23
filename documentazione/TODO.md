@@ -171,4 +171,4 @@ Inventario: `documentazione/inventario/prompter_comfyui.md`. Workflow copiati (8
 - [ ] Non toccare i 3 progetti utente (GTA6, Pubblicità, Trailer).
 \n- [x] P11 generativo locale: text-to-video e bridge first/last-frame (
 l.generate.text, 
-l.bridge.*, pannello NL Bridge, prove/p11-generative/).\n
+l.bridge.*, pannello NL Bridge, prove/p11-generative/).\n\n- [x] P12 manutenzione spazio: nl.storage.cleanup automatico/one-shot, impostazioni e pannello; prove/p12-maintenance/.\n

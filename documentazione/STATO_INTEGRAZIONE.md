@@ -69,6 +69,20 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
   servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
 
+## Parità NL — P12 manutenzione automatica dello spazio (23/11/2026)
+
+- `nl.storage.cleanup`: pulizia confinata alla cartella dati con categorie disposable
+  (`nl/bridge` frame, `Logs`, `nl/asr`, `cache`) più `generated/` solo con
+  `includeGenerated=true` e retention `generatedKeepDays` (default 30). Dry run, report per
+  categoria, niente symlink seguiti, stamp in `nl/maintenance.json` per il limite di una volta al
+  giorno.
+- Impostazioni ▸ NL Video Suite ▸ **Storage and automatic cleanup**: `autoCleanup` (on),
+  `cleanupDays` (7), `cleanupGenerated` (off), `generatedKeepDays` (30). L'app esegue il
+  passaggio automatico all'avvio e avvisa con un toast se ha rimosso qualcosa; pannello **NL
+  Delivery** con Preview cleanup e Clean up now.
+- Prova live: finto frame di 10 giorni in `nl/bridge` rimosso (dry run e run), frame nuovo e media
+  generati intatti; `prove/p12-maintenance/`.
+
 ## Parità NL — P11 text-to-video e bridge generativo locale (23/11/2026)
 
 - `nl.generate.text`: text-to-video da zero con `workflows/video_minimax_h3_t2v.json`,

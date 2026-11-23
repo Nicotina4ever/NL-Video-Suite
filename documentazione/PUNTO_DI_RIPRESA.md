@@ -21,6 +21,10 @@ Stato aggiornato dopo P10 (provider modulari e distribuzione) e P11 (text-to-vid
   importato e gap riempito 0–48/48–96/96–144 dopo il trim; auto-placement verificato con una
   generazione z-image; timeout predefinito dei comandi video portato a 1800 s.
   `prove/p11-generative/`.
+- **P12 manutenzione spazio**: pulizia automatica all'avvio (max 1/giorno) di frame bridge, log e
+  cache vecchie in `%APPDATA%\NL Video Suite`; media generati protetti salvo `cleanupGenerated` con
+  retention; impostazioni e pulsanti Preview/Clean up now. Prova live: frame vecchio rimosso, nuovo
+  e media intatti. `prove/p12-maintenance/`.
 - **Da fare subito dopo**: rerun end-to-end automatico del bridge con timeout 1800 s (la generazione
   e il placement sono verificati separatamente), prompt bridge con analisi vision del frame entrante,
   transizioni/audio del ponte, estensione v2v; rename NL degli installer upstream e prova reale degli

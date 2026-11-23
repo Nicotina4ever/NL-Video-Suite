@@ -106,6 +106,25 @@ ComfyUI, provider linguistico e ASR non vanno in conflitto tra loro: la suite no
 due servizi devono stare sulla stessa GPU, l'operatore li alterna (le nostre prove usano sempre un
 servizio per volta; le chiamate al modello linguistico usano `keep_alive=0` dove previsto).
 
+## Dove stanno i dati e pulizia automatica
+
+Impostazioni, cache e media generati stanno in una cartella per utente:
+
+- Windows: `%APPDATA%\NL Video Suite` (Roaming);
+- Linux: `~/.config/NL Video Suite` o `$XDG_CONFIG_HOME/NL Video Suite`;
+- macOS: `~/Library/Application Support/NL Video Suite`.
+
+Contenuto tipico: `preferences.json`, `workspaces.json`, `nl/` (bridge, workflow derivati, versioni),
+`generated/` (media prodotti da ComfyUI), `Auto-Save/`, `Logs/`. I **progetti** non stanno qui: sono
+i file `.fcproj` che scegli tu.
+
+**Pulizia automatica**: all'avvio l'app elimina (al massimo una volta al giorno) i file temporanei e
+le cache più vecchie di `nl.cleanupDays` giorni (default 7): frame del bridge generativo, log,
+cache ASR. I **media generati non vengono mai cancellati automaticamente**: per includerli attiva
+`nl.cleanupGenerated` e imposta `nl.generatedKeepDays` (default 30). Da pannello **NL Delivery** puoi
+fare un'anteprima (`Preview cleanup`) o eseguire subito (`Clean up now`); da CLI:
+`filmcraft-cli exec nl.storage.cleanup '{"dryRun":true}'`. Nessuna cancellazione fuori dalla cartella
+dati.
 ## Installer come "ricreano tutto"
 
 - **Windows**: `packaging\windows\package.ps1` produce l'MSI con WiX (file `.wxs`, policy di
