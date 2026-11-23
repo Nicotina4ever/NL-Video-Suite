@@ -1,0 +1,55 @@
+{
+  "date": "2026-11-23",
+  "phase": "P8e (prima parte)",
+  "title": "Pannelli NL Subtitles e NL Titles: sottotitoli con cue list e titoli MoGRT con controlli e responsive time",
+  "intent": "Portare nella suite la parte «sottotitoli studio» e «motion/titoli» della versione test classica: modificare i sottotitoli dalla GUI e inserire titoli animati dai template, senza scrivere codice.",
+  "implemented": {
+    "subtitles_panel": [
+      "pannello **NL Subtitles** (dock, Window): selettore traccia, elenco cue con in/out, editor del testo della cue selezionata (captions.setText), Split at playhead (captions.split), Merge with next (captions.merge), Delete cue (captions.delete)",
+      "Import SRT/VTT e Export captions con i selettori nativi (captions.import/captions.export, formato dall'estensione)"
+    ],
+    "titles_panel": [
+      "pannello **NL Titles** (dock, Window): elenco dei template (built-in e utente dal Graphics Templates folder) con categoria e descrizione; per il template scelto mostra i controlli reali (testo, colore, slider, checkbox, font, posizione) con valori modificabili",
+      "Place title on the timeline: comando nl.titles.add che applica graphics.template.apply con i valori, imposta il responsive intro/outro con graphics.setResponsiveTime e restituisce clip + controlli applicati",
+      "opzione Responsive intro/outro con durata intro e outro in secondi"
+    ],
+    "engine": [
+      "crates/engine/src/nl/titles.rs: nl.titles.add {template, values?, time?, track?, introSeconds?, outroSeconds?} — wrappa i comandi esistenti e riporta clip/template/nome/responsive/controls",
+      "test unitari: titolo piazzato con controlli e responsive, template sconosciuto rifiutato"
+    ],
+    "ui_plumbing": "due nuove voci in PanelKind/ALL e nel menu Window; modulo panels/nl_studio.rs usa gli stessi comandi dell'automazione"
+  },
+  "live_evidence": {
+    "titles": {
+      "run": "file.openDemoProject + nl.titles.add template=builtin:title-centered values {title:'La voce prima di parlare', subtitle:'Un doppiaggio'} introSeconds=0.5 outroSeconds=0.5",
+      "result": "clip 900012 'Title – Centered', 6 controlli, title/subtitle/title_size applicati (title_size=112), responsive intro=outro=127008000000 tick (~0,5 s)",
+      "file": "documentazione/prove/p8e-studio/titles-run.jsonl"
+    },
+    "subtitles": {
+      "run": "import SRT di 2 cue; captions.setText sulla prima; captions.delete della seconda; captions.export SRT",
+      "result": "testo aggiornato ('Ciao a tutti!'), cue rimasta 1, SRT esportato riporta il testo modificato",
+      "files": ["documentazione/prove/p8e-studio/subtitles-run.jsonl", "documentazione/prove/p8e-studio/caption-export.srt"]
+    },
+    "split_merge": {
+      "run": "import, split della prima cue a metà (381405024000 tick), merge delle due cue adiacenti create dallo split",
+      "result": "dopo lo split 3 cue (900012, 900014, 900013); merge ok → 2 cue con testi 'Ciao a tutti / Ciao a tutti' e 'Seconda riga'",
+      "file": "documentazione/prove/p8e-studio/split-merge-run.jsonl"
+    }
+  },
+  "checks": [
+    "nl::titles::tests (2) + clippy/fmt/test engine e UI",
+    "comandi usati dai pannelli verificati live: template list/apply/controls/setResponsiveTime, captions text/split/merge/delete/import/export"
+  ],
+  "limits": [
+    "La modifica dei tempi di una cue avviene con split al playhead o merge con la successiva: non c'è ancora il trascinamento della durata dalla lista.",
+    "Lo stile della traccia (font, dimensione, colori) usa il pannello Captions/FilmCraft esistente; il pannello NL non lo duplica ancora.",
+    "I titoli usano i template esistenti (8 built-in + eventuali .fcgt utente); non c'è un editor di keyframe nel pannello.",
+    "Narration/audio master e TTS restano fuori: TTS escluso dall'operatore, narrazione tramite registrazione esistente della suite."
+  ],
+  "rules_respected": [
+    "Nessun download; template e comandi locali",
+    "I pannelli passano dai comandi registrati (CLI/automazione equivalenti)",
+    "Progetti utente intatti (prove su demo)",
+    "Niente 'FilmCraft' nei testi visibili dei pannelli"
+  ]
+}

@@ -69,6 +69,16 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
   servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
 
+## Parità NL — P8e sottotitoli e titoli (23/11/2026)
+
+- Pannello **NL Subtitles**: cue list della traccia sottotitoli con editing del testo, split al
+  playhead, merge con la cue successiva, delete, import/export SRT/VTT dai selettori nativi.
+- Pannello **NL Titles**: template MoGRT (8 built-in + utente) con i controlli reali editabili
+  (testo, colore, slider, checkbox, font, posizione), inserimento in timeline con `nl.titles.add`
+  e responsive intro/outro (`graphics.setResponsiveTime`).
+- Prove live: titolo piazzato con controlli e intro/outro 0,5 s; sottotitoli importati, testo
+  modificato, split→merge e SRT esportato; `documentazione/prove/p8e-studio/`.
+
 ## Parità NL — P5 musica di scena live (23/11/2026)
 
 - `nl.story.extendAudio` → `audio.generateMusic` con Ace Step (workflow regista/audio, doctor
