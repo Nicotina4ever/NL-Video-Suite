@@ -1,0 +1,18 @@
+{
+  "date": "2026-11-23",
+  "check": "F6 Ace Step workflow via ComfyUI",
+  "workflow": "workflows/regista/audio/audio_ace_step1_5_xl_sft.json",
+  "prompt": "warm cinematic soul, 92 bpm, Rhodes piano, brushed drums, soft bass, intimate late-night mix",
+  "prompt_id": "15c5c2d5-1b14-4493-aede-c611018a7548",
+  "comfy_status": "success",
+  "output": "audio/shift6_00038.mp3",
+  "duration_seconds": 120,
+  "bytes": 3686674,
+  "bit_rate": 245778,
+  "notes": [
+    "Il workflow Ace Step è stato accettato e completato da ComfyUI; tags e lyrics sono stati riempiti dal motore.",
+    "Il primo test dell'app è stato invalidato da una seconda istanza con il canale di controllo occupato: lo script ha letto il job vecchio. Il file ComfyUI è valido.",
+    "Il parametro seconds ora imposta anche 'seconds' del nodo EmptyAceStep: il prossimo test produrrà la durata richiesta (30 s)."
+  ],
+  "artifacts": ["ace-step.mp3", "music.png"]
+}

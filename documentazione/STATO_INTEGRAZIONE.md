@@ -40,9 +40,12 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   aggiunti `think: false`, `num_ctx: 16384` e un messaggio d'errore con anteprima della risposta.
   Il retest reale con un modello piccolo è in corso.
 - **Longform** come comando: non ancora esposto.
-- **ComfyUI**: client nel motore e comandi `graphics.generateComfy` / `audio.generateMusic`
-  implementati (F5/F6); clippy e test engine passano. Restano cover da frame, reframe, guide e
-  autoprompter, e la verifica reale sui workflow.
+- **ComfyUI**: `graphics.generateComfy` verificato end-to-end (immagine 1024×1024 importata);
+  `audio.generateMusic` ha completato il workflow Ace Step (MP3 120 s) e attende il retest
+  dell'import nell'app. Accesso GUI: dialoghi nativi in Grafica e titoli / Clip.
+- **ASR NL**: bridge WhisperX verificato (42 parole, timing reali) e comando
+  `transcript.transcribeNl` aggiunto; il pulsante Trascrivi del pannello Text lo usa.
+- **Parità completa**: matrice in `PARITA_FEATURE.md`, fasi P1–P7 in `TODO.md`.
 - **Portable con motore AI e launcher unico**: F8.
 
 ## Ottimizzazione spazio (22/11/2026)

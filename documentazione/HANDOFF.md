@@ -36,9 +36,11 @@ Matrice dettagliata: `documentazione/PARITA_FEATURE.md`.
 | Parità completa NL | da fare, matrice pronta | `documentazione/PARITA_FEATURE.md` |
 | F8 portable | da fare | — |
 
-Ultimi test: `cargo clippy -p filmcraft-engine --all-targets -- -D warnings` pulito;
-`cargo test -p filmcraft-engine` → **931 + 17 passati, 0 falliti, 3 ignorati**.
-Build release con F5/F6 in corso al momento del handoff.
+Ultimi test (23/11/2026): clippy engine+UI pulito; UI 367 + 815 passati, 0 falliti;
+engine ASR 2/2. Commit codice: **`48f2ab9e`** (F5/F6/ASR + dialoghi GUI).
+Build release con GUI/ASR in corso al momento del handoff.
+F6: workflow Ace Step completato (MP3 120 s, `prove/f6-audio/ace-step.mp3`); resta il retest
+dell'import nell'app dopo il fix `seconds`.
 
 ## File chiave
 

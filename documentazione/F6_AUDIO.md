@@ -30,4 +30,9 @@ riempiono `lyrics`; il resto del workflow resta quello dell'operatore.
 
 ## Verifica
 
-In corso con Ace Step 1.5 (30 s) su progetto demo; ricevuta in `documentazione/prove/f6-audio/`.
+**Workflow verificato** il 23/11/2026: Ace Step 1.5 ha completato con `success`, tags e lyrics
+riempiti dal motore, output `audio/shift6_00038.mp3` di 120 s (3.686.674 byte). Il primo test
+dell'app è stato invalidato da una seconda istanza con il canale di controllo occupato; il file
+ComfyUI è valido. Il parametro `seconds` ora imposta anche il nodo `EmptyAceStep`, quindi il
+prossimo test produrrà la durata richiesta. Prova: `documentazione/prove/f6-audio/receipt.json`
+e `ace-step.mp3`.
