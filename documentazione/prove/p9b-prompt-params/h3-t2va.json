@@ -1,0 +1,6 @@
+{
+  "mode": "t2va",
+  "model": "qwen3.5:9b",
+  "prompt": "integrated_multimodal_description: [Shot 1] A wide shot shows a soundproof recording studio with professional equipment. At 00:00.500, a voice actor walks into the frame from the left and approaches the microphone stand. At 00:02.000, the camera cuts to a medium close-up of the actor standing confidently in front of the mic. At 00:03.500, the actor leans slightly forward and delivers an energetic line with a bright smile. <d>[Italian]Ci siamo!</d>\n\noverall_soundscape: The room is quiet except for the low hum of HVAC systems and the faint rustle of clothing as the actor moves. There are no background noises or ambient distractions. The actor takes a deep breath before speaking, creating a brief pause filled with anticipation.\n\nnon_diegetic_music: N/A",
+  "seconds": null
+}

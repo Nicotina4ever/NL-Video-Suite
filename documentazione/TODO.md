@@ -125,8 +125,9 @@ Inventario: `documentazione/inventario/prompter_comfyui.md`. Workflow copiati (8
 - [x] P9b (prima parte): **Prompt AI** (`nl.prompt.enhance`, validato, keep_alive 0, pulsanti in
       Generate/Story), **parametri reali** da `/object_info` (`nl.workflows.parameters` + «Show
       parameters»), **dry run senza invio** (`graphics.generateComfy dryRun` + «Dry run (no send)»).
-      Prova live: `prove/p9b-prompt-params/`. Restano: compilatore H3 (schema base/full-reference) e
-      modifica interattiva dei widget.
+      Fatto anche il **compilatore H3** (`nl.prompt.h3`: schema base/keyframe/full-reference,
+      validazione, riparazione tag dialogo, retry) e le chat testuali Ollama. Restano: modifica
+      interattiva dei widget del workflow (con P9c).
 - [ ] P9c: coda varianti (seed deterministici, prepara/invia con conferma, dedupe) + free VRAM
       controllato ogni N generazioni.
 - [ ] P9d: reference video/audio per v2v/r2v/extend, generazione e inserimento/estensione in

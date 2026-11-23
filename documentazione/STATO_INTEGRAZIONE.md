@@ -83,7 +83,7 @@ l.workflows.parameters): widget di un workflow risolti da
   caricate e loader patchati, size dalla sequenza) senza inviare nulla; riepilogo nel pannello.
 - Prova live: `documentazione/prove/p9b-prompt-params/` (prompt 39 s con qwen3.5:9b; dry run del
   workflow v2v MiniMax con 23 nodi e reference image+video patched=1+1; 78 parametri, 0 classi
-  mancanti).
+  mancanti; prompt H3 base in 34 s e full-reference in 22 s con qwen3.5:9b).
 
 ## Parità NL — P9d reference media (23/11/2026)
 

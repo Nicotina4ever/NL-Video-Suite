@@ -13,6 +13,11 @@
       "nl.workflows.parameters {workflow, api?, limit?}: risolve i widget reali dal /object_info (valore attuale, kind int/float/bool/text/choice, enum, min/max, input collegati) e riporta le classi non installate",
       "pannello NL Workflows: «Show parameters» con elenco node/classe/campo=valore (fino a 80 righe)"
     ],
+    "h3_prompt": [
+      "nl.prompt.h3 {brief, mode t2va|i2va|fl2va|l2va|ref, dialogue?, seconds?, finalShot?, references?, language?, model?, wait?}: prompt nel formato testuale MiniMax H3 (tre campi integrated_multimodal_description/overall_soundscape/non_diegetic_music; sei campi full-reference con subject_definitions/summary/retention_analysis/detailed_description/overall_soundscape/non_diegetic_music)",
+      "validazione: sezioni nell'ordine esatto, [Shot 1] iniziale, label <Subject/Picture/Video/Audio N> definiti e presenti in retention_analysis (modalità ref), dialogo esatto presente e dentro <d>[Lingua]...</d>; un tentativo di correzione con l'errore riportato al modello; riparazione deterministica del tag lingua (English->Italian, tag mancante)",
+      "ollama::chat_text: chat senza format json per i formati testuali (H3), con keep_alive 0"
+    ],
     "dry_run": [
       "graphics.generateComfy accetta dryRun:true: carica le reference, patcha i loader, calcola prompt/seed/size ma NON invia nulla; risponde {submitted:false, nodes, size, references}",
       "pannello NL Generate: «Dry run (no send)» con riepilogo (nodi, reference, dimensione)"
@@ -36,7 +41,19 @@
       "result": "78 widget totali, 0 classi mancanti (es. ResolutionSelector aspect_ratio 16:9 (Widescreen), megapixels=1, multiple=32; VAELoader vae_name con 17 scelte)",
       "note": "limit=40 nella prova: total=78, truncated=true"
     },
-    "default_image_dry_run": "10 nodi, size 512x512, nessuna reference: il payload dell'immagine è derivato dalla sequenza"
+    "default_image_dry_run": "10 nodi, size 512x512, nessuna reference: il payload dell'immagine è derivato dalla sequenza",
+    "h3_t2va": {
+      "command": "nl.prompt.h3 mode=t2va dialogue=Ci siamo! wait=true model=qwen3.5:9b",
+      "elapsed_s": 34,
+      "result": "tre sezioni conformi, timestamp crescenti, dialogo esatto; tag riparato in <d>[Italian]Ci siamo!</d>",
+      "file": "documentazione/prove/p9b-prompt-params/h3-t2va.json"
+    },
+    "h3_full_reference": {
+      "command": "nl.prompt.h3 mode=ref references=[picture,video,audio] wait=true model=qwen3.5:9b",
+      "elapsed_s": 22,
+      "result": "sei sezioni conformi: subject_definitions con <Picture 1>/<Video 1>/<Audio 1>, summary [video editing]+[reference generation], retention_analysis per label, detailed_description con [Shot 1]; validato dallo schema (label definiti + retention)",
+      "file": "documentazione/prove/p9b-prompt-params/h3-ref.json"
+    }
   },
   "checks": [
     "nl::prompt::tests (brief richiesto, prompt/varianti limitati, leak rifiutato, risoluzioni rimosse)",
@@ -45,7 +62,7 @@
     "cargo fmt, clippy -D warnings, test engine/UI"
   ],
   "limits": [
-    "Per i workflow H3 il campo prompt sostituisce il template PrimitiveStringMultiline: il compilatore H3 dedicato (schema base/full-reference del modello) è il passo successivo, così il template non viene perso.",
+    "Il prompt H3 compilato sostituisce il template PrimitiveStringMultiline del workflow: è il formato che il workflow MiniMax si aspetta (schema base/full-reference), quindi il campo prompt del pannello può contenerlo direttamente; il template originale resta nel file del workflow, che l'app non modifica.",
     "La generazione video/audio live con GPU non è stata eseguita: il dry run verifica il payload; l'invio resta esplicito e può richiedere offload (modelli H3 int8/int4 molto grandi per 8 GB di VRAM).",
     "I parametri sono mostrati in sola lettura; la modifica dei singoli widget nel pannello arriverà con la coda varianti (P9c)."
   ]
