@@ -57,11 +57,19 @@ Prove: `documentazione/prove/f4-shorts/source-markers.png`,
   Find Shorts; un secondo giro non duplica.
 - Test automatico con server Ollama finto: passa (`ai_job_applies_candidates_from_a_mock_ollama`).
 
-**Test reale GTA6:** Ollama è raggiungibile e risponde a prompt brevi, ma il test completo è
-stato bloccato da ComfyUI: la GPU era al 100%, con **0,1 GB VRAM liberi** e il processo Python di
-ComfyUI con **~100 GB di commit**. La richiesta Ollama è andata in timeout dopo 300 s; il job ha
-riportato l'errore senza modificare il progetto. Ripetere quando la coda ComfyUI è libera,
-eventualmente con finestre più piccole e `num_predict` ridotto.
+**Test reale GTA6 (23/11/2026):** superato con `lfm2.5:latest`, 3,2 s, GPU libera.
+Il job ha creato **2 short** nel bin `AI Shorts` e **2 range marker** sulla sorgente:
+
+- `Short 01 - Closing trailer information`, score 90;
+- `Short 02 - Intro to the promo and game description`, score 85.
+
+Il modello ha restituito JSON valido. Gli hook proposti **non** sono stati trovati verbatim nella
+trascrizione: il campo `hook_verified` è falso e il commento del marker lo dichiara, senza
+inventare una citazione. Prova: `documentazione/prove/f4b-ollama/receipt.json` e `ai-shorts.png`.
+
+**Correzioni emerse dal test:** i modelli thinking (granite, LFM) consumavano i token in
+`thinking` e restituivano contenuto vuoto; ora la richiesta usa `think: false`. Il contesto è
+dichiarato (`num_ctx: 16384`) e gli errori riportano l'inizio della risposta del modello.
 
 
 

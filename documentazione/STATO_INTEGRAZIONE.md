@@ -35,9 +35,10 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   l’ASR di FilmCraft/Whisper e l’import della trascrizione NL.
 - **Traduzioni EN/ES**: richiedono lo stesso bridge LLM.
 - **Ranking LLM**: `Find Shorts with AI` è implementato con Ollama e job in background; il test
-  con server finto passa. Il test reale GTA6 va ripetuto quando ComfyUI è libero: la GPU era al
-  100% con 0,1 GB VRAM liberi e il processo ComfyUI aveva ~100 GB di commit, quindi Ollama è
-  andato in timeout e il job ha riportato l'errore senza modificare il progetto.
+  con server finto passa. Il primo test reale GTA6 ha restituito una risposta senza JSON: la
+  diagnosi è il modello thinking che consuma i token e il contesto non dichiarato. Sono stati
+  aggiunti `think: false`, `num_ctx: 16384` e un messaggio d'errore con anteprima della risposta.
+  Il retest reale con un modello piccolo è in corso.
 - **Longform** come comando: non ancora esposto.
 - **Pannello Generate/ComfyUI, copertina, autoprompter, MiniMax/AceStep**: F5/F6.
 - **Portable con motore AI e launcher unico**: F8.
@@ -50,6 +51,20 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
 - Spazio K: da 93,7 GB a **98,6 GB liberi**.
 - ComfyUI era ancora in esecuzione con un job H3 (1 running, 0 pending) e commit di sistema
   quasi esaurito: build/test pesanti sospesi finché non libera GPU/RAM.
+
+## Ottimizzazione spazio (23/11/2026)
+
+- Rimossi i media generati dai test completati in `sviluppo/tests/artifacts` (517 file, ~3,9 GB):
+  report JSON/HTML/log e immagini piccole restano come traccia.
+- Rimossa la cache debug `sviluppo/target/debug` (~0,64 GB) e le anteprime rigenerabili
+  `sviluppo/anteprima_creativa/data/previews` (~0,14 GB); puliti i `__pycache__`.
+- Spostati in `da_eliminare/2026-11-23-ottimizzazione/` il FilmCraft 0.20.1 portable e il
+  sorgente originale in `reference_software/` (sostituiti dal fork `filmcraft-nl`).
+- Eliminato il trash del 21/11 (`test-storici`, `exe-storici`), già superato.
+- Spazio K: da 100,06 GB a **102,90 GB liberi** (recuperati ~2,84 GB netti mentre la build era in
+  corso). Ricevuta: `da_eliminare/2026-11-23-ottimizzazione/ricevuta.json`.
+- Restano intatti: progetti utente, `runtime/`, `models/`, `engines/`, `ZMateriale/`, prove in
+  `documentazione/prove/`.
 
 ## Regole rispettate
 

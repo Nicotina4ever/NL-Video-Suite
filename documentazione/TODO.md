@@ -1,56 +1,59 @@
-# TODO — restauro NL Video Suite
+# TODO operativo — NL Video Suite
 
-> **Prodotto = UI classica** (`sviluppo/web`). La shell Svelte (`web-app`) è un laboratorio: le voci della sezione B/C che la riguardano **non bloccano il 1.0**. Il backlog del prodotto è in `GOAL_UX.md`.
+Aggiornato: 23/11/2026. Regola di scheduling: **mai Ollama e ComfyUI insieme**; per Ollama usare
+un modello piccolo (`lfm2.5:latest` o `granite4.2:3b`), poi scaricarlo prima di un job ComfyUI.
 
-Regola: **una voce = un commit**, spuntata solo dopo verifica visibile (test, screenshot o output).
-Stato del backend e dei documenti: `STATO.md`, `MANUALE.md`, `ARCHITETTURA.md`.
-UI classica: `sviluppo/web/*.js` (54 moduli, ~671 KB) — fonte di verità per i pannelli.
-Shell Premiere-style: `sviluppo/web-app/src/`.
+## Fatto ora
 
-## A. Adapter — tutta la UI classica raggiungibile dalla shell
-- [x] Workspace «Classica» nella shell: iframe + selettore di tutte le schede classiche
-- [x] Deep-link `?tab=` e `?project=` nella UI classica (necessario per l'iframe)
-- [x] Base dell'iframe corretta in sviluppo (proxy vite) e in produzione (binario)
+- [x] Ottimizzazione spazio 23/11: ~3,9 GB di media di test completati, cache debug `sviluppo/target/debug`,
+      anteprime rigenerabili e `__pycache__` rimossi; reference software originale spostato in
+      `da_eliminare/2026-11-23-ottimizzazione/`; vecchio trash 21/11 eliminato.
+      Ricevuta: `da_eliminare/2026-11-23-ottimizzazione/ricevuta.json`.
+- [x] F4b diagnosi: il prompt con timestamp supera il contesto Ollama di default (4k); aggiunti
+      `num_ctx: 16384`, `think: false` e anteprima della risposta negli errori.
 
-## B. Shell: pannelli mancanti (port dalla classica, uno per commit)
-- [x] Project browser con miniature, selezione, «+ Timeline» e drag-to-timeline (`Media.svelte`)
-- [x] Sottotitoli (`Subtitles.svelte`: elenco cue, testo, tempi, approvazione, stile, manuale, split/merge, export SRT/VTT/ASS/JSON)
-- [ ] Motion studio (`motion_studio.js`, `motion_paths.js`, `motion_typography.js`, `motion_svg.js`, `motion_groups.js`, `motion_idea.js`, `motion_ranking.js`, `motion_presets.js`, `motion_images.js`, `motion_layer_timeline.js`)
-- [ ] Mixer audio (`audio_mixer.js`, `audio_master_ui.js`)
-- [ ] Regia / narrative (`narrative*.js`, `narrative_audio_first.js`, `narrative_library.js`, `narrative_preflight.js`, `narrative_assistant.js`)
-- [ ] Workflow ComfyUI (`workflow_navigation.js`, `flow.js`, `creative_ui.js`, `creative_montage.js`)
-- [ ] Pannello effetti / oggetti grafici IA (`object_media.js`, `card_ui.js`, `clip_animation.js`)
-- [x] Safe margins nel monitor Programma (action-safe 90%, title-safe 80%, toggle + centro)
-- [x] Monitor Programma applica volume, opacità, fade e trasformazione della clip (non solo il decode)
-- [ ] Filmstrip per-tempo (frame via `/frame`) accanto alla waveform
-- [ ] Drag e rilascio dalla Sorgente alla timeline
+## F4b — Find Shorts with AI (chiudere)
 
-## C. UX Premiere
-- [x] Reframe 9:16: rilevamento volto CPU + `preferred_fit` onorato (crop sicuro oppure 16:9 su sfondo sfocato)
-- [x] Maschere social TikTok/Reels/Shorts allineate alla composizione 9:16
-- [x] Controlli sfondo (sfocatura, luminosità, intensità) nell’ispettore clip
-- [ ] Promuovere il layout `human-editor` a unica UI: 4 zone fisse, pannelli a schede, niente strumenti quotidiani dentro `<details>`
-- [ ] Portare nella classica i pezzi migliori della shell (timeline canvas, griglia media, pannello sottotitoli)
-- [ ] Decidere il destino della shell Svelte: laboratorio o ritiro dopo la parità
-- [x] Timeline: timecode, durata totale, zoom slider, «Adatta», snap on/off, chip tracce con visibile/bloccata persistenti
-- [ ] Pannelli dockable / ridimensionabili (oggi solo 2 splitter)
-- [ ] Shortcut completi da `keyboard.md` di FilmCraft (143 comandi, adattati al browser)
-- [ ] Scrub testuale (hot text) nei monitor
-- [x] Marker di timeline: M per aggiungere, chip cliccabili per saltare, rimozione, persistenza per progetto
-- [ ] Marker e guidatore nel Programma
-- [ ] Selezione progetti con miniature
+- [ ] Ricompilare release (in corso) e rilanciare il test reale GTA6 con `lfm2.5:latest`.
+- [ ] Verificare job, hook, marker, bin `AI Shorts`, screenshot e assenza di modifiche al progetto NL.
+- [ ] Se il modello non rispetta il JSON, ridurre la finestra a 500 parole e riprovare una volta.
+- [ ] Salvare prova in `documentazione/prove/f4b-ollama/`, aggiornare `F4_SHORTS.md`, commit.
 
-## D. Verifica
-- [x] Test Rust: 194 passed / 0 failed (`cargo test --offline`)
-- [x] Algebra di montaggio: 8 test passati + svelte-check 0/0 + build pulita
-- [ ] `real_playback` a ComfyUI libero (oggi `running=1`: coda rispettata)
-- [ ] Baseline browser 5/5
-- [ ] REA browser su ogni pannello, dati reali GTA6
-- [ ] Prova IA reale sulle correzioni (richiede Ollama acceso)
+## F3b — ASR e traduzioni
 
-## F. Backend — lacune scoperte durante la verifica
-- [ ] Annullare un lavoro dalla coda (endpoint + pulsante): oggi un `prepare_preview` lungo non si può fermare dalla UI
+- [ ] ASR selezionabile: WhisperX via `sviluppo/bridge/clipsai_bridge.py`, Qwen via
+      `qwen_asr_bridge.py`; comando headless `transcript.transcribe` con lingua e provider.
+- [ ] Scrivere la trascrizione nel progetto FilmCraft con timing di parola e metadati del motore.
+- [ ] Traduzioni EN/ES con Ollama su modello piccolo; comando `transcript.translate` e scrittura
+      nel mirror NL senza sovrascrivere l'originale.
+- [ ] Test con voce sintetica o estratto GTA6; documentare limiti e tempi.
 
-## E. Housekeeping
-- [ ] Svuotare `da_eliminare` (decisione del proprietario, ~545 MB)
-- [ ] Push di `origin/main` (40+ commit in attesa)
+## F5 — Visual AI / ComfyUI
+
+- [ ] Client ComfyUI nel motore: submit `/prompt`, poll `/history`, download `/view`, import nel
+      Project panel; coda unica e job in background.
+- [ ] `Generate` immagine da prompt con workflow locale; scelta modello e seed.
+- [ ] `Graphics > Generate Cover` da frame corrente + prompt.
+- [ ] Reframe verticale 9:16 con sfondo sfocato in Effect Controls.
+- [ ] Maschere/guide social in View > Guide Templates.
+- [ ] Autoprompter: brief → prompt e varianti seed.
+- [ ] Test con ComfyUI libero, salvataggio ricevute e screenshot.
+
+## F6 — Audio
+
+- [ ] Mixer NL: persistenza e ascolto reale.
+- [ ] Ducking/loudness/limiter in Essential Sound.
+- [ ] MiniMax Music / Ace Step da ComfyUI: workflow, download audio, import nel progetto.
+- [ ] Test con traccia reale e verifica forma d'onda/durata.
+
+## F8 — Consegna
+
+- [ ] Portable con motore AI e launcher unico.
+- [ ] Regressione GTA6 completa: import, testo, shorts, export, riapertura.
+- [ ] Documentazione finale, ricevute e spazio sotto controllo.
+
+## Manutenzione
+
+- [ ] Tenere `da_eliminare` con ricevute; niente cache debug nel repo.
+- [ ] Aggiornare `STATO_INTEGRAZIONE.md` a ogni fase.
+- [ ] Non toccare i 3 progetti utente (GTA6, Pubblicità, Trailer).
