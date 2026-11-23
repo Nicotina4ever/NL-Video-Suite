@@ -1,6 +1,7 @@
 # F5 — ComfyUI nel motore
 
-Data: 2026-11-23. Comandi headless (visibili anche nei menu):
+Data: 2026-11-23. Accesso GUI: **Grafica e titoli > Generate with ComfyUI…** apre un dialogo con
+prompt, negative, workflow e pulsante Generate. Comandi headless equivalenti:
 
 ```json
 {"command":"graphics.generateComfy","params":{
@@ -38,4 +39,8 @@ Data: 2026-11-23. Comandi headless (visibili anche nei menu):
 
 ## Verifica
 
-In corso con `z-image-turbo` su progetto demo; ricevuta in `documentazione/prove/f5-comfy/`.
+**Superata il 23/11/2026** con `z-image-turbo` su progetto demo: prompt e seed riempiti, workflow
+accettato, immagine **1024×1024** (1.450.711 byte) scaricata e importata nel Project panel come
+`z-image-turbo_00007_.png`. La generazione ha richiesto alcuni minuti sulla RTX 4060 Ti 8 GB per il
+modello bf16 con offload. Prova: `documentazione/prove/f5-comfy/receipt.json`, `generated.png`,
+`generate.png`.

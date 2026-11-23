@@ -22,9 +22,18 @@ Estratto di 12 s da `ZMateriale/Reel Partorito Finito.mp4`, request:
 
 Variabili: `NL_ALIGNMENT_MODEL_PATH`, `CLIPSAI_WHISPER_MODEL`, `PATH` con `app/tools`.
 
-Esito e ricevuta: `da_eliminare/2026-11-23-ottimizzazione/asr-check/`.
+**Esito:** 42 parole, 1 segmento, lingua `it`, timing di parola validi (es. `guarda
+0.191-0.491`, `professionalità 1.192-1.852`). WhisperX ha emesso un warning per `torchcodec`
+assente, senza impedire la trascrizione. Prova: `documentazione/prove/f3b-asr/receipt.json`;
+log completo in `da_eliminare/2026-11-23-ottimizzazione/asr-check/`.
 
-## Comando previsto
+## Accesso GUI
+
+- **Sequence > Transcript > Transcribe with NL ASR…** apre il dialogo con lingua e device.
+- Nel pannello **Text**, quando il riconoscimento FilmCraft non è compilato ma il runtime NL è
+  presente, il pulsante **Trascrivi** usa direttamente l'ASR NL.
+
+## Comando
 
 ```json
 {"command":"transcript.transcribeNl","params":{

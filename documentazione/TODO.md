@@ -33,18 +33,23 @@ un modello piccolo (`lfm2.5:latest` o `granite4.2:3b`), poi scaricarlo prima di 
 
 ## F3b — ASR e traduzioni
 
-- [ ] ASR selezionabile: WhisperX via `sviluppo/bridge/clipsai_bridge.py`, Qwen via
-      `qwen_asr_bridge.py`; comando headless `transcript.transcribe` con lingua e provider.
-- [ ] Scrivere la trascrizione nel progetto FilmCraft con timing di parola e metadati del motore.
+- [x] Bridge WhisperX verificato su 12 s reali: 42 parole, timing validi
+      (`documentazione/prove/f3b-asr/receipt.json`).
+- [x] Comando `transcript.transcribeNl` nel motore (job background, import nel progetto);
+      compilazione/test da eseguire dopo F5/F6.
+- [ ] Test del comando sul progetto demo e su GTA6.
 - [ ] Traduzioni EN/ES con Ollama su modello piccolo; comando `transcript.translate` e scrittura
       nel mirror NL senza sovrascrivere l'originale.
-- [ ] Test con voce sintetica o estratto GTA6; documentare limiti e tempi.
+- [ ] Documentare limiti e tempi.
 
 ## F5 — Visual AI / ComfyUI
 
 - [x] Client ComfyUI nel motore: submit `/prompt`, poll `/history`, download `/view`, import nel
       Project panel; job in background (`comfy.rs`, `graphics.generateComfy`).
 - [x] `Generate` immagine da prompt con workflow locale; scelta workflow/seed/size.
+- [x] Accesso GUI: voci `Grafica > Generate with ComfyUI…` e `Audio > Generate Music with
+      ComfyUI…` aprono dialoghi nativi (prompt, workflow, seed/durata); il pannello Text usa
+      l'ASR NL quando il riconoscimento FilmCraft non è compilato.
 - [ ] `Graphics > Generate Cover` da frame corrente + prompt (serve upload reference).
 - [ ] Reframe verticale 9:16 con sfondo sfocato in Effect Controls.
 - [ ] Maschere/guide social in View > Guide Templates.
@@ -57,6 +62,19 @@ un modello piccolo (`lfm2.5:latest` o `granite4.2:3b`), poi scaricarlo prima di 
 - [ ] Mixer NL: persistenza e ascolto reale (già presente la base FilmCraft).
 - [ ] Ducking/loudness/limiter in Essential Sound.
 - [ ] Test reale Ace Step, verifica durata/forma d'onda e ricevuta.
+
+## Parità NL completa (Regista AI + ClipsAI + Calliope + ZP Video)
+
+Matrice: `documentazione/PARITA_FEATURE.md`. Ogni voce deve avere GUI e comando.
+
+- [ ] P1: impostazioni NL uniche (ComfyUI, Ollama, ASR provider/modello/device, workflow default).
+- [ ] P2: pannello ASR completo + traduzioni EN/ES.
+- [ ] P3: pannello Clipping (analisi, selezione, reframe 9:16, SRT, burn) e Sgrossa (tagli,
+      waveform manuale, report, anteprima).
+- [ ] P4: pannello Storyboard/Storia (Calliope/Regista) con image/video per scena e coda.
+- [ ] P5: TTS Qwen3 e musica con voci/modelli già installati, selezione nella GUI.
+- [ ] P6: workflow repair/autofix, diagnostica servizi, avvio/stop ComfyUI e Ollama.
+- [ ] P7: verifica parità, portable, regressione GTA6, docs e ottimizzazione.
 
 ## F8 — Consegna
 

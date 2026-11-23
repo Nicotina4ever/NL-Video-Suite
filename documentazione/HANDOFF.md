@@ -5,9 +5,18 @@ harness senza perdere stato. Il codice e le prove restano su disco; questo è il
 
 ## Obiettivo
 
-Una sola app (fork FilmCraft 0.20.1, `filmcraft-nl`) con l'esperienza NLE di FilmCraft e le
-funzioni AI di NL Video Suite come comandi/pannelli nativi. Niente menu "NL" separato. UI viola /
-magenta / ciano, icona e wordmark NL. Fasi F0–F8, ognuna testata e documentata.
+Una sola app (fork FilmCraft 0.20.1, `filmcraft-nl`) con l'esperienza NLE di FilmCraft e **tutte**
+le funzioni AI di NL Video Suite come comandi/pannelli nativi. Niente menu "NL" separato, ma
+menù e impostazioni NL dentro l'app. UI viola / magenta / ciano, icona e wordmark NL.
+
+**Scope completo:** unione di Regista AI, Clips AI, Calliope, ZP Video e delle funzioni già in NL
+Video Suite. Ogni funzione deve essere **raggiungibile dalla GUI** (menu, dialoghi, pannelli,
+impostazioni), non solo da comando headless. I modelli già installati devono essere selezionabili;
+nessun download obbligatorio.
+
+Percorsi di riferimento (sola lettura, niente copia di codice/wording):
+`K:\AI\ZioPaolo Video`, `K:\AI\Regista_AI`, `K:\AI\ClipsAI`, `K:\AI\Calliope`.
+Matrice dettagliata: `documentazione/PARITA_FEATURE.md`.
 
 ## Stato verificato
 
@@ -19,9 +28,12 @@ magenta / ciano, icona e wordmark NL. Fasi F0–F8, ognuna testata e documentata
 | F3a testo + mirror | fatto | commit `0133016c` |
 | F4a Find Shorts locale | fatto | commit `ca54d717`, 2 short |
 | F4b Find Shorts AI | fatto e verificato | `documentazione/prove/f4b-ollama/` (LFM, 2 short, 3,2 s) |
-| F5 ComfyUI immagini | codice fatto, test reale in corso | `comfy.rs`, `documentazione/F5_COMFY.md` |
-| F6 musica Ace Step/MiniMax | codice fatto, test reale in corso | `documentazione/F6_AUDIO.md` |
-| F3b ASR/traduzioni | bridge in verifica | `documentazione/F3B_ASR.md` |
+| F5 ComfyUI immagini | **verificato** | `documentazione/prove/f5-comfy/` (1024×1024) |
+| F6 musica Ace Step/MiniMax | codice fatto, test da ripetere | `documentazione/F6_AUDIO.md` |
+| F3b ASR | bridge verificato, comando pronto | `documentazione/prove/f3b-asr/`, `nl_asr.rs` |
+| F3b traduzioni | da fare | — |
+| GUI NL | dialoghi Generate/Music/ASR aggiunti; clippy pulito | `menu_dialogs.rs`, `text.rs` |
+| Parità completa NL | da fare, matrice pronta | `documentazione/PARITA_FEATURE.md` |
 | F8 portable | da fare | — |
 
 Ultimi test: `cargo clippy -p filmcraft-engine --all-targets -- -D warnings` pulito;
@@ -73,15 +85,16 @@ python K:\AI\NL_Video_Suite\documentazione\prove\f6-audio\real_test.py
 
 ## Prossimi passi
 
-1. Attendere la build release, eseguire `f5-comfy/real_test.py`: verificare immagine importata e
-   screenshot; salvare `receipt.json`.
-2. Eseguire `f6-audio/real_test.py`: verificare audio importato, durata e forma d'onda; ricevuta.
-3. Completare F3b: se il bridge `asr-check` passa, aggiungere `transcript.transcribeNl` con job
-   in background e import della trascrizione; poi traduzioni EN/ES via Ollama.
-4. F5 residuo: cover da frame (upload reference), reframe 9:16, guide, autoprompter.
-5. F8: portable con runtime/modelli e launcher unico; regressione GTA6 completa.
-6. Ottimizzazione finale: eliminare `filmcraft-nl/target/debug` ricreato dai test, svuotare
-   `da_eliminare` vecchio, aggiornare le ricevute e lo spazio.
+1. Rifare il test F6 in un'app pulita (una sola istanza, controllo 9876 libero), con il job
+   selezionato per id; verificare audio importato, durata e ricevuta.
+2. Testare `transcript.transcribeNl` sul progetto demo (sample.wav 12 s) e su GTA6; poi traduzioni.
+3. Compilare la release con i dialoghi GUI e verificare con screenshot:
+   Grafica > Generate, Audio > Generate Music, Text > Transcribe; aprire i dialoghi e controllare
+   che siano usabili senza JSON.
+4. Impostazioni NL uniche (ComfyUI/Ollama/ASR/workflow) persistite.
+5. Pannelli Clipping, Sgrossa, Storyboard/Storia, TTS, Coda: seguire `PARITA_FEATURE.md`.
+6. Portable, regressione GTA6, documentazione e ottimizzazione finale (eliminare la cache debug
+   ricreata e aggiornare la ricevuta).
 
 ## Se si migra a un altro harness
 

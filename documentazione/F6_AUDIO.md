@@ -1,6 +1,7 @@
 # F6 — Musica con ComfyUI
 
-Data: 2026-11-23. Comando:
+Data: 2026-11-23. Accesso GUI: **Clip > Generate Music with ComfyUI…** apre un dialogo con
+prompt/stile, testi, workflow e durata. Comando headless:
 
 ```json
 {"command":"audio.generateMusic","params":{

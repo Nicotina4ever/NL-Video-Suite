@@ -1,0 +1,19 @@
+{
+  "date": "2026-11-23",
+  "check": "F5 ComfyUI image generation end to end",
+  "workflow": "workflows/regista/image/z-image-turbo.json",
+  "prompt": "A cinematic portrait of a saxophonist in purple and magenta neon light, shallow depth of field, film grain",
+  "seed": 811848712,
+  "prompt_id": "2b690488-ca47-47a8-bf8c-0f6b2821f565",
+  "comfy_url": "http://127.0.0.1:8188",
+  "result": "z-image-turbo_00007_.png imported into the demo project",
+  "image": "1024x1024",
+  "bytes": 1450711,
+  "notes": [
+    "Il workflow API è stato accettato da ComfyUI; prompt e seed sono stati riempiti dal motore.",
+    "Il job è rimasto in background e l'immagine è stata importata nel Project panel.",
+    "La generazione ha richiesto diversi minuti su RTX 4060 Ti 8 GB per il modello bf16 con offload.",
+    "Il progetto demo non è stato salvato."
+  ],
+  "artifacts": ["generated.png", "generate.png"]
+}

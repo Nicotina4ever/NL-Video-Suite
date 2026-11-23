@@ -44,6 +44,8 @@ def main():
         },
     )
     print("start", json.dumps(started.get("result") or started, ensure_ascii=False), flush=True)
+    started_result = started.get("result") or started
+    job_id = started_result.get("job")
     deadline = time.time() + 2400
     finished = False
     while time.time() < deadline:
@@ -53,7 +55,7 @@ def main():
         except OSError as e:
             print("app gone", e, flush=True)
             return
-        job = next((j for j in jobs if "ComfyUI" in (j.get("label") or "")), None)
+        job = next((j for j in jobs if j.get("id") == job_id), None)
         if job is None:
             continue
         print("poll", job.get("status"), job.get("finished"), str(job.get("result"))[:300], flush=True)
