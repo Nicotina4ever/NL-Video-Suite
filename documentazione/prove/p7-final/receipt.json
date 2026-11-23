@@ -1,0 +1,42 @@
+{
+  "date": "2026-11-24",
+  "phase": "P7 (chiusura release, performance, regressione e pulizia)",
+  "title": "Release 1.0.0 completa (48 pannelli), portabile in distribuzione, regressione GTA6 read-only, export completo e pulizia finale del progetto",
+  "intent": "Chiudere la fase P7: verificare la suite completa in release, misurarne la rapidità, provare il progetto GTA6 in sola lettura, produrre il portabile definitivo e ripulire cache/artefatti non più necessari senza toccare progetti utente o media.",
+  "implemented": {
+    "release": "cargo build --release -p filmcraft -p filmcraft-cli in 434 s; filmcraft.exe 80,5 MB, filmcraft-cli.exe 51,4 MB; 48 pannelli",
+    "deliverable": "distribuzione/NLVideoSuite-1.0.0-windows-x64 (eseguibile, CLI, workflows, ffmpeg/ffprobe, documentazione, launcher) + zip 203,5 MB; installer per-utente Windows/Linux/macOS in packaging/nl (install.ps1 testato)",
+    "performance": "avvio CLI warm 71–80 ms (primo avvio 404 ms), demo open+inspect+storage 108 ms, GTA6 open 96 ms, frame 1080×1920 1176 ms",
+    "gta6_readonly": "copia del progetto: apertura, inspect (4476 frame, 2 tracce video, 3 audio), frame PNG 1080×1920, QA ready, export completo 149,205 s / 40,7 MB / 43,7 fps in 103 s; hash originale invariato",
+    "bridge": "P11e transizioni Cut/Dissolve sul ponte (2 transizioni video applicate nella prova) e nl.bridge.place per recuperare un file generato dopo timeout",
+    "cleanup": "rimossi target/ (16,97 GB), le cache incremental (già prima) e i workspace temp delle prove (1,47 GB); vecchio build sperimentale spostato in da_eliminare; prova/p7-regression e ricevute conservate; disco libero 95,9 GB"
+  },
+  "checks": {
+    "fmt": "eseguito",
+    "clippy": "-D warnings pulito",
+    "engine": "1045 test + 17 (integration) verdi",
+    "ui": "368 unit + 4 + 1 + 815 integration verdi (dopo la pulizia degli artefatti rlib corrotti da build parallele)",
+    "note": "Una build release e una suite di test UI lanciate in parallelo avevano corrotto la rlib della UI (LNK2019/LNK2001): risolto con cargo clean -p filmcraft-ui-egui e riesecuzione sequenziale. Regola operativa: non lanciare build/test cargo in parallelo."
+  },
+  "deliverables": {
+    "portable_zip": "distribuzione/NLVideoSuite-1.0.0-windows-x64.zip",
+    "portable_folder": "distribuzione/NLVideoSuite-1.0.0-windows-x64",
+    "cli": "distribuzione/NLVideoSuite-1.0.0-windows-x64/NL Video Suite CLI.exe",
+    "installers": "packaging/nl/install.ps1, installer.iss, install.sh, install-macos.sh",
+    "docs": "documentazione/DISTRIBUZIONE.md, PUNTO_DI_RIPRESA.md"
+  },
+  "limits": [
+    "La generazione reale del bridge FLF con keyframe supera i 30 minuti su questa GPU: la generazione e il placement sono verificati separatamente (nl.bridge.place) e il timeout video predefinito è 3600 s.",
+    "Il prompt automatico con vision del frame entrante non è implementato.",
+    "La trascrizione HTTP reale non è stata eseguita (nessun server whisper installato); dry run e validazione sì.",
+    "Gli script Linux/macOS sono verificati solo per sintassi; l'installer Inno Setup non è stato compilato (iscc assente). Il rename NL dei pacchetti upstream resta un lavoro successivo.",
+    "Il portabile contiene ffmpeg/ffprobe: zip 203,5 MB; senza tools il pacchetto sarebbe molto più piccolo."
+  ],
+  "rules_respected": [
+    "Progetti utente intatti (GTA6 su copia, hash originale invariato)",
+    "Nessun download obbligatorio; servizi AI esterni e configurabili",
+    "Mai Ollama e ComfyUI insieme nelle prove",
+    "Pulizia solo di cache/artefatti rigenerabili e nostro temp; prove e ricevute conservate",
+    "Niente 'FilmCraft' nei testi visibili"
+  ]
+}

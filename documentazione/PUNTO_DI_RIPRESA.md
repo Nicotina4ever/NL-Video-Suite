@@ -1,4 +1,15 @@
-# Punto di ripresa — aggiornato al 23/11/2026 (sera)
+# Punto di ripresa — CHIUSO 1.0.0 (24/11/2026)
+
+## CHIUSURA
+- Release 1.0.0 (48 pannelli), portabile definitivo in `distribuzione/`, test engine/UI verdi, clippy
+  pulito; GTA6 read-only con export completo; performance misurate; pulizia `target/` (−16,97 GB) e
+  temp (−1,47 GB), disco libero ~95,9 GB.
+- Limiti dichiarati: bridge FLF reale oltre i 30 min su questa GPU (recupero `nl.bridge.place`), vision
+  del frame entrante non implementata, ASR HTTP solo dry run, script Linux/macOS solo sintassi, Inno
+  Setup non compilato, rename upstream rimandato.
+- Dettaglio in `documentazione/prove/p7-final/receipt.json` e `STATO_INTEGRAZIONE.md`.
+
+# Punto di ripresa storico — aggiornato al 23/11/2026 (sera)
 
 Stato aggiornato dopo P10 (provider modulari e distribuzione) e P11 (text-to-video e bridge locale).
 ## Aggiornamento 23/11 sera — P10 provider/distribuzione e P11 generativo locale
@@ -46,6 +57,9 @@ Stato aggiornato dopo P10 (provider modulari e distribuzione) e P11 (text-to-vid
 - **P10d trascrizione modulare**: ``nl.asrProvider`` bridge/OpenAI-compatibile, ``nl.asr.transcribe``
   multipart ``/audio/transcriptions`` con dry run e validazione, impostazioni e docs; il bridge resta
   per applicare la trascrizione al media. Prova live dry run in ``prove/p10-asr-provider/``.
+- **P11e transizioni ponte**: Cut/Dissolve su plan/generate/place, cross dissolve video + constant power
+  audio sui bordi, anche nel placement automatico; pannello NL Bridge aggiornato; prova live
+  2 transizioni su file generato.
 - **Da fare subito dopo**: rerun end-to-end automatico del bridge con timeout 1800 s (la generazione
   e il placement sono verificati separatamente), prompt bridge con analisi vision del frame entrante,
   transizioni/audio del ponte, estensione v2v; rename NL degli installer upstream e prova reale degli

@@ -69,6 +69,15 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
   servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
 
+## Parità NL — P11e transizioni/audio del ponte (24/11/2026)
+
+- `nl.bridge.plan/generate/place` accettano `transition=cut|dissolve`: il clip ponte riceve
+  cross dissolve video e constant power audio sui due bordi, anche quando il media generato viene
+  piazzato automaticamente dopo l'import (`place.transition` in `graphics.generateComfy`).
+- Pannello **NL Bridge** con selettore Cut/Dissolve; helper condiviso `apply_place_transitions`.
+- Prova live: ponte generato piazzato nel gap con 2 transizioni video applicate, sequenza
+  0–48 / 48–96 / 96–144. Evidenze in `prove/p11-bridge-transitions/`.
+
 ## Parità NL — P10d trascrizione modulare (23/11/2026)
 
 - `nl.asrProvider` = `bridge` | `openai_compatible`; `nl.asrUrl` (default
