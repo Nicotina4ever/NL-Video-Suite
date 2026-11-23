@@ -69,6 +69,22 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
   servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
 
+## Parità NL — P9b prompt AI, parametri e dry run (23/11/2026)
+
+- **Prompt AI** (
+l.prompt.enhance): brief → prompt + varianti validate (niente risoluzioni/aspect
+  ratio, niente internals del workflow), eseguibile in background; pulsanti in NL Generate e NL
+  Story con applicazione su clic. Il modello Ollama viene scaricato subito (`keep_alive=0`).
+- **Parametri reali** (
+l.workflows.parameters): widget di un workflow risolti da
+  `/object_info` (valori, enum, min/max, input collegati, classi mancanti) e mostrati nel
+  pannello NL Workflows.
+- **Dry run** (`graphics.generateComfy dryRun:true`): costruisce il payload completo (reference
+  caricate e loader patchati, size dalla sequenza) senza inviare nulla; riepilogo nel pannello.
+- Prova live: `documentazione/prove/p9b-prompt-params/` (prompt 39 s con qwen3.5:9b; dry run del
+  workflow v2v MiniMax con 23 nodi e reference image+video patched=1+1; 78 parametri, 0 classi
+  mancanti).
+
 ## Parità NL — P9d reference media (23/11/2026)
 
 - `graphics.generateComfy` accetta reference **image/video/audio**: le carica in ComfyUI e

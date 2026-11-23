@@ -122,7 +122,11 @@ Inventario: `documentazione/inventario/prompter_comfyui.md`. Workflow copiati (8
 - [x] P9a: pannello **NL Workflows**; doctor unito alla verifica API (`nl.workflows.verify` legge
       `/object_info`, `nl.workflows.diagnose` statico+live, `nl.workflows.fix` copia riparata,
       `nl.workflows.import` per aggiungere workflow in futuro).
-- [ ] P9b: parametri reali da `/object_info` + Prompt AI (brief→proposte validate→diff→applica).
+- [x] P9b (prima parte): **Prompt AI** (`nl.prompt.enhance`, validato, keep_alive 0, pulsanti in
+      Generate/Story), **parametri reali** da `/object_info` (`nl.workflows.parameters` + «Show
+      parameters»), **dry run senza invio** (`graphics.generateComfy dryRun` + «Dry run (no send)»).
+      Prova live: `prove/p9b-prompt-params/`. Restano: compilatore H3 (schema base/full-reference) e
+      modifica interattiva dei widget.
 - [ ] P9c: coda varianti (seed deterministici, prepara/invia con conferma, dedupe) + free VRAM
       controllato ogni N generazioni.
 - [ ] P9d: reference video/audio per v2v/r2v/extend, generazione e inserimento/estensione in

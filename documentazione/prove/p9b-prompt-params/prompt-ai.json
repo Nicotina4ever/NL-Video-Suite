@@ -1,0 +1,11 @@
+{
+  "kind": "image",
+  "model": "qwen3.5:9b",
+  "prompt": "Dynamic close-up shot of a passionate voice actor performing dubbing, wearing a professional studio headset and speaking into a large condenser microphone with visible pop filter. The subject has an energetic facial expression, mouth open mid-sentence, conveying intense emotion and power. Background is a blurred modern recording studio with soundproofing foam panels in deep blue and grey tones. Dramatic lighting with a strong rim light highlighting the hair and shoulders, creating a cinematic glow against the darker background. High contrast, sharp focus on the face and microphone, 8k resolution, photorealistic texture, vibrant colors, depth of field.",
+  "variants": [
+    "Wide angle shot of a voice actor in a soundproof booth, holding a vintage ribbon microphone with both hands, shouting with an energetic posture. The room is filled with colorful acoustic panels and studio monitors. Bright, even lighting illuminates the entire scene, capturing the dynamic movement of the performance. Hyper-realistic, 8k, detailed fabric textures on clothing.",
+    "Medium shot of a female voice actor in a sleek black hoodie, passionately dubbing into a silver microphone. The background features a large window with city lights bokeh at night. Cool blue and purple ambient lighting mixed with warm key light on the face. Cinematic composition, shallow depth of field, highly detailed skin pores and sweat.",
+    "Low angle shot looking up at an energetic male voice actor shouting into a boom microphone. The studio ceiling with acoustic clouds is visible above. Intense spotlight from above creates strong shadows and highlights on the face. High energy atmosphere, motion blur on the background elements to suggest movement, 8k, photorealistic.",
+    "Over-the-shoulder shot focusing on the voice actor's profile as they speak into a microphone with a red LED indicator light. The background shows a mixing console and computer screens with waveform visualizations. Soft studio lighting with a slight lens flare. Clean composition, sharp focus, vibrant colors, 8k resolution."
+  ]
+}

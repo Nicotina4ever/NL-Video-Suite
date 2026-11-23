@@ -1,0 +1,52 @@
+{
+  "date": "2026-11-23",
+  "phase": "P9b (prima parte)",
+  "title": "Prompt AI, parametri reali dei workflow e dry run senza invio",
+  "intent": "Scrivere i prompt con l'IA locale, vedere i parametri veri di un workflow (enum, intervalli) e controllare esattamente cosa verrebbe inviato a ComfyUI prima di lanciare una generazione lunga (v2v/r2v).",
+  "implemented": {
+    "prompt_ai": [
+      "nl/prompt.rs: nl.prompt.enhance {brief, kind image|video|v2v|music, language?, model?, wait?} — prompt + varianti validate; scarta risoluzioni/aspect ratio ('8k', '16:9', 'high resolution'), rifiuta testo che cita class_type/inputs/node id, lunghezze limitate; modello scaricato dopo la risposta (keep_alive 0) per non sovrapporsi a ComfyUI",
+      "esecuzione in background con job (wait:false) e risultato in s.nl.results['prompt']; il pannello lo propone e lo applica solo su clic",
+      "pulsanti: NL Generate «Enhance prompt with AI» + «Use AI prompt»; NL Story «Enhance keyframe prompt with AI» + «Use AI prompt»"
+    ],
+    "workflow_parameters": [
+      "nl.workflows.parameters {workflow, api?, limit?}: risolve i widget reali dal /object_info (valore attuale, kind int/float/bool/text/choice, enum, min/max, input collegati) e riporta le classi non installate",
+      "pannello NL Workflows: «Show parameters» con elenco node/classe/campo=valore (fino a 80 righe)"
+    ],
+    "dry_run": [
+      "graphics.generateComfy accetta dryRun:true: carica le reference, patcha i loader, calcola prompt/seed/size ma NON invia nulla; risponde {submitted:false, nodes, size, references}",
+      "pannello NL Generate: «Dry run (no send)» con riepilogo (nodi, reference, dimensione)"
+    ]
+  },
+  "live_evidence": {
+    "prompt_ai": {
+      "command": "nl.prompt.enhance brief=\"copertina per un video sul doppiaggio, tono energico, soggetto al microfono\" kind=image wait=true model=qwen3.5:9b",
+      "elapsed_s": 39,
+      "result": "1 prompt + 4 varianti; '8k resolution' rimosso dal testo; ollama ps vuoto dopo la chiamata",
+      "file": "documentazione/prove/p9b-prompt-params/prompt-ai.json"
+    },
+    "dry_run_v2v": {
+      "workflow": "prompter/minimax ref all V2V.json",
+      "inputs": "video=%TEMP%/ref-video.mp4 (2 s testsrc 256x256) + image=documentazione/prove/p8d-story/scene1-keyframe.png",
+      "result": "submitted=false, nodes=23, size=512x512 dalla sequenza, references: image patched=1, video patched=1",
+      "file": "documentazione/prove/p9b-prompt-params/dryrun-v2v.jsonl"
+    },
+    "parameters": {
+      "workflow": "prompter/minimax ref all V2V.json",
+      "result": "78 widget totali, 0 classi mancanti (es. ResolutionSelector aspect_ratio 16:9 (Widescreen), megapixels=1, multiple=32; VAELoader vae_name con 17 scelte)",
+      "note": "limit=40 nella prova: total=78, truncated=true"
+    },
+    "default_image_dry_run": "10 nodi, size 512x512, nessuna reference: il payload dell'immagine è derivato dalla sequenza"
+  },
+  "checks": [
+    "nl::prompt::tests (brief richiesto, prompt/varianti limitati, leak rifiutato, risoluzioni rimosse)",
+    "nl::workflows::tests (parametri con choice/int/link, classi mancanti)",
+    "comfy::cover_tests fill prompt e reference (test esistenti aggiornati al nuovo caso PrimitiveString)",
+    "cargo fmt, clippy -D warnings, test engine/UI"
+  ],
+  "limits": [
+    "Per i workflow H3 il campo prompt sostituisce il template PrimitiveStringMultiline: il compilatore H3 dedicato (schema base/full-reference del modello) è il passo successivo, così il template non viene perso.",
+    "La generazione video/audio live con GPU non è stata eseguita: il dry run verifica il payload; l'invio resta esplicito e può richiedere offload (modelli H3 int8/int4 molto grandi per 8 GB di VRAM).",
+    "I parametri sono mostrati in sola lettura; la modifica dei singoli widget nel pannello arriverà con la coda varianti (P9c)."
+  ]
+}
