@@ -69,6 +69,17 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
   servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
 
+## Parità NL — P8d shot map e montaggio a ritmo (23/11/2026)
+
+- `nl.story.shotmap`: ogni scena della storia si spezza in inquadrature numerate con una camera
+  (establishing wide, medium, close-up, over-the-shoulder, insert, low-angle), prompt e durata;
+  pulsanti nel pannello NL Story e conteggio inquadrature nell'elenco scene.
+- `nl.montage.plan` accetta **bpm**, **beatsPerShot** e **rhythm** (steady/pulse/accelerando): la
+  durata dell'inquadratura deriva dal tempo e il ritmo la varia, con l'ultima tagliata sul target;
+  pannello NL Montage con ritmo, BPM e battute.
+- Prova live: storia 2 scene → 6 inquadrature (2 s e 1,3 s); piano 4 s a 120 bpm pulse → durate
+  1/0,5/1/0,5/1 s; `documentazione/prove/p8d-shotmap/`.
+
 ## Parità NL — P8d montage planner (23/11/2026)
 
 - `nl.montage.plan/apply`: piano deterministico di inquadrature a durata fissa dal materiale della
