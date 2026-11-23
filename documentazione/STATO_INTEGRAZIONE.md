@@ -46,6 +46,10 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
 - **ASR NL**: bridge WhisperX verificato (42 parole, timing reali) e comando
   `transcript.transcribeNl` aggiunto; il pulsante Trascrivi del pannello Text lo usa.
 - **Parità completa**: matrice in `PARITA_FEATURE.md`, fasi P1–P7 in `TODO.md`.
+- **Risoluzione**: il motore deriva le immagini dalla sequenza (1×/2×) e i video a 2/3 o 1/2,
+  con arrotondamento a 8 px; il dialogo espone la scelta 1×/2×.
+- **GPU-first**: ASR `device: auto` prova CUDA e ripiega su CPU una volta; ComfyUI usa la GPU
+  gestita dalla propria coda.
 - **Portable con motore AI e launcher unico**: F8.
 
 ## Ottimizzazione spazio (22/11/2026)
@@ -70,6 +74,11 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   corso). Ricevuta: `da_eliminare/2026-11-23-ottimizzazione/ricevuta.json`.
 - Restano intatti: progetti utente, `runtime/`, `models/`, `engines/`, `ZMateriale/`, prove in
   `documentazione/prove/`.
+- **Pulizia finale (23/11):** rimossa `filmcraft-nl/target/debug` (13,77 GB) ricreata da
+  clippy/test, la cache di lavoro ASR e un `__pycache__`; spazio K da **81,43 a 97,47 GB
+  liberi** (+16,05 GB). La release `filmcraft.exe` (77 MB, 02:05) contiene F5/F6/ASR, dialoghi
+  GUI, risoluzione da sequenza e ASR GPU-first. Ricevuta aggiornata:
+  `da_eliminare/2026-11-23-ottimizzazione/ricevuta.json`.
 
 ## Regole rispettate
 

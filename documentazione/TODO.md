@@ -20,6 +20,8 @@ un modello piccolo (`lfm2.5:latest` o `granite4.2:3b`), poi scaricarlo prima di 
 - [x] Ottimizzazione spazio 23/11: ~3,9 GB di media di test completati, cache debug `sviluppo/target/debug`,
       anteprime rigenerabili e `__pycache__` rimossi; reference software originale spostato in
       `da_eliminare/2026-11-23-ottimizzazione/`; vecchio trash 21/11 eliminato.
+- [x] Pulizia finale 23/11: `filmcraft-nl/target/debug` (13,77 GB), cache ASR e `__pycache__`;
+      spazio K da 81,43 a **97,47 GB liberi** (+16,05 GB). Release aggiornata.
       Ricevuta: `da_eliminare/2026-11-23-ottimizzazione/ricevuta.json`.
 - [x] F4b diagnosi: il prompt con timestamp supera il contesto Ollama di default (4k); aggiunti
       `num_ctx: 16384`, `think: false` e anteprima della risposta negli errori.
@@ -87,6 +89,8 @@ Matrice: `documentazione/PARITA_FEATURE.md`. Ogni voce deve avere GUI e comando.
 
 ## Manutenzione
 
+- [ ] Pulizia finale: dopo l'ultima release eliminare `filmcraft-nl/target/debug` (cache test,
+      ~13 GB), `da_eliminare/.../asr-check/work` e i residui; aggiornare la ricevuta e lo spazio.
 - [ ] Tenere `da_eliminare` con ricevute; niente cache debug nel repo.
 - [ ] Aggiornare `STATO_INTEGRAZIONE.md` a ogni fase.
 - [ ] Non toccare i 3 progetti utente (GTA6, Pubblicità, Trailer).

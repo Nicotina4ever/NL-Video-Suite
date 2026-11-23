@@ -15,7 +15,14 @@ impostazioni), non solo da comando headless. I modelli già installati devono es
 nessun download obbligatorio.
 
 Percorsi di riferimento (sola lettura, niente copia di codice/wording):
-`K:\AI\ZioPaolo Video`, `K:\AI\Regista_AI`, `K:\AI\ClipsAI`, `K:\AI\Calliope`.
+
+| Percorso | Cosa contiene |
+|---|---|
+| `K:\AI\ZioPaolo Video` | ZP Shorts Studio: pipeline short/compilation, sessioni, CLI |
+| `K:\AI\Regista_AI` | agente Regista: storyboard, image/video/TTS/audio, workflow repair, coda |
+| `K:\AI\ClipsAI` | Sgrossatura, Clipping social, WhisperX, SRT, reframe |
+| `K:\AI\Calliope` | story→scene→shot→film, settings/coda, progetto SQLite (MIT) |
+
 Matrice dettagliata: `documentazione/PARITA_FEATURE.md`.
 
 **Requisiti aggiunti il 23/11/2026 (vincolanti):**
@@ -48,10 +55,13 @@ Matrice dettagliata: `documentazione/PARITA_FEATURE.md`.
 | F8 portable | da fare | — |
 
 Ultimi test (23/11/2026): clippy engine+UI pulito; UI 367 + 815 passati, 0 falliti;
-engine ASR 2/2. Commit codice: **`48f2ab9e`** (F5/F6/ASR + dialoghi GUI).
-Build release con GUI/ASR in corso al momento del handoff.
+engine ASR 2/2. Commit codice: **`864b9708`** (risoluzione da sequenza, GPU-first, GUI; base
+`48f2ab9e`).
+Release finale pronta: `filmcraft-nl/target/release/filmcraft.exe` (77 MB, 02:05) con F5/F6/ASR,
+dialoghi GUI, risoluzione da sequenza e ASR GPU-first.
 F6: workflow Ace Step completato (MP3 120 s, `prove/f6-audio/ace-step.mp3`); resta il retest
-dell'import nell'app dopo il fix `seconds`.
+dell'import nell'app dopo il fix `seconds` e la regola 2/3.
+Pulizia finale: `filmcraft-nl/target/debug` (13,77 GB) eliminata; spazio K **97,47 GB liberi**.
 
 ## File chiave
 
