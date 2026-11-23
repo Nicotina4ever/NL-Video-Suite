@@ -57,13 +57,13 @@ Legenda: ✅ integrato e verificato; 🟡 codice pronto, verifica GUI in corso; 
 | Find Shorts locale | NL/F4a | ✅ | Sequence |
 | Find Shorts AI con hook verificabile | NL/F4b | ✅ | Sequence |
 | Candidati editoriali + compilation | ZP | ⬜ | pannello Shorts |
-| Clipping social con score/dedupe | ClipsAI | ⬜ | pannello Clipping |
-| SRT normale + “hormozi” per clip | ClipsAI | ⬜ | pannello Clipping |
-| Reframe 9:16 con sfondo sfocato | ClipsAI/Regista | 🟡 (motore presente) | Effect Controls / Clipping |
-| Burn sottotitoli | ClipsAI | ⬜ | pannello Clipping |
-| Sgrossatura silenzi/fiati/filler/bad-takes | ClipsAI | ⬜ | pannello Sgrossa |
-| Editor waveform con tagli manuali | ClipsAI | ⬜ | pannello Sgrossa |
-| Report tagli + anteprima | ClipsAI | ⬜ | pannello Sgrossa |
+| Clipping social con score/dedupe | ClipsAI | 🟡 P3a: proposta/selezione/render via bridge | pannello NL Clipping |
+| SRT normale + “hormozi” per clip | ClipsAI | ✅ P3a (timestamp parola, ASS generabile) | pannello NL Clipping |
+| Reframe 9:16 con sfondo sfocato | ClipsAI/Regista | 🟡 P3a: copia verticale nel render Clipping | pannello NL Clipping |
+| Burn sottotitoli | ClipsAI | ⬜ P3b (ASS con PlayRes) | pannello NL Clipping |
+| Sgrossatura silenzi/fiati/filler/bad-takes | ClipsAI | ✅ P3a via bridge | pannello NL Rough Cut |
+| Editor waveform con tagli manuali | ClipsAI | ⬜ P3b | pannello NL Rough Cut |
+| Report tagli + anteprima | ClipsAI | 🟡 P3a: report sì, anteprima no | pannello NL Rough Cut |
 
 ### ASR e testo
 

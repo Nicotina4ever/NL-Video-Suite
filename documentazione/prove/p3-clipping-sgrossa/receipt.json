@@ -1,0 +1,55 @@
+{
+  "date": "2026-11-23",
+  "phase": "P3a",
+  "title": "Clipping e Sgrossatura: piano, selezione, render, SRT e report",
+  "intent": "Le funzioni editoriali di ClipsAI dentro la suite: proposte con score, dedupe e titolo; piano di sgrossatura con motivi; render solo delle parti scelte; sottotitoli SRT normal/hormozi; report del piano.",
+  "architecture": {
+    "bridge": "sviluppo/bridge/clipsai_bridge.py, operazioni clips/reels/cleanup/render_clips/render_reels/render_cleanup (motore vendored in engines/clipsai, gia' usato dalla suite)",
+    "engine": "crates/engine/src/nl/pipeline.rs (job in background, heartbeat su progress.json, timeout, import dei file resi), nl/state.rs (ultimo risultato per operazione), nl/subtitles.rs (cue dai timestamp parola, SRT e ASS)",
+    "commands": [
+      "nl.clipping.propose {mode 1|2|3, language?, params?, vertical?}",
+      "nl.clipping.render {items, vertical?}",
+      "nl.sgrossa.analyze {language?, params?}",
+      "nl.sgrossa.apply {items:[[start,end]...]}",
+      "nl.sgrossa.report {path?}",
+      "nl.subtitles.srt {start,end,hormozi?,path?}",
+      "nl.pipeline.result {operation?}"
+    ],
+    "panels": "NL Clipping (modalita', analisi, tabella candidati con score/durata, selezione, render 16:9+9:16, SRT normal/hormozi) e NL Rough Cut (analisi, tagli con motivo, avviso parlato-dentro-i-tagli, selezione pezzi da tenere, render, report)"
+  },
+  "rules_respected": [
+    "Nessuna trascrizione duplicata: la cache del bridge vive in una cartella stabile per media (analisi e render la condividono)",
+    "Il parlato dentro i tagli e' misurato dal motore e mostrato come avviso se > 0,5 s",
+    "Nessun file inventato: il render importa solo file realmente esistenti",
+    "Annullamento job supportato (jobs.cancel); il processo bridge viene terminato e il risultato scartato",
+    "Niente download; modelli e workflow restano quelli installati"
+  ],
+  "verification": {
+    "commands": [
+      "cargo fmt -p filmcraft-engine -p filmcraft-ui-egui",
+      "cargo clippy -p filmcraft-engine -p filmcraft-ui-egui --all-targets -- -D warnings",
+      "cargo test -p filmcraft-engine",
+      "cargo test -p filmcraft-ui-egui"
+    ],
+    "tests_added": [
+      "nl::tests::clipping_and_rough_cut_need_a_video_and_a_valid_mode",
+      "nl::tests::a_render_needs_selected_items",
+      "nl::tests::pipeline_results_are_explicit_before_any_step_ran",
+      "nl::tests::subtitles_are_written_from_word_timings",
+      "nl::tests::subtitles_need_a_transcript",
+      "nl::pipeline::tests::only_existing_files_are_imported",
+      "nl::subtitles::tests (7 casi: cue, gap, fuori intervallo, SRT, hormozi, ASS)"
+    ],
+    "engine_total": "951 unit test (948 passed, 3 ignored) prima di P3a; 956 dopo l'aggiunta dei test NL",
+    "ui_total": "367 unit + 4 + 1 + 815 integrazione"
+  },
+  "limits": [
+    "Editor waveform con tagli manuali e burn sottotitoli (ASS) sono il passo P3b; le funzioni del bridge per il burn non sono ancora esposte",
+    "Il render non crea ancora sequenze per clip: importa i file nel Project panel (il montaggio resta all'editor)",
+    "Il job bridge non riporta la percentuale live: mostra lo stage del motore via progress.json"
+  ],
+  "notes": [
+    "Nessun progetto utente toccato; nessun servizio avviato.",
+    "Le proposte e i piani non modificano la timeline finche' non si preme Render/Apply."
+  ]
+}

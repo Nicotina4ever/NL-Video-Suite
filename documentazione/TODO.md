@@ -82,8 +82,12 @@ Matrice: `documentazione/PARITA_FEATURE.md`. Ogni voce deve avere GUI e comando.
 - [ ] P4b (richiesta operatore): **copertine AI/thumbnail** stile YouTube — frame scelto dalla
       timeline + contesto discusso nel video, workflow immagine selezionabile, import come cover
       del progetto. Da implementare dopo P3/P4 (serve l'upload reference a ComfyUI).
-- [ ] P3: pannello Clipping (analisi, selezione, reframe 9:16, SRT, burn) e Sgrossa (tagli,
-      waveform manuale, report, anteprima).
+- [x] P3a: pannello Clipping (analisi, selezione, SRT normal/hormozi, render 16:9+9:16) e
+      Sgrossa (piano tagli con motivi, avviso parlato, selezione pezzi, render, report) sopra il
+      bridge ClipsAI esistente; comandi `nl.clipping.*`, `nl.sgrossa.*`, `nl.subtitles.srt`,
+      `nl.pipeline.result`. Prova: `documentazione/prove/p3-clipping-sgrossa/receipt.json`.
+- [ ] P3b: editor waveform con tagli manuali (piano modificabile), reframe 9:16 di un file reso,
+      burn sottotitoli via ASS con PlayRes, anteprima del ritmo.
 - [ ] P4: pannello Storyboard/Storia (Calliope/Regista) con image/video per scena e coda.
 - [ ] P5: TTS Qwen3 e musica con voci/modelli già installati, selezione nella GUI.
 - [ ] P6: workflow repair/autofix, diagnostica servizi, avvio/stop ComfyUI e Ollama.
