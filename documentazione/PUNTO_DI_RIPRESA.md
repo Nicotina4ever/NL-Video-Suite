@@ -43,6 +43,9 @@ Stato aggiornato dopo P10 (provider modulari e distribuzione) e P11 (text-to-vid
   `installer.iss`, `install.sh` Linux e `install-macos.sh` (sintassi verificata); nessun servizio AI.
 - **P7 export completo GTA6**: 4476 frame, 149,2 s, 1080×1920, 40,7 MB, 43,7 fps in 103,3 s (copia
   read-only, nessun media offline).
+- **P10d trascrizione modulare**: ``nl.asrProvider`` bridge/OpenAI-compatibile, ``nl.asr.transcribe``
+  multipart ``/audio/transcriptions`` con dry run e validazione, impostazioni e docs; il bridge resta
+  per applicare la trascrizione al media. Prova live dry run in ``prove/p10-asr-provider/``.
 - **Da fare subito dopo**: rerun end-to-end automatico del bridge con timeout 1800 s (la generazione
   e il placement sono verificati separatamente), prompt bridge con analisi vision del frame entrante,
   transizioni/audio del ponte, estensione v2v; rename NL degli installer upstream e prova reale degli

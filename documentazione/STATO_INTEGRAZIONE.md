@@ -69,6 +69,19 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
   servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
 
+## Parità NL — P10d trascrizione modulare (23/11/2026)
+
+- `nl.asrProvider` = `bridge` | `openai_compatible`; `nl.asrUrl` (default
+  `http://127.0.0.1:8000/v1`), `nl.asrApiKey` (+ `NL_ASR_PROVIDER/URL/API_KEY`) nel gruppo
+  Speech delle impostazioni.
+- `nl.asr.transcribe`: risolve il media, valida endpoint http, costruisce multipart
+  (file+model+language), POST `/audio/transcriptions`, estrae testo/lingua/segmenti; dry run senza
+  rete; limite 512 MB; il bridge resta il backend di `transcript.transcribeNl` che applica anche la
+  trascrizione al progetto.
+- Prova live dry run: endpoint `/v1/audio/transcriptions`, modello whisper-1, lingua it, 1,33 MB,
+  submitted=false; https rifiutato. Evidenze in `prove/p10-asr-provider/`.
+- Resta: prova reale con un server whisper installato e applicazione del testo ai sottotitoli.
+
 ## Parità NL — P10c installer per-utente e P7 export completo (23/11/2026)
 
 - **Installer per-utente**: `packaging/nl/install.ps1` (Windows, testato install+uninstall su

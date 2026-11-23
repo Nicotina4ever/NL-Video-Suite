@@ -93,6 +93,15 @@ e `nl.services.status` dicono se l'endpoint risponde (senza avviarlo).
 
 ### Trascrizione (ASR)
 
+- `nl.asrProvider`: `bridge` (bridge WhisperX della suite, default) oppure
+  `openai_compatible` (whisper.cpp server, faster-whisper-server, vLLM whisper, LocalAI).
+- `nl.asrUrl` (base con `/v1`, default `http://127.0.0.1:8000/v1`), `nl.asrApiKey`
+  (opzionale, `NL_ASR_API_KEY`), `nl.asrModel`, `nl.asrLanguage`, `nl.asrDevice`,
+  `nl.asrCache`/`nl.asrCacheDir`.
+- Con il backend compatibile: `nl.asr.transcribe {path|item, dryRun?}` invia il file a
+  `/audio/transcriptions` e restituisce testo/lingua/segmenti; con il bridge usare
+  `transcript.transcribeNl` che applica anche la trascrizione al media.
+
 - `nl.asrDevice` (`auto`/`cuda`/`cpu`), `nl.asrLanguage`, `nl.asrModel` (nome o cartella),
   `nl.asrCache`, `nl.asrCacheDir`.
 - Il bridge attuale è quello della suite (Python + WhisperX/faster-whisper): la scelta del motore è

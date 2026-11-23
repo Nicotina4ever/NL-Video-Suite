@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-23",
+  "phase": "P10d (provider trascrizione modulare)",
+  "title": "Trascrizione con backend selezionabile: bridge NL oppure qualsiasi server OpenAI-compatibile /audio/transcriptions",
+  "intent": "Completare la modularità dei provider anche per la trascrizione: oltre al bridge WhisperX della suite, poter usare un server locale compatibile OpenAI (whisper.cpp server, faster-whisper-server, vLLM whisper, LocalAI) impostandone indirizzo, modello e token dalle preferenze.",
+  "implemented": {
+    "settings": "nl.asrProvider (bridge | openai_compatible), nl.asrUrl (default http://127.0.0.1:8000/v1), nl.asrApiKey (+ NL_ASR_PROVIDER/NL_ASR_URL/NL_ASR_API_KEY), gruppo Speech in Impostazioni ▸ NL Video Suite",
+    "command": "nl.asr.transcribe {path?|item?, language?, model?, url?, backend?, dryRun?, timeoutSeconds?}: risolve il media da path o selezione, valida endpoint http, costruisce multipart con file+model+language+response_format, POST /audio/transcriptions con bearer opzionale, estrae text/language/segments; dry run mostra endpoint/modello/lingua/file senza rete; 512 MB max; il bridge resta il backend di transcript.transcribeNl (che applica anche la trascrizione al media)",
+    "http": "nl/http.rs: post_bytes_with_headers per body binari/multipart, con richiesta esistente rifattorizzata sullo stesso sender"
+  },
+  "live_evidence": {
+    "dry_run": "nl.asr.transcribe su un MP4 generato: provider=openai_compatible, endpoint=http://127.0.0.1:8000/v1/audio/transcriptions, model=whisper-1, language=it, 1.328.138 byte, submitted=false",
+    "validation": "endpoint https://example.test/v1 rifiutato con 'only http:// endpoints are supported'",
+    "preferences": "nl.asrProvider/nl.asrUrl/nl.asrModel impostati per la prova e riportati ai default (bridge, vuoti) subito dopo",
+    "file": "documentazione/prove/p10-asr-provider/asr-provider-run.jsonl"
+  },
+  "checks": [
+    "nl_asr::tests::the_multipart_body_carries_the_file_and_the_fields",
+    "nl_asr::tests::the_provider_command_validates_and_dry_runs_without_network (bridge rifiutato, dry run, endpoint https rifiutato)",
+    "cargo fmt, clippy -D warnings, test engine e UI"
+  ],
+  "limits": [
+    "La trascrizione HTTP reale non è stata eseguita: non c'è un server whisper compatibile installato su questa macchina; il dry run verifica configurazione, file e richiesta.",
+    "Il comando restituisce il testo (con segmenti se il server li fornisce) ma non crea ancora una traccia sottotitoli: l'applicazione al progetto resta transcript.transcribeNl con il bridge.",
+    "Il multipart non include parametri avanzati (diarizzazione, word timestamps): si possono aggiungere quando il server scelto li supporta."
+  ],
+  "rules_respected": [
+    "Nessun download o servizio avviato: si usa un server che l'operatore ha già",
+    "Nessun media modificato; dry run senza rete",
+    "Endpoint solo http locale (niente upload cloud accidentale)",
+    "Niente 'FilmCraft' nei testi visibili"
+  ]
+}
