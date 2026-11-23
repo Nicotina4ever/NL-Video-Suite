@@ -77,7 +77,7 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
 - `nl.delivery.package {path}`: cartella nuova con manifest.json, captions.srt, chapters.json,
   story.json, **thumbnail.png dal playhead**, copia del progetto e README; i media non vengono
   copiati e il manifest lo dichiara. `nl.storage.status`: spazio di data/generated/progetto.
-- Pannello **NL Delivery** con Run checks, Storage report ed Export production package.
+- Pannello **NL Delivery** con Run checks, Storage report, check social per piattaforma ed Export production package.\n- **NL Album** (``nl.album.list/insert``): media generati elencati e reinseribili in timeline;\n  l'insert accetta solo file dentro ``generated/``.
 - Prova live: QA 0 errori/0 warning ready, storage 5 MB/22 file, pacchetto creato con manifest,
   captions, thumbnail 367 KB e README; `documentazione/prove/p8f-delivery/`.
 

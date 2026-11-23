@@ -1,13 +1,15 @@
 {
   "date": "2026-11-23",
-  "phase": "P8f (prima parte)",
-  "title": "Delivery: controlli QA, report spazio e production package con thumbnail",
+  "phase": "P8f (delivery + album + social)",
+  "title": "Delivery: QA, spazio, production package con thumbnail, album dei media generati e controlli social",
   "intent": "Portare le funzioni di consegna della versione test classica: un controllo prima dell'export, la vista dello spazio usato e un pacchetto di consegna con manifest, sottotitoli, capitoli, storia, thumbnail e progetto.",
   "implemented": {
     "engine": [
       "crates/engine/src/nl/delivery.rs: nl.delivery.qa — controlli su sequenza attiva (risoluzione ≥720p, durata, cue sottotitoli, clip audio/video, master audio), presenza capitoli/storia (informativi), file generati; esito con errors/warnings/ready",
       "nl.delivery.package {path} — crea una cartella nuova (mai sovrascritta) con manifest.json (controlli + impostazioni sequenza), captions.srt (prima traccia), chapters.json e story.json se presenti, thumbnail.png dal playhead (file.exportFrame), copia del file progetto se salvato, README.md; i media NON vengono copiati e il manifest lo dice",
-      "nl.storage.status — dimensione e numero di file della cartella dati, della cartella generated e del progetto (walk limitato e read-only)"
+      "nl.storage.status — dimensione e numero di file della cartella dati, della cartella generated e del progetto (walk limitato e read-only)",
+      "nl.delivery.social {platform} — controlli per youtube/tiktok/reels/instagram: formato (verticale per tiktok/reels/instagram, ≥720p per youtube), durata massima (60/90 s), sottotitoli, audio",
+      "crates/engine/src/nl/album.rs: nl.album.list elenca i media generati (immagini/video/audio) in generated/ per data, nl.album.insert li importa di nuovo e li mette in timeline al playhead (audit path: solo file dentro generated/)"
     ],
     "gui": "pannello **NL Delivery**: Run checks con elenco ✓/!/✗, Storage report (MB, file, generated, progetto), Export production package… con selettore cartella"
   },
@@ -16,6 +18,8 @@
     "qa": "0 errori, 0 warning, ready=true; controlli ok: 1920×1080 @23.98, 26.8 s, 2 cue, 7 clip audio, 7 clip video",
     "storage": "data 5 MB / 22 file, 12 file generati",
     "package": "manifest.json, captions.srt, thumbnail.png (367 KB), README.md creati",
+    "album": "12 file generati elencati (musica MP3, 2 video H3, immagini); insert del PNG z-image ha importato item 900011 e piazzato il clip 900012 a 2 s",
+    "social": "youtube ready=true (1920×1080, 26.8 s, 2 cue, audio); tiktok ready=false per formato orizzontale, durata ok",
     "files": [
       "documentazione/prove/p8f-delivery/delivery-run.jsonl",
       "documentazione/prove/p8f-delivery/package/manifest.json",
@@ -32,7 +36,7 @@
     "La thumbnail è un frame PNG del playhead: non c'è ancora la scelta di un frame specifico dalla GUI (si può cambiare il playhead prima di esportare).",
     "La QA è una checklist deterministica: non analizza loudness misurata né qualità dei sottotitoli.",
     "Il pacchetto non copia i media (per non duplicare GB): manifest e README lo dichiarano.",
-    "Restano di P8f: versioni montaggio, album, social QA/export dedicati."
+    "Restano di P8f: versioni montaggio (snapshot/varianti) e export social diretto; album e controlli social sono in questa parte."
   ],
   "rules_respected": [
     "Nessun download, nessun servizio AI usato per la consegna",
