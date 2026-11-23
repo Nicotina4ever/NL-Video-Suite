@@ -52,17 +52,23 @@ Matrice dettagliata: `documentazione/PARITA_FEATURE.md`.
 | F3b traduzioni | da fare | — |
 | GUI NL | dialoghi Generate/Music/ASR aggiunti; clippy pulito | `menu_dialogs.rs`, `text.rs` |
 | P1 Impostazioni NL | **fatto** | categoria `nl` in `preferences.json`, wiring comfy/ASR/shorts, `nl/size.rs`; `prove/p1-settings/` |
-| Parità completa NL | in corso (P2–P7) | `documentazione/PARITA_FEATURE.md`, `TRACCIA_PARITA.md` |
+| P2b Pannelli NL + branding | **fatto** | 10 pannelli nel dock, testi visibili senza “FilmCraft” |
+| P3a Clipping + Sgrossa | **fatto** | bridge ClipsAI, comandi `nl.clipping.*`/`nl.sgrossa.*`/`nl.subtitles.srt`; `prove/p3-clipping-sgrossa/` |
+| P4b Copertine AI dal frame | **fatto** | `graphics.generateCover`, `nl.cover.*`, pannello NL Cover; `prove/p4b-cover/` |
+| Parità completa NL | in corso (P2, P3b, P4, P5, P6) | `documentazione/PARITA_FEATURE.md`, `TRACCIA_PARITA.md` |
 | F8 portable | da fare | — |
 
-Ultimi test (23/11/2026): clippy engine+UI pulito; UI 367 + 815 passati, 0 falliti;
-engine ASR 2/2. Commit codice: **`864b9708`** (risoluzione da sequenza, GPU-first, GUI; base
-`48f2ab9e`).
+Ultimi test (23/11/2026): clippy engine+UI pulito; engine 966 + 17 passati; UI 367 + 4 + 1 + 828
+passati, 0 falliti. Commit fork: `4927a196` (P4b copertine), `c46162f5` (P3a clipping/sgrossa),
+`d9102850` (P1 impostazioni + pannelli). Base `48f2ab9e`.
 Release finale pronta: `filmcraft-nl/target/release/filmcraft.exe` (77 MB, 02:05) con F5/F6/ASR,
-dialoghi GUI, risoluzione da sequenza e ASR GPU-first.
+dialoghi GUI, risoluzione da sequenza e ASR GPU-first (da ricompilare a fine P1–P7: la release non
+contiene ancora i pannelli NL).
 F6: workflow Ace Step completato (MP3 120 s, `prove/f6-audio/ace-step.mp3`); resta il retest
 dell'import nell'app dopo il fix `seconds` e la regola 2/3.
-Pulizia finale: `filmcraft-nl/target/debug` (13,77 GB) eliminata; spazio K **97,47 GB liberi**.
+Ottimizzazione spazio passo 2 (23/11): progetto da 32,84 a **17,67 GB**, K: **105,3 GB liberi**;
+ricevuta `da_eliminare/2026-11-23-ottimizzazione-p2/` (la cache debug ricreata dai test va
+rimossa di nuovo a fine P7).
 
 ## File chiave
 

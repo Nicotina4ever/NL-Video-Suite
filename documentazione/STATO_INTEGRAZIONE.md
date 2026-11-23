@@ -52,6 +52,23 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   gestita dalla propria coda.
 - **Portable con motore AI e launcher unico**: F8.
 
+## Ottimizzazione spazio (23/11/2026, passo 2 — dopo P1–P4b)
+
+- Misurato prima: progetto **32,84 GB**, disco K: libero **91,9 GB**.
+- Rimossi rigenerabili: `filmcraft-nl/target/debug` **14,30 GB** (la release e le sue dipendenze
+  restano), `sviluppo/target` **0,79 GB** (vecchia app classica), **754** `__pycache__` (**73,7 MB**),
+  **917** cartelle temporanee `%TEMP%/filmcraft-*` dei test (**756 MB**).
+- Spostati in archivio: `sviluppo/tests/artifacts` → `da_eliminare/2026-11-23-ottimizzazione-p2/`
+  (**0,16 GB**, artefatti dei test completati della vecchia suite).
+- Dopo: progetto **17,67 GB** (−15,17 GB), disco K: libero **105,3 GB** (+13,4 GB).
+  Ricevuta e log: `da_eliminare/2026-11-23-ottimizzazione-p2/{receipt.json,cleanup.log}`.
+- **Non toccati**: progetti utente (GTA6, Pubblicità, Trailer, Riferimenti autenti, ZMateriale),
+  `runtime/` (5,1 GB), `models/` (4,05 GB), `engines/`, release del fork, `app/tools`,
+  `documentazione/prove`. Nessun servizio avviato o fermato.
+- **Passo finale (P7)**: la cache debug verrà ricreata dai test delle fasi successive; va rimossa
+  di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
+  servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
+
 ## Parità NL — P3a/P4b clipping, sgrossa e copertine (23/11/2026)
 
 - **Clipping e Sgrossatura** girano sul bridge della suite (`clipsai_bridge.py`, motori vendored in

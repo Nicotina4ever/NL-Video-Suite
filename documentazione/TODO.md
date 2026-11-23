@@ -103,8 +103,13 @@ Matrice: `documentazione/PARITA_FEATURE.md`. Ogni voce deve avere GUI e comando.
 
 ## Manutenzione
 
-- [ ] Pulizia finale: dopo l'ultima release eliminare `filmcraft-nl/target/debug` (cache test,
-      ~13 GB), `da_eliminare/.../asr-check/work` e i residui; aggiornare la ricevuta e lo spazio.
+- [x] Ottimizzazione spazio 23/11 (passo 2, dopo P1–P4b): progetto da 32,84 a 17,67 GB
+      (−15,17 GB), K: da 91,9 a 105,3 GB liberi; rimossi cache debug/temporanee rigenerabili,
+      artefatti dei test completati archiviati. Ricevuta:
+      `da_eliminare/2026-11-23-ottimizzazione-p2/`.
+- [ ] Pulizia finale (P7): dopo l'ultima release eliminare di nuovo `filmcraft-nl/target/debug`
+      ricreato dai test, valutare `target/release/deps` se non servono altre build, aggiornare la
+      ricevuta e lo spazio. `da_eliminare` si svuota solo su richiesta dell'operatore.
 - [ ] Tenere `da_eliminare` con ricevute; niente cache debug nel repo.
 - [ ] Aggiornare `STATO_INTEGRAZIONE.md` a ogni fase.
 - [ ] Non toccare i 3 progetti utente (GTA6, Pubblicità, Trailer).
