@@ -178,11 +178,14 @@ versione test della suite già faceva**. Inventario verificato (165 route, ~80 m
 - **P9a fatto**: workflow doctor **unito** alla verifica API (`nl.workflows.verify` legge
   `/object_info`, `nl.workflows.diagnose` statico+live, `nl.workflows.fix` copia riparata,
   `nl.workflows.import` per aggiungere workflow in futuro) e pannello **NL Workflows**.
-- **Da fare**: P8c (longform/ricerca/assistente/import SRT/traduzioni), P8d (montaggio planner,
-  storia/narrativa con posizionamento in timeline, shot map, flows), P8e (sottotitoli studio,
-  motion, graphic objects, audio master), P8f (servizi/versioni/album/production package/storage/
-  social), P9b–d (parametri reali + Prompt AI, coda varianti/prepara/invia, v2v con reference
-  video/audio e inserimento in timeline).
+- **P8d prima verticale fatta**: pannello **NL Story** — idea → bozza di storia con Ollama,
+  affinamenti (campi scena + refine), keyframe ComfyUI per scena e **posizionamento in timeline**
+  (`nl.story.*`); prova live `prove/p8d-story/`.
+- **Da fare**: P8c (longform/ricerca/assistente/import SRT/traduzioni), P8d resto (video per scena,
+  v2v/r2v, estensione sezioni, montage planner, shot map, flows), P8e (sottotitoli studio, motion,
+  graphic objects, audio master), P8f (servizi/versioni/album/production package/storage/social),
+  P9b–d (parametri reali + Prompt AI, coda varianti/prepara/invia, v2v con reference video/audio e
+  inserimento in timeline).
 
 ## Regole non negoziabili
 

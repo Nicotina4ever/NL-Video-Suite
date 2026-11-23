@@ -105,7 +105,11 @@ Regola: tutte come pannelli/menù/comandi, ma **default rapido** invariato.
 - [ ] P8c: longform/topics/chapters/rough-cut, indice FTS e ricerca, assistente correzioni,
       import SRT/VTT, traduzioni EN/ES.
 - [ ] P8d: montage planner/creative montage/audio onset, story/narrative + assistente + reference,
-      shot map, pipeline/flows; con **posizionamento in timeline** di ciò che si genera.
+      shot map, pipeline/flows.
+      Fatto (prima verticale): pannello **NL Story** — idea → bozza storia con Ollama, affinamenti
+      (update/refine), keyframe ComfyUI per scena, **posizionamento in timeline** (place/placeAll);
+      prova live in `documentazione/prove/p8d-story/`. Restano: video per scena, v2v/r2v,
+      estensione sezioni, narration/audio, montage planner, shot map, flows.
 - [ ] P8e: subtitle studio, motion/titoli, graphic objects, narration/audio master.
 - [ ] P8f: workflow doctor+API (unito P9a), versioni montaggio, album, production package,
       storage, social QA/export, thumbnail nativa.

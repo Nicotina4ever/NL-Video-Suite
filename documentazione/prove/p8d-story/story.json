@@ -1,0 +1,131 @@
+{
+  "characters": [
+    {
+      "description": "Doppiatore esperto, 40 anni, postura rilassata ma concentrata",
+      "name": "Marco"
+    },
+    {
+      "description": "Voce fuori campo calda che guida lo spettatore attraverso il processo",
+      "name": "Narratore"
+    }
+  ],
+  "locations": [
+    {
+      "description": "Stanza acustica con pannelli fonoassorbenti, pannello di registrazione e sedia girevole",
+      "name": "Studio Radiofonico"
+    },
+    {
+      "description": "Angolo laterale con specchi, bottigli d'acqua e copioni appesi",
+      "name": "Spogliatoio/Preparazione"
+    }
+  ],
+  "scenes": [
+    {
+      "action": "Marco entra nello studio, chiude la porta e si siede alla consolle.",
+      "dialogue": "",
+      "durationSec": 5.0,
+      "heading": "Ingresso nello Studio",
+      "id": 1,
+      "image": {
+        "item": 900011,
+        "path": "C:\\Users\\Nicola\\AppData\\Roaming\\NL Video Suite\\generated\\comfy-1\\z-image-turbo_00010_.png"
+      },
+      "imagePrompt": "A wide shot of a soundproof radio studio with acoustic foam panels on the walls. A man in his 40s sits on a rolling chair facing a professional microphone and pop filter. Warm, focused lighting illuminates the subject from above and slightly behind.",
+      "motionPrompt": "Slow push-in towards the subject as he settles into the chair.",
+      "shots": []
+    },
+    {
+      "action": "Marco chiude gli occhi e inspira profondamente, sentendo l'aria riempire i polmoni.",
+      "dialogue": "",
+      "durationSec": 8.0,
+      "heading": "Respirazione Diaframmatica",
+      "id": 2,
+      "imagePrompt": "Close-up profile shot of a man's face. His eyes are closed, chest rising slowly and visibly as he takes a deep breath. Soft, diffused light highlights the contours of his jaw and neck muscles. The background is dark and out of focus.",
+      "motionPrompt": "Static camera with very subtle handheld sway to mimic breathing rhythm.",
+      "shots": []
+    },
+    {
+      "action": "Marco emette suoni gutturali e vocalizzi per sciogliere le corde vocali.",
+      "dialogue": "",
+      "durationSec": 6.0,
+      "heading": "Riscaldamento Vocale",
+      "id": 3,
+      "imagePrompt": "Medium close-up from the front. The man is making low humming sounds, his mouth slightly open. Steam or breath is faintly visible in the cool air. Lighting is soft and neutral, highlighting the moisture on his lips.",
+      "motionPrompt": "Slow rack focus from his eyes to his moving lips.",
+      "shots": []
+    },
+    {
+      "action": "Marco legge attentamente lo script per uno spot radiofonico, sottolineando le pause.",
+      "dialogue": "",
+      "durationSec": 7.0,
+      "heading": "Analisi del Copione",
+      "id": 4,
+      "imagePrompt": "Over-the-shoulder shot of the man reading a printed script. The paper has highlighted notes in red and blue ink. A professional microphone stands prominently in the foreground, slightly out of focus. Cool, practical lighting from a desk lamp creates shadows on the script.",
+      "motionPrompt": "Slow pan across the script lines as his eyes scan the text.",
+      "shots": []
+    },
+    {
+      "action": "Marco immagina di parlare con un ascoltatore reale, sorridendo leggermente.",
+      "dialogue": "",
+      "durationSec": 5.0,
+      "heading": "Visualizzazione dell'Ascoltatore",
+      "id": 5,
+      "imagePrompt": "Close-up of the man's face. A subtle, genuine smile forms as he closes his eyes again, visualizing a listener. The lighting is warm and golden, creating a soft glow on his skin. Shallow depth of field blurs the studio equipment in the background.",
+      "motionPrompt": "Slow dolly zoom (vertigo effect) to emphasize his internal focus.",
+      "shots": []
+    },
+    {
+      "action": "Marco prova la prima frase dello spot con tono calmo e naturale.",
+      "dialogue": "",
+      "durationSec": 9.0,
+      "heading": "Prima Prova",
+      "id": 6,
+      "imagePrompt": "Medium shot from the side. The man speaks into the microphone with a relaxed expression. Condensation forms on the glass of the water bottle next to him. Lighting is balanced, showing both his face and the reflection in the mic pop filter.",
+      "motionPrompt": "Smooth tracking shot following his head movement as he delivers the line.",
+      "shots": []
+    },
+    {
+      "action": "Marco riprova la stessa frase con più energia e convinzione.",
+      "dialogue": "",
+      "durationSec": 6.0,
+      "heading": "Correzione del Tono",
+      "id": 7,
+      "imagePrompt": "Close-up on the microphone and the man's mouth. The lighting is slightly brighter now, highlighting the intensity in his eyes. The background remains dark to keep attention on the performance.",
+      "motionPrompt": "Quick cut feel with a slight zoom in during the peak of his voice projection.",
+      "shots": []
+    },
+    {
+      "action": "Marco si alza e beve un sorso d'acqua per idratare la gola.",
+      "dialogue": "",
+      "durationSec": 4.0,
+      "heading": "Riposo Breve",
+      "id": 8,
+      "imagePrompt": "Low angle shot looking up at the man standing. He takes a sip from a glass water bottle. The studio lights reflect off the glass. His posture is relaxed but alert. Soft shadows define his silhouette against the acoustic panels.",
+      "motionPrompt": "Static shot with slight camera tilt as he lifts the bottle.",
+      "shots": []
+    },
+    {
+      "action": "Marco ripone il copione e si prepara per la registrazione definitiva.",
+      "dialogue": "",
+      "durationSec": 7.0,
+      "heading": "Concentrazione Finale",
+      "id": 9,
+      "imagePrompt": "Medium close-up from the front. The man places the script on the table and adjusts his collar. His expression is serious and focused. Warm, intimate lighting creates a cozy atmosphere in the large empty studio.",
+      "motionPrompt": "Slow pull back to reveal more of the quiet, professional environment.",
+      "shots": []
+    },
+    {
+      "action": "Marco annuisce e inizia la registrazione definitiva dello spot.",
+      "dialogue": "",
+      "durationSec": 8.0,
+      "heading": "Il Click",
+      "id": 10,
+      "imagePrompt": "Extreme close-up on the man's eyes and mouth. He is about to speak with full emotion. The lighting is dramatic, coming from one side to create high contrast. The microphone pop filter is sharp in focus.",
+      "motionPrompt": "Static shot that freezes time as he opens his mouth to speak.",
+      "shots": []
+    }
+  ],
+  "style": "Documentario intimo, illuminazione calda e focalizzata, atmosfera concentrata e professionale",
+  "synopsis": "Un doppiatore professionista si prepara in studio per registrare uno spot radiofonico. Il video segue il suo rituale: esercizi respiratori, riscaldamento vocale, lettura del copione e l'attimo prima della registrazione vera e propria.",
+  "title": "La Voce Prima di Parlare"
+}

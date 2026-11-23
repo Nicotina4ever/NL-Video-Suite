@@ -1,0 +1,49 @@
+{
+  "date": "2026-11-23",
+  "phase": "P8d (prima verticale)",
+  "title": "Storia AI → scene → keyframe ComfyUI → posizionamento in timeline (pannello NL Story)",
+  "intent": "Partire da una bozza di storia sviluppata con l'IA, rifinirla, generare i keyframe con ComfyUI e ritrovare gli elementi già posizionati in timeline, come chiesto dall'operatore.",
+  "implemented": {
+    "engine": [
+      "crates/engine/src/nl/story.rs: documento storia (title, synopsis, style, characters, locations, scenes con heading/action/dialogue/durationSec/imagePrompt/motionPrompt, shots) sanitizzato e limitato; salvataggio in nl/story.json accanto al progetto (o sola sessione se non salvato)",
+      "nl.story.get / nl.story.set / nl.story.update (campi scena, affinamenti manuali)",
+      "nl.story.draft: bozza con Ollama (JSON, wait opzionale in background job); keep_alive=0 per scaricare il modello prima di ComfyUI (nessuna sovrapposizione VRAM)",
+      "nl.story.refine: riscrive una singola scena con istruzione, conservando il media già generato",
+      "nl.story.generate: keyframe (o video) della scena via ComfyUI, con storyTarget che collega il media importato alla scena",
+      "nl.story.place / nl.story.placeAll: posiziona i media generati in timeline (durata = durationSec della scena, sequenza a partire dal playhead)"
+    ],
+    "comfy": "PendingComfy porta storyTarget; dopo l'import il media viene assegnato alla scena (nl/story.json)",
+    "ollama": "chat_with/chat_json_with con keep_alive esplicito; la bozza storia usa 0 per liberare la VRAM prima della generazione",
+    "gui": "pannello NL Story: idea + Draft with AI, elenco scene, editor della scena (heading/action/dialogue/prompt immagine/motion/durata), Save scene, Generate keyframe, Place on timeline, Refine this scene, Place all generated"
+  },
+  "live_evidence": {
+    "run": "filmcraft-cli run su progetto demo ridotto a 512×512, salvato in una cartella temporanea",
+    "ollama_model": "qwen3.5:9b",
+    "comfyui_workflow": "regista/image/z-image-turbo.json (512×512)",
+    "result": "storia 'La Voce Prima di Parlare' con 10 scene (heading IT, prompt EN); keyframe generata e importata; 1 scena posizionata in timeline a 4,25 s con durata 5 s; story.get saved=true con 10 scene",
+    "time_total_seconds": 107,
+    "no_overlap": "ollama ps vuoto dopo la bozza: il modello è stato scaricato prima della generazione ComfyUI",
+    "files": [
+      "documentazione/prove/p8d-story/live-run-clean.jsonl",
+      "documentazione/prove/p8d-story/story.json",
+      "documentazione/prove/p8d-story/scene1-keyframe.png",
+      "documentazione/prove/p8d-story/live-run.jsonl (prima esecuzione, usata per la diagnosi del wait)"
+    ]
+  },
+  "checks": [
+    "nl::story::tests (sanitize, campi non modificabili rifiutati, place senza media rifiutato)",
+    "cargo fmt, clippy -D warnings (engine, ui, cli), test engine e UI"
+  ],
+  "limits": [
+    "La verticale copre immagini chiave per scena; video per scena e v2v/r2v con reference video/audio sono il passo successivo (P9d/P8d).",
+    "placeAll salta le scene senza media e avanza il tempo; non crea ancora sequenze per scena né audio/voiceover.",
+    "Nessuna generazione automatica: ogni passo è un pulsante/comando esplicito; niente servizi avviati dalla suite."
+  ],
+  "rules_respected": [
+    "Risoluzione derivata dalla sequenza (512×512 demo → 512×512 keyframe)",
+    "Nessun download: modelli Ollama/ComfyUI già installati",
+    "Ollama e ComfyUI mai sovrapposti (keep_alive 0, verificato con ollama ps vuoto)",
+    "Progetti utente intatti: la prova usa un progetto demo in una cartella temporanea; il progetto Utente non è stato aperto",
+    "Niente 'FilmCraft' nei testi visibili del pannello"
+  ]
+}

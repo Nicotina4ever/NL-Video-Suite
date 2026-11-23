@@ -69,6 +69,17 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
   servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
 
+## Parità NL — P8d prima verticale: storia AI → timeline (23/11/2026)
+
+- Pannello **NL Story** e comandi `nl.story.*`: idea → bozza di storia con Ollama (JSON validato,
+  scene con prompt immagine/movimento), affinamenti (editing campi scena, "refine" con istruzione),
+  keyframe per scena con ComfyUI e **posizionamento in timeline** (`place`/`placeAll`, durata
+  dalla scena). Il media generato viene collegato alla scena (`nl/story.json` accanto al progetto).
+- Rispetto della regola GPU: il modello Ollama viene scaricato appena finita la bozza
+  (`keep_alive=0`), quindi ComfyUI genera senza sovrapposizione (`ollama ps` vuoto verificato).
+- Prova live: `documentazione/prove/p8d-story/` (storia di 10 scene, keyframe 512×512 importata,
+  scena posizionata a 4,25 s; 107 s totali con qwen3.5:9b + z-image-turbo).
+
 ## Parità NL — P8b default rapido e P9a workflow doctor+API (23/11/2026)
 
 - **Nessuna workspace built-in aggancia pannelli NL**: il layout di avvio resta *Editing* e per un
