@@ -27,7 +27,7 @@
     "Serve una trascrizione: il pannello NL ASR (o transcript.transcribeNl) deve essere eseguito prima.",
     "L'analisi usa il primo clip con trascrizione della sequenza (o l'item indicato); più sorgenti insieme non sono ancora fuse.",
     "Il modello può proporre meno capitoli del massimo: non viene forzato nessun numero minimo.",
-    "Ricerca/indice FTS e assistente trascrizione non sono ancora in questa parte di P8c."
+    "Ricerca/indice FTS, assistente con citazioni e traduzioni sono stati aggiunti nelle parti successive di P8c."
   ],
   "rules_respected": [
     "Nessun tempo inventato: i capitoli sono agganciati a confini di parola/blocco reali",

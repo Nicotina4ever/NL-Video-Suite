@@ -11,7 +11,7 @@
       "nl.story.refine: riscrive una singola scena con istruzione, conservando il media già generato",
       "nl.story.sheet: character sheet multi-vista (front/side/back/close-up su fondo bianco) generato una volta e collegato al personaggio",
       "nl.story.plate: background plate della location (establishing shot, wide, senza persone) collegato alla location",
-      "nl.story.generate: keyframe (o video) della scena; per le immagini usa automaticamente la plate della location e gli sheet dei personaggi nominati nella scena, nell'ordine atteso dai workflow reference (background prima, poi personaggi, max 3), con prompt prefissato (image N); dryRun/wait inoltrati; storyTarget collega il media alla scena",
+      "nl.story.generate: keyframe (o video) della scena; per le immagini usa automaticamente la plate della location e gli sheet dei personaggi nominati nella scena, nell'ordine atteso dai workflow reference (background prima, poi personaggi, max 3), con prompt prefissato (image N); dryRun/wait/overrides inoltrati; per il video `useSheet` aggiunge come seconda reference lo sheet del personaggio nominato (keyframe come prima reference); storyTarget collega il media alla scena",
       "nl.story.place / nl.story.placeAll: posizionamento in timeline (durata = durationSec della scena)",
       "nl.story.extendAudio / nl.story.placeAudio: musica per la scena e posizionamento su A1",
       "nl.story.generate kind=video: parte dalla keyframe e con extendFromScene usa il video di un'altra scena (v2v extend)"
@@ -49,7 +49,7 @@
         "result": "nl.story.sheet dryRun=true: prompt multi-vista (front/side/back/close-up, fondo bianco) e storyTarget character=1, submitted=false",
         "file": "documentazione/prove/p8d-story/library-scene-refs.jsonl"
       },
-      "location_plate": {
+      "story_video": {\n        "result": "nl.story.generate kind=video con keyframe + sheet come due reference, workflow MiniMax H3 reference-to-video, overrides megapixels=0.25 e durata 2 s: generate ok, video importato e collegato alla scena (item 900011), place ok (clip 900013/900014 video+audio)",\n        "elapsed_seconds": 425,\n        "output": "video H.264 672×384 @24 fps, 2.33 s, audio AAC stereo 32 kHz, 495 KB",\n        "files": ["documentazione/prove/p8d-story/story-video-run.jsonl", "documentazione/prove/p8d-story/story-video.mp4", "documentazione/prove/p8d-story/story-video.ffprobe.json", "documentazione/prove/p8d-story/story-video-frame.png"]\n      },\n      "location_plate": {
         "result": "nl.story.plate dryRun=true: prompt establishing shot wide senza persone, storyTarget location=1, submitted=false",
         "file": "documentazione/prove/p8d-story/library-plate.jsonl"
       }

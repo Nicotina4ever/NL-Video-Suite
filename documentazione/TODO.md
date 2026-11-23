@@ -107,15 +107,16 @@ Regola: tutte come pannelli/menù/comandi, ma **default rapido** invariato.
       nel pannello, `prove/p8c-search/`). **Traduzioni fatte** (`nl.translate.captions/text`, nuova
       traccia EN/ES, `prove/p8c-translate/`). **Assistente con citazioni fatto** (`nl.assistant.ask`,
       `prove/p8c-assistant/`). Restano: topics/rough-cut, export MD/JSON dei capitoli, import
-      SRT/VTT (già in `captions.import`).
+      SRT/VTT (già in `captions.import`). **Export capitoli fatto** (`nl.longform.export` JSON/MD/SRT + selettore nel pannello).
 - [ ] P8d: montage planner/creative montage/audio onset, story/narrative + assistente + reference,
       shot map, pipeline/flows.
       Fatto: pannello **NL Story** — idea → bozza storia con Ollama, affinamenti (update/refine),
       **libreria reference** (character sheet + location plate generati una volta, usati
       automaticamente dalle keyframe di scena con ordine background→personaggi), keyframe ComfyUI per
       scena, video di scena da keyframe, musica di scena, **posizionamento in timeline**
-      (place/placeAll); prove live/dry run in `documentazione/prove/p8d-story/` e `p9d-reference/`.
-      Restano: keyframe con reference live (serve un workflow Flux2-Klein 2 ref), v2v live,
+      (place/placeAll); **video di scena live** (keyframe+sheet come reference H3, overrides durata/
+      risoluzione, 425 s) con place in timeline; prove in `documentazione/prove/p8d-story/` e
+      `p9d-reference/`. Restano: keyframe con reference live (serve un workflow Flux2-Klein 2 ref),
       estensione sezioni, narration, montage planner, shot map, flows.
 - [ ] P8e: subtitle studio, motion/titoli, graphic objects, narration/audio master.
 - [ ] P8f: workflow doctor+API (unito P9a), versioni montaggio, album, production package,

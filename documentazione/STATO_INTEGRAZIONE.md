@@ -112,7 +112,7 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
 - Nuovo pannello **NL Analyze** e comandi `nl.longform.*`: dalla trascrizione ASR il modello locale
   propone i capitoli, che vengono agganciati ai confini reali dei blocchi (nessun tempo inventato),
   ordinati e limitati alla durata; un clic li trasforma in marcatori di timeline (`markers.add`).
-- Prova live: 46 parole → 6 blocchi → 2 capitoli (qwen3.5:9b), 2 marcatori aggiunti, 26 s;
+- Export dei capitoli in JSON/Markdown/SRT (``nl.longform.export``, path assoluto) con selettore file nel pannello.\n- Prova live: 46 parole → 6 blocchi → 2 capitoli (qwen3.5:9b), 2 marcatori aggiunti, 26 s;
   `documentazione/prove/p8c-longform/`.
 
 ## Parità NL — P9b prompt AI, parametri e dry run (23/11/2026)
