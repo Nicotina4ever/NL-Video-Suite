@@ -58,11 +58,12 @@ Matrice dettagliata: `documentazione/PARITA_FEATURE.md`.
 | P8b Default rapido | **fatto** | workspace **Quick Edit** disponibile, nessun pannello NL docked di default, nessun AI all'apertura, `PERFORMANCE.md`; `prove/p8b-performance/` |
 | P9a Workflow doctor + API | **fatto** | `nl.workflows.verify/diagnose/fix/import`, pannello NL Workflows, 8 workflow Prompter copiati; `prove/p9-workflows/` |
 | P8d Storia AI → timeline | **prima verticale + libreria reference** | pannello NL Story, `nl.story.*`, sheet/plate + keyframe con reference, place/placeAll; `prove/p8d-story/` |
-| P9d Reference media | **prima parte fatta** | image/video/audio refs con patch loader, video di scena da keyframe e `extendFromScene`; `prove/p9d-reference/` |
+| P9d Reference media | **fatta, con video live** | image/video/audio refs con patch loader, `extendFromScene`, **H3 full-reference reale 672×384 2,33 s con audio** (overrides, 488 s); prove `p9d-reference/`, `p9d-video/` |
 | P9b Prompt AI/parametri/dry run | **prima parte fatta** | `nl.prompt.enhance`, `nl.prompt.h3` (schema MiniMax H3), `nl.workflows.parameters`, `dryRun` + pulsanti pannelli; `prove/p9b-prompt-params/` |
 | P8c Longform/analisi | **prima parte fatta** | pannello NL Analyze, `nl.longform.*` (capitoli da ASR + marcatori); `prove/p8c-longform/` |
 | P8c Ricerca progetto | **fatta** | `nl.search.index/query` (clip, marcatori, sottotitoli, storia, trascrizioni) + riquadro in NL Analyze; `prove/p8c-search/` |
 | P8c Traduzioni | **fatte** | `nl.translate.captions/text` (nuova traccia EN/ES) + pulsante in NL Analyze; `prove/p8c-translate/` |
+| P8c Assistente | **fatto** | `nl.assistant.ask` con citazioni dai documenti indicizzati; `prove/p8c-assistant/` |
 | P9c Coda varianti | **prima parte fatta** | `nl.queue.add/list/prepare/send/remove/free`, override widget, pannello NL Queue; `prove/p9c-queue/` |
 | Parità NL completa | in corso (P2, P3b, P4, P5, P6, P8c–f, P9b–d) | `documentazione/PARITA_FEATURE.md`, `TRACCIA_PARITA.md`, `inventario/versione_test.md` |
 | F8 portable | da fare | — |

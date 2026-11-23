@@ -105,8 +105,9 @@ Regola: tutte come pannelli/menù/comandi, ma **default rapido** invariato.
 - [ ] P8c: **longform/capitoli fatto** — `nl.longform.analyze/get/markers`, pannello **NL
       Analyze**, prova live `prove/p8c-longform/`. **Indice e ricerca fatti** (`nl.search.*`, riquadro
       nel pannello, `prove/p8c-search/`). **Traduzioni fatte** (`nl.translate.captions/text`, nuova
-      traccia EN/ES, `prove/p8c-translate/`). Restano: topics/rough-cut, assistente correzioni con
-      citazioni, export MD/JSON dei capitoli, import SRT/VTT (già in `captions.import`).
+      traccia EN/ES, `prove/p8c-translate/`). **Assistente con citazioni fatto** (`nl.assistant.ask`,
+      `prove/p8c-assistant/`). Restano: topics/rough-cut, export MD/JSON dei capitoli, import
+      SRT/VTT (già in `captions.import`).
 - [ ] P8d: montage planner/creative montage/audio onset, story/narrative + assistente + reference,
       shot map, pipeline/flows.
       Fatto: pannello **NL Story** — idea → bozza storia con Ollama, affinamenti (update/refine),
@@ -144,8 +145,10 @@ Inventario: `documentazione/inventario/prompter_comfyui.md`. Workflow copiati (8
       Fatto (prima parte): staging reference image/video/audio con patch dei loader e rifiuto
       esplicito se il workflow non ha l input; `nl.story.generate kind=video` usa la keyframe e
       `extendFromScene` per il video da estendere; `nl.story.extendAudio`/`placeAudio` per la musica
-      di scena con pulsanti nel pannello. Prova: `prove/p9d-reference/`. Restano: generazione video
-      live con workflow v2v/r2v e prova audio live (Ace Step).
+      di scena con pulsanti nel pannello. Prove: `prove/p9d-reference/` e **video live riuscito**
+      `prove/p9d-video/` (H3 full-reference 672×384 2,33 s con audio AAC, overrides megapixels/durata,
+      488 s). Restano: audio live Ace Step, i2v da keyframe (serve workflow i2v), coda video provata
+      live.
 
 ## F8 — Consegna
 

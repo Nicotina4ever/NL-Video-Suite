@@ -1,0 +1,43 @@
+{
+  "date": "2026-11-23",
+  "phase": "P9d (seconda parte, prova live)",
+  "title": "Generazione video con reference e overrides: MiniMax H3 full-reference reale, con audio, importata nel progetto",
+  "intent": "Verificare dal vivo il percorso completo P9d: due reference immagini, prompt H3 full-reference, riduzione controllata di risoluzione e durata via override, generazione ComfyUI, download e import del video.",
+  "implemented": {
+    "pipeline_usata": [
+      "nl.prompt.h3 mode=ref per il prompt (schema MiniMax H3, 3173 caratteri)",
+      "graphics.generateComfy con workflow prompter/minimax_h3_video_reference.json, images=[ref_a.png, ref_b.png], seed 777, wait=true",
+      "overrides: node 115 megapixels=0.25 (risoluzione ridotta), node 132 value=2 (durata 2 s) — applicati e riportati (overridden=2)",
+      "staging reference: 2 file caricati e 2 LoadImage patched; nessun invio senza che gli input corrispondano"
+    ]
+  },
+  "live_evidence": {
+    "workflow": "prompter/minimax_h3_video_reference.json (MiniMax H3 ref2va int8 + qwen3vl int4; LoRA dmd turbo 8 step)",
+    "model_prompt": "qwen3.5:9b (nl.prompt.h3)",
+    "elapsed_seconds": 488,
+    "output": "video H.264 672×384 @24 fps, durata 2.33 s, con traccia audio AAC stereo 32 kHz (il modello H3 genera video e audio insieme), 441 KB",
+    "import": "il video è stato scaricato e importato dal job (copia in generated/comfy-1), poi raccolto nelle prove",
+    "files": [
+      "documentazione/prove/p9d-video/video-run.jsonl",
+      "documentazione/prove/p9d-video/h3-prompt.json",
+      "documentazione/prove/p9d-video/scene-video.mp4",
+      "documentazione/prove/p9d-video/scene-video.ffprobe.json",
+      "documentazione/prove/p9d-video/scene-video-frame.png"
+    ]
+  },
+  "checks": [
+    "ffprobe: stream video h264 672x384 24/1 e audio aac 32000 Hz 2 canali",
+    "comando completato (exit 0) con job ok e overridden=2"
+  ],
+  "limits": [
+    "La prova ha usato override espliciti per stare nel budget GPU (8 GB): risoluzione 0.25 MP e 2 s. Le impostazioni piene del workflow restano disponibili ma richiedono tempi lunghi/offload.",
+    "Il workflow è reference-to-video: il video parte dalle reference, non dalla keyframe della scena (per i2v da keyframe serve un workflow i2v dedicato, non presente nella libreria copiata).",
+    "La generazione video non è nella coda varianti: il job è stato inviato direttamente con generateComfy (la coda supporta kind video, ma non è stata provata live per non occupare la GPU a lungo)."
+  ],
+  "rules_respected": [
+    "Nessun download di modelli (tutti già installati)",
+    "Ollama usato solo per il prompt, poi scaricato; ComfyUI ha generato dopo, mai insieme",
+    "Reference caricate solo su ComfyUI loopback",
+    "Progetti utente intatti (progetto demo in sessione, nessun salvataggio su progetti utente)"
+  ]
+}

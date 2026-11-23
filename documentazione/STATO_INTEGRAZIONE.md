@@ -69,6 +69,24 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
   servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
 
+## Parità NL — P9d video live con reference (23/11/2026)
+
+- Prova end-to-end riuscita: prompt H3 full-reference (`nl.prompt.h3`), due reference immagini
+  caricate e patchate, **overrides** per stare nel budget GPU (`megapixels=0.25`, durata 2 s),
+  generazione MiniMax H3 ref2va e import del risultato.
+- Output: **video H.264 672×384 @24 fps, 2,33 s, con audio AAC stereo 32 kHz** (H3 genera video e
+  audio), 488 s di generazione su RTX 4060 Ti 8 GB con offload.
+- Evidenze: `documentazione/prove/p9d-video/` (mp4, ffprobe, frame, prompt, log).
+
+## Parità NL — P8c assistente con citazioni (23/11/2026)
+
+- `nl.assistant.ask` risponde usando solo i documenti dell'indice di ricerca (i 6 migliori),
+  cita le fonti e restituisce l'elenco esatto di fonte/tempo/titolo/estratto; senza documenti
+  corrispondenti rifiuta prima di chiamare il modello locale. Riquadro «Ask the project» nel
+  pannello NL Analyze.
+- Prova live: «Chi è Ada e quale esercizio fa nella scena?» → risposta con [1][2][3] da scena,
+  storia e trascrizione in 24 s con qwen3.5:9b; `documentazione/prove/p8c-assistant/`.
+
 ## Parità NL — P9c coda varianti e P8c traduzioni (23/11/2026)
 
 - **Coda varianti** (`nl.queue.*`): seed deterministici, dedupe, `prepare` che costruisce con un
