@@ -1,0 +1,46 @@
+{
+  "date": "2026-11-23",
+  "phase": "P10a (provider AI modulari)",
+  "title": "Provider linguistico selezionabile: Ollama oppure qualsiasi server OpenAI-compatibile (llama.cpp, LM Studio, vLLM), impostato dalle preferenze",
+  "intent": "Non dipendere da Ollama: l'operatore deve poter scegliere il provider del modello linguistico dalle impostazioni (come già faceva la suite classica con 'ollama' / 'openai_compatible'), con endpoint, modello e token facoltativo, senza provider obbligatori.",
+  "implemented": {
+    "preferences": [
+      "NlPrefs: nl.llmProvider (ollama | openai_compatible), nl.llmUrl (base con /v1, default http://127.0.0.1:8080/v1), nl.llmModel (vuoto = modello Ollama), nl.llmApiKey (opzionale)",
+      "precedenza come il resto della suite: parametro → preferenza → NL_LLM_PROVIDER/NL_LLM_URL/NL_LLM_MODEL/NL_LLM_API_KEY → default",
+      "metodi llm_provider/llm_url/llm_model/llm_api_key e request_config (override modello per comando)"
+    ],
+    "client": [
+      "nl/llm.rs: chat_json_auto e chat_text_auto scelgono Ollama (API nativa) o POST /v1/chat/completions OpenAI-compatibile; response_format json_object richiesto e, se il server lo rifiuta, retry senza; parsing choices[0].message.content e estrazione JSON tollerante",
+      "nl/models.llm: elenco modelli nel formato del provider (GET /api/tags per Ollama, GET /v1/models per compatibili), senza download",
+      "nl.services.status: blocco 'llm' con provider, endpoint, modello, token configurato e reachable",
+      "moduli aggiornati al provider: prompt AI, H3, storia (draft/refine), longform, assistente, traduzioni, con provider/token propagati anche ai job in background"
+    ],
+    "settings_ui": [
+      "schema Impostazioni ▸ NL Video Suite: gruppo 'Language model provider' con provider (choice), indirizzo, modello, token; pannello NL Settings mostra provider/endpoint/modello e il check servizi include il provider linguistico"
+    ]
+  },
+  "live_evidence": {
+    "run": "prefs.set nl.llmProvider=openai_compatible, nl.llmUrl=http://127.0.0.1:11434/v1 (endpoint OpenAI-compatibile di Ollama), nl.llmModel=qwen3.5:9b",
+    "models": "nl.models.llm: provider=openai_compatible, url=http://127.0.0.1:11434/v1, 13 modelli elencati via GET /v1/models (deepseek-r1:8b, gemma4:e4b, …)",
+    "status": "nl.services.status: llm {provider: openai_compatible, url: …, model: qwen3.5:9b, reachable: true, apiKeyConfigured: false}",
+    "prompt": "nl.prompt.enhance wait=true attraverso POST /v1/chat/completions: risposta valida, prompt di 434 caratteri, modello qwen3.5:9b",
+    "reset": "preferenze riportate a provider=ollama e campi vuoti a fine prova",
+    "elapsed_seconds": 149,
+    "files": ["documentazione/prove/p10-providers/provider-live.jsonl"]
+  },
+  "checks": [
+    "nl::llm::tests: default Ollama con endpoint/modello, override modello, provider compatibile con URL normalizzato, modello e token",
+    "clippy -D warnings, test engine e UI"
+  ],
+  "limits": [
+    "Shorts/ASR bridge e pipeline di clipping usano ancora l'API nativa di Ollama: l'astrazione per quei percorsi è un passo successivo (documentato).",
+    "Non c'è auto-discovery del provider: si sceglie e si scrive l'endpoint; la reachability si vede in NL Settings.",
+    "Il token è salvato nelle preferenze utente (file locale): per ambienti condivisi usare NL_LLM_API_KEY."
+  ],
+  "rules_respected": [
+    "Nessun download di modelli; nessun servizio avviato automaticamente",
+    "Nessun invio se il provider non risponde: errore esplicito con URL",
+    "Ollama e ComfyUI mai sovrapposti: il provider linguistico è usato solo per le funzioni di testo",
+    "Niente 'FilmCraft' nei testi visibili aggiunti"
+  ]
+}

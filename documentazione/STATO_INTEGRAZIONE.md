@@ -69,6 +69,38 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
   servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
 
+## Parità NL — P11 text-to-video e bridge generativo locale (23/11/2026)
+
+- `nl.generate.text`: text-to-video da zero con `workflows/video_minimax_h3_t2v.json`,
+  dimensioni dal profilo video della sequenza, seed/overrides, dry run, wait e collocazione in
+  timeline; pulsante «Text → Video» nel pannello NL Generate. Dry run live: 23 nodi, 1280×720.
+- `nl.bridge.plan/generate`: trova il gap tra due clip (o al playhead), esporta l'ultimo frame del
+  video uscente e il primo dell'entrante, costruisce al volo il workflow first/last-frame (MiniMax H3
+  + due LoadImage collegati a first_frame/last_frame), genera e piazza il risultato nel gap.
+  Pannello **NL Bridge**. Prova live: gap 2 s, 2 reference patchate, 25 nodi, dry run senza invio.
+- Estensioni comfy: prompt widget H3, durata PrimitiveFloat, size H3, `place` automatico dopo
+  l'import e `comfy.last`. Evidenze in `prove/p11-generative/`.
+- Generazione reale verificata: t2v 669 s (1280×720, 2.33 s, ComfyUI success); bridge FLF generato
+  (794 s) e inserito nel gap 0–48/48–96/96–144; auto-placement verificato con una generazione z-image;
+  timeout predefinito dei comandi video portato a 1800 s. Restano: rerun end-to-end automatico,
+  prompt bridge con analisi vision, transizioni/audio del ponte, estensione v2v.
+
+## Parità NL — P10 provider modulari e distribuzione multi-OS (23/11/2026)
+
+- **Provider linguistico selezionabile**: `nl.llmProvider` ollama | openai_compatible,
+  `nl.llmUrl`/`nl.llmModel`/`nl.llmApiKey` (+ `NL_LLM_*`), client OpenAI-compatibile
+  (`/v1/chat/completions` con retry senza response_format), `nl.models.llm`, provider mostrato in
+  NL Settings e in `nl.services.status`. Moduli prompt/storia/longform/assistente/traduzioni
+  provider-aware. Prova live: endpoint `/v1` di Ollama (13 modelli, prompt generato) e ripristino
+  a Ollama. Evidenza: `prove/p10-providers/`.
+- **Distribuzione**: script portabili Windows (`packaging/nl/portable.ps1`) e Linux/macOS
+  (`portable.sh`) con launcher `NL_SUITE_ROOT`, workflows e ffmpeg quando presenti, zip/tar.gz;
+  `documentazione/DISTRIBUZIONE.md` con piattaforme, prerequisiti, installer upstream e
+  configurazione servizi/provider. Prova Windows reale: bundle 202 MB con 51 workflow,
+  `prove/p10-dist/`.
+- Restano di P10: rename NL degli installer upstream, prova Linux/macOS, astrazione ASR/pipeline,
+  CI/release.
+
 ## Parità NL — P8d shot map e montaggio a ritmo (23/11/2026)
 
 - `nl.story.shotmap`: ogni scena della storia si spezza in inquadrature numerate con una camera

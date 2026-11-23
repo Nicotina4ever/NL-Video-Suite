@@ -93,7 +93,7 @@ Matrice: `documentazione/PARITA_FEATURE.md`. Ogni voce deve avere GUI e comando.
 - [ ] P4: pannello Storyboard/Storia (Calliope/Regista) con image/video per scena e coda.
 - [ ] P5: TTS Qwen3 e musica con voci/modelli già installati, selezione nella GUI.
 - [ ] P6: workflow repair/autofix, diagnostica servizi, avvio/stop ComfyUI e Ollama.
-- [ ] P7: verifica parità, portable, regressione GTA6, docs e ottimizzazione.
+- [ ] P7: verifica parità, regressione GTA6, docs e ottimizzazione (portabile base fatto).
 
 ## P8 — versione test classica (tutte le funzioni già presenti)
 
@@ -153,7 +153,7 @@ Inventario: `documentazione/inventario/prompter_comfyui.md`. Workflow copiati (8
 
 ## F8 — Consegna
 
-- [ ] Portable con motore AI e launcher unico.
+- [x] Portable base: `packaging/nl/portable.ps1` + `portable.sh`, launcher con NL_SUITE_ROOT,\n      workflows e ffmpeg copiati, zip/tar.gz; `documentazione/DISTRIBUZIONE.md`. Restano: installer\n      rinominati NL (MSI/Linux/macOS), prova su Linux/macOS, CI/release.
 - [ ] Regressione GTA6 completa: import, testo, shorts, export, riapertura.
 - [ ] Documentazione finale, ricevute e spazio sotto controllo.
 
@@ -169,3 +169,6 @@ Inventario: `documentazione/inventario/prompter_comfyui.md`. Workflow copiati (8
 - [ ] Tenere `da_eliminare` con ricevute; niente cache debug nel repo.
 - [ ] Aggiornare `STATO_INTEGRAZIONE.md` a ogni fase.
 - [ ] Non toccare i 3 progetti utente (GTA6, Pubblicità, Trailer).
+\n- [x] P11 generativo locale: text-to-video e bridge first/last-frame (
+l.generate.text, 
+l.bridge.*, pannello NL Bridge, prove/p11-generative/).\n

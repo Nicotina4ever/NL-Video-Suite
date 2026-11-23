@@ -1,0 +1,238 @@
+[
+  {
+    "Path": "Avvia NL Video Suite.cmd",
+    "Bytes": 108
+  },
+  {
+    "Path": "DISTRIBUZIONE.md",
+    "Bytes": 8225
+  },
+  {
+    "Path": "NL Video Suite.exe",
+    "Bytes": 80507392
+  },
+  {
+    "Path": "README.txt",
+    "Bytes": 829
+  },
+  {
+    "Path": "tools\\ffmpeg.exe",
+    "Bytes": 227823104
+  },
+  {
+    "Path": "tools\\ffprobe.exe",
+    "Bytes": 227621376
+  },
+  {
+    "Path": "workflows\\README.md",
+    "Bytes": 247
+  },
+  {
+    "Path": "workflows\\video_minimax_h3_t2v.json",
+    "Bytes": 8639
+  },
+  {
+    "Path": "workflows\\calliope\\Krea2_t2i_20260818_API.json",
+    "Bytes": 8639
+  },
+  {
+    "Path": "workflows\\calliope\\krea2_T2I_CharSheetV1_API.json",
+    "Bytes": 11923
+  },
+  {
+    "Path": "workflows\\calliope\\minimax_h3-Turbo_Image2Video_20260813_API.json",
+    "Bytes": 18157
+  },
+  {
+    "Path": "workflows\\calliope\\minimax_h3-Turbo_Text2Video_20260813_API.json",
+    "Bytes": 17375
+  },
+  {
+    "Path": "workflows\\calliope\\MiniMax-H3-Turbo-R2V-Extend-2Refs1Vid_API.json",
+    "Bytes": 9414
+  },
+  {
+    "Path": "workflows\\calliope\\video_minimax_h3_r2v_2ref_API.json",
+    "Bytes": 6599
+  },
+  {
+    "Path": "workflows\\calliope\\video_minimax_h3_r2v_3ref_API.json",
+    "Bytes": 6846
+  },
+  {
+    "Path": "workflows\\calliope\\video_minimax_h3_r2v_4ref_API.json",
+    "Bytes": 7093
+  },
+  {
+    "Path": "workflows\\calliope\\video_minimax_h3_r2v_5ref_API.json",
+    "Bytes": 7327
+  },
+  {
+    "Path": "workflows\\calliope\\video_minimax_h3_r2v_API.json",
+    "Bytes": 6352
+  },
+  {
+    "Path": "workflows\\prompter\\apex_h3_character_sheet.json",
+    "Bytes": 60413
+  },
+  {
+    "Path": "workflows\\prompter\\krea2_turbo.json",
+    "Bytes": 9517
+  },
+  {
+    "Path": "workflows\\prompter\\MiniMax Music.json",
+    "Bytes": 4922
+  },
+  {
+    "Path": "workflows\\prompter\\minimax ref all V2V.json",
+    "Bytes": 11527
+  },
+  {
+    "Path": "workflows\\prompter\\minimax_h3_video_reference.json",
+    "Bytes": 8392
+  },
+  {
+    "Path": "workflows\\prompter\\Minimax-H3_-_V2V_Extend_Any_Video_latent_masking.json",
+    "Bytes": 53028
+  },
+  {
+    "Path": "workflows\\prompter\\PROVENANCE.md",
+    "Bytes": 1424
+  },
+  {
+    "Path": "workflows\\prompter\\qwen_reference.json",
+    "Bytes": 65736
+  },
+  {
+    "Path": "workflows\\prompter\\video_minimax_h3_r2v (2).json",
+    "Bytes": 10557
+  },
+  {
+    "Path": "workflows\\regista\\Character Sheet v5 Reference.json",
+    "Bytes": 56048
+  },
+  {
+    "Path": "workflows\\regista\\analisi\\analisi_immagini-Var2.json",
+    "Bytes": 3095
+  },
+  {
+    "Path": "workflows\\regista\\analisi\\analisi_immagini.json",
+    "Bytes": 2979
+  },
+  {
+    "Path": "workflows\\regista\\audio\\audio_ace_step1_5_xl_sft.json",
+    "Bytes": 4546
+  },
+  {
+    "Path": "workflows\\regista\\audio\\MiniMax Music.json",
+    "Bytes": 6087
+  },
+  {
+    "Path": "workflows\\regista\\image\\Flux.2 Character Replacer v2.4.json",
+    "Bytes": 36275
+  },
+  {
+    "Path": "workflows\\regista\\image\\flux2_klein_zit_1bg_2char_workflow (API).json",
+    "Bytes": 12634
+  },
+  {
+    "Path": "workflows\\regista\\image\\flux2-text2image-Var.json",
+    "Bytes": 3814
+  },
+  {
+    "Path": "workflows\\regista\\image\\image_flux2_text_to_image_9b.json",
+    "Bytes": 3486
+  },
+  {
+    "Path": "workflows\\regista\\image\\image_ideogram4_t2i_fixed.json",
+    "Bytes": 3766
+  },
+  {
+    "Path": "workflows\\regista\\image\\image_ideogram4_t2i_int8.json",
+    "Bytes": 9454
+  },
+  {
+    "Path": "workflows\\regista\\image\\image_krea2_turbo_t2i.json",
+    "Bytes": 8276
+  },
+  {
+    "Path": "workflows\\regista\\image\\image_z_image.json",
+    "Bytes": 3432
+  },
+  {
+    "Path": "workflows\\regista\\image\\z-image-turbo.json",
+    "Bytes": 2461
+  },
+  {
+    "Path": "workflows\\regista\\image_edit\\nanoBanana2_v10_qwen_image_edit_best.json",
+    "Bytes": 13720
+  },
+  {
+    "Path": "workflows\\regista\\image_edit\\Qwen_EDIT_2511.json",
+    "Bytes": 16685
+  },
+  {
+    "Path": "workflows\\regista\\image_edit\\qwen_edit_local.json",
+    "Bytes": 15868
+  },
+  {
+    "Path": "workflows\\regista\\image_edit\\z-image-edit-immagini.json",
+    "Bytes": 3921
+  },
+  {
+    "Path": "workflows\\regista\\old\\04479f67187d.json",
+    "Bytes": 46607
+  },
+  {
+    "Path": "workflows\\regista\\old\\analisi_immagini__Aggiungi_un_nuovo_nodo_di_visualizzazione_testo.json",
+    "Bytes": 3194
+  },
+  {
+    "Path": "workflows\\regista\\old\\analisi_immagini__Rimuovi_il_nodo.json",
+    "Bytes": 3095
+  },
+  {
+    "Path": "workflows\\regista\\old\\analisi_immagini__Rinomina_il_nodo.json",
+    "Bytes": 3095
+  },
+  {
+    "Path": "workflows\\regista\\old\\analisi_immagini__Variant_1.json",
+    "Bytes": 3095
+  },
+  {
+    "Path": "workflows\\regista\\old\\image_flux2_text_to_image_9b__Modificare_il_valore_di_input.json",
+    "Bytes": 3691
+  },
+  {
+    "Path": "workflows\\regista\\old\\image_flux2_text_to_image_9b__Ricoleggiare_l_errore.json",
+    "Bytes": 3691
+  },
+  {
+    "Path": "workflows\\regista\\old\\MiniMaxH3Gguff_e_Lora_Test__Variante_con_audio_silenzioso.json",
+    "Bytes": 9867
+  },
+  {
+    "Path": "workflows\\regista\\old\\MiniMaxH3Gguff_e_Lora_Test__Variante_senza_LoadAudio.json",
+    "Bytes": 9867
+  },
+  {
+    "Path": "workflows\\regista\\old\\Yorgash Flux.2 flow.json",
+    "Bytes": 13959
+  },
+  {
+    "Path": "workflows\\regista\\video\\MiniMax_H3_00022_ 44 (2) 4.json",
+    "Bytes": 6905
+  },
+  {
+    "Path": "workflows\\regista\\video\\MiniMax-H3-Gguff-Lora-Test.json",
+    "Bytes": 8853
+  },
+  {
+    "Path": "workflows\\regista\\video\\MiniMaxH3Gguff_e_Lora_Test.json",
+    "Bytes": 9378
+  },
+  {
+    "Path": "workflows\\regista\\video\\Wan2.2-Remix-comfy-i2v-workflow.json",
+    "Bytes": 5500
+  }
+]

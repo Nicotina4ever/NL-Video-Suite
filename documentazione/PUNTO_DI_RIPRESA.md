@@ -1,4 +1,30 @@
-# Punto di ripresa — aggiornato al 23/11/2026 (dopo la ripresa pomeridiana)
+# Punto di ripresa — aggiornato al 23/11/2026 (sera)
+
+Stato aggiornato dopo P10 (provider modulari e distribuzione) e P11 (text-to-video e bridge locale).
+## Aggiornamento 23/11 sera — P10 provider/distribuzione e P11 generativo locale
+
+- **P10a provider modulari**: `nl.llmProvider` (`ollama` | `openai_compatible`), `nl.llmUrl`,
+  `nl.llmModel`, `nl.llmApiKey` (+ `NL_LLM_*`); client OpenAI-compatibile con `response_format` e
+  retry; `nl.models.llm`; provider in `nl.services.status` e in NL Settings. Moduli prompt/storia/
+  longform/assistente/traduzioni provider-aware, anche nei job in background. Prova live con
+  l'endpoint `/v1` di Ollama: 13 modelli, prompt generato. `prove/p10-providers/`.
+- **P10b distribuzione**: `packaging/nl/portable.ps1` e `portable.sh`, launcher con `NL_SUITE_ROOT`,
+  workflows e ffmpeg copiati, zip/tar.gz; `documentazione/DISTRIBUZIONE.md` con piattaforme,
+  prerequisiti, installer upstream e configurazione servizi AI. Prova Windows: bundle con 51
+  workflow e zip 202 MB. `prove/p10-dist/`.
+- **P11 generativo locale**: `nl.generate.text` (workflow `video_minimax_h3_t2v.json`, dimensioni
+  dalla sequenza, dry run, placement) e `nl.bridge.plan/generate` (gap tra due clip, ultimo frame
+  uscente + primo frame entrante, workflow first/last-frame derivato con due LoadImage, generazione e
+  inserimento nel gap). Pannello **NL Bridge** e pulsante Text → Video. Estensioni comfy: prompt
+  widget H3, durata PrimitiveFloat, size H3, `place` automatico e `comfy.last`.
+- **Prove reali**: t2v 669 s → MP4 1280×720, 24 fps, 2.333 s importato; bridge FLF 794 s → file
+  importato e gap riempito 0–48/48–96/96–144 dopo il trim; auto-placement verificato con una
+  generazione z-image; timeout predefinito dei comandi video portato a 1800 s.
+  `prove/p11-generative/`.
+- **Da fare subito dopo**: rerun end-to-end automatico del bridge con timeout 1800 s (la generazione
+  e il placement sono verificati separatamente), prompt bridge con analisi vision del frame entrante,
+  transizioni/audio del ponte, estensione v2v; rename NL degli installer upstream e prova reale degli
+  script Linux/macOS; P7 release/performance/regressione; portable definitivo.
 
 Stato aggiornato dopo il lavoro successivo alla pausa. Tutto committato, nessun job in esecuzione,
 nessun servizio avviato dalla suite. Regola rispettata: Ollama e ComfyUI mai in esecuzione insieme

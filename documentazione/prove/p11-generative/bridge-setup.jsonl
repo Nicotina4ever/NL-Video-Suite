@@ -1,0 +1,5 @@
+{"id":"file.openDemoProject","line":1,"ok":true,"result":{"sequence":21}}
+{"id":"file.newSequence","line":2,"ok":true,"result":{"sequence":900013}}
+{"id":"timeline.place","line":3,"ok":true,"result":{"clips":[900014]}}
+{"id":"timeline.place","line":4,"ok":true,"result":{"clips":[900015]}}
+{"id":"file.saveAs","line":5,"ok":true,"result":{"backup":null,"bytes":31308,"ms":2.9202,"path":"C:\\Users\\Nicola\\AppData\\Local\\Temp\\nl-p11-live\\bridge-live.fcproj"}}

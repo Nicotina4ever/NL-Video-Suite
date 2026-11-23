@@ -1,0 +1,2 @@
+{"id":"file.openDemoProject","line":1,"ok":true,"result":{"sequence":21}}
+{"id":"nl.generate.text","line":2,"ok":true,"result":{"dryRun":true,"mode":"text2video","nodes":23,"overridden":0,"place":{"atSeconds":4.25425,"track":"V1"},"prompt":"a lighthouse in a storm at dusk, cinematic, waves crashing, slow push in","references":[],"seed":42,"size":{"height":720,"width":1280},"submitted":false,"url":"http://127.0.0.1:8188","workflow":"K:\\AI\\NL_Video_Suite\\workflows/video_minimax_h3_t2v.json"}}

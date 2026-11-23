@@ -1,0 +1,5 @@
+@echo off
+setlocal
+set "NL_SUITE_ROOT=%~dp0"
+start "NL Video Suite" "%~dp0NL Video Suite.exe"
+endlocal
