@@ -30,10 +30,16 @@ per le nostre prove.
   (`nl.story.extendAudio`/`placeAudio`). `prove/p5-music/`.
 - **P8d libreria reference**: character sheet + location plate generati una volta e usati dalle
   keyframe di scena (dry run verificati). `prove/p8d-story/library-*.jsonl`.
+- **P8e completa**: pannelli **NL Subtitles** (cue list, split/merge/delete, import/export SRT/VTT),
+  **NL Titles** (template MoGRT con controlli e responsive intro/outro), **NL Graphics**
+  (`nl.graphics.add`), **NL Audio** (Essential Sound + mixer strip). `prove/p8e-studio/`.
+- **P8f principale**: **NL Delivery** (`nl.delivery.qa/package/social`, `nl.storage.status`, pacchetto
+  con manifest/captions/chapters/story/thumbnail, QA social per piattaforma) e **NL Album**
+  (`nl.album.list/insert`, inserimento in timeline). `prove/p8f-delivery/`, `prove/p8f-album/`.
 
 ## Commit fork principali
 
-`8a10f8fa` override UI + musica; `9374c3b9` video di scena + export capitoli; `cb5d81a6` assistente;
+`809931a0` album + social; `99a922de` delivery + grafici/audio; `d9e74c91` sottotitoli/titoli;\n`8a10f8fa` override UI + musica; `9374c3b9` video di scena + export capitoli; `cb5d81a6` assistente;
 `8c3711d2` coda varianti + traduzioni; `208dc2d8` longform + ricerca; `7cd91d24` libreria reference;
 `7aff8f47` H3; `a4abc203` prompt AI/parametri/dry run; `826a1d5d` reference media/video scena/musica;
 `f602e3a3` storia→timeline; `660f4ad9` P8b/P9a; `4927a196` P4b; `c46162f5` P3a; `d9102850` P1.
@@ -47,9 +53,9 @@ per le nostre prove.
 
 ## Cosa manca (ordine proposto)
 
-1. **P8e**: subtitle studio dedicato, motion/titoli, graphic objects, narration/audio master.
-2. **P8f**: versioni montaggio, album, production package, storage, social QA/export, thumbnail
-   nativa; servizi/doctor già presenti.
+1. **P8f resto**: versioni montaggio (snapshot/varianti) ed export social diretto; il resto di P8f
+   (album, delivery, social check, thumbnail) è fatto.
+2. **P8e**: fatto (sottotitoli, titoli, grafici, audio).
 3. **P8d resto**: montage planner/creative montage/audio onset, shot map, pipeline/flows.
 4. **P9d resto**: estensione video con v2v su segmento esistente e audio (Ace Step via coda);
    i2v da keyframe con workflow dedicato (non presente: servirebbe un i2v a 1 reference).
