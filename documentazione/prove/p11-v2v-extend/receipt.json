@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-23",
+  "phase": "P11d (estensione v2v)",
+  "title": "Estensione v2v di una clip esistente: estratto h264 della coda + due frame di contesto, workflow extend locale e piazzamento nello spazio vuoto dopo la clip",
+  "intent": "Completare le funzioni generative con l'estensione di un segmento già montato: prendere una clip della timeline, generarne la continuazione in locale (video-conditioned extend) e inserirla subito dopo, senza toccare il resto del montaggio.",
+  "implemented": {
+    "engine": [
+      "crates/engine/src/nl/generative.rs: nl.generate.extend {clip?, seconds?, contextSeconds?, prompt?, workflow?, wait?, dryRun?, seed?, overrides?, timeoutSeconds?}",
+      "trova la clip dal parametro o dalla selezione; esporta con file.exportMedia un estratto h264 della coda della clip (default 2,5 s) e due frame di contesto (primo/ultimo) con file.exportFrame",
+      "usa il workflow workflows/calliope/MiniMax-H3-Turbo-R2V-Extend-2Refs1Vid_API.json: carica l'estratto come video (VHS_LoadVideo patchato), i due frame come Ref 1/Ref 2, imposta durata/prompt e lascia dry run/seed/overrides",
+      "piazzamento: subito dopo la fine della clip, su V<n>; se c'è una clip successiva la durata è limitata allo spazio disponibile, se lo spazio è zero rifiuta con messaggio esplicito (usare il bridge); il placement automatico post-import è riusato",
+      "timeout video 3600 s; prompt di default descrittivo della continuazione, prompt operatore opzionale"
+    ],
+    "gui": "pannello NL Generate (video): pulsante «Extend selected clip (v2v)» che usa la clip selezionata e avvia il job senza bloccare l'interfaccia"
+  },
+  "live_evidence": {
+    "run": "sequenza nuova con una clip da 3 s; nl.generate.extend {clip, dryRun:true, contextSeconds:1, seconds:2}",
+    "result": "estratto context.mp4 (1 s) e due PNG di contesto creati; upload e patch: 2 immagini + 1 video; workflow extend da 32 nodi; dryRun=true, submitted=false, placementSeconds=2",
+    "files": ["documentazione/prove/p11-v2v-extend/extend-setup.jsonl", "documentazione/prove/p11-v2v-extend/extend-dryrun.jsonl"]
+  },
+  "checks": [
+    "nl::generative::tests::extending_needs_a_selected_video_clip_and_empty_space_after_it (rifiuto senza selezione e senza spazio dopo la clip)",
+    "Dry run live con ComfyUI: estratto e frame generati, workflow e reference patchate, nessun invio",
+    "cargo fmt, clippy -D warnings, test engine e UI"
+  ],
+  "limits": [
+    "La generazione reale dell'estensione non è stata eseguita in questa prova (la variante H3 con video/reference supera i 30 min su questa GPU): il dry run verifica workflow, upload, patch e placement.",
+    "L'estratto di contesto è h264 a crf 26 per non spedire media enormi: non è il master, solo il contesto per il modello.",
+    "L'estensione richiede spazio vuoto dopo la clip; per riempire un buco tra due clip si usa nl.bridge.plan/generate.",
+    "Due reference frame dal contesto non sono un character sheet: per la coerenza del soggetto conviene generare prima lo sheet e usare i flussi reference dedicati."
+  ],
+  "rules_respected": [
+    "Tutto locale: ComfyUI dell'operatore, nessun servizio esterno",
+    "Nessun download; workflow già presente in workflows/calliope",
+    "Nessuna modifica distruttiva: il placement usa lo spazio dopo la clip e rifiuta se non c'è",
+    "Niente 'FilmCraft' nei testi visibili"
+  ]
+}

@@ -36,6 +36,9 @@ Stato aggiornato dopo P10 (provider modulari e distribuzione) e P11 (text-to-vid
   debug/release dopo aver copiato gli eseguibili); prove, ricevute e media non si toccano.
 - **P7 export e portabile**: export GTA6 0–2 s h264 (1080×1920, 60 frame, 0,41 MB, 28,2 fps) in 2,3 s
   con apertura; portabile 0.2.0 rigenerato con la release nuova (zip 203,4 MB, eseguibile 84,3 MB).
+- **P11d estensione v2v**: `nl.generate.extend` (estratto h264 della coda + due frame, workflow
+  extend R2V 2refs+video, placement dopo la clip) e pulsante nel pannello Generate; dry run live
+  32 nodi con 2 reference immagini + 1 video. Resta la generazione reale su GPU più veloce.
 - **Da fare subito dopo**: rerun end-to-end automatico del bridge con timeout 1800 s (la generazione
   e il placement sono verificati separatamente), prompt bridge con analisi vision del frame entrante,
   transizioni/audio del ponte, estensione v2v; rename NL degli installer upstream e prova reale degli

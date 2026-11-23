@@ -69,6 +69,18 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
   servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
 
+## Parità NL — P11d estensione v2v (23/11/2026)
+
+- `nl.generate.extend`: dalla clip selezionata (o `clip`) esporta un estratto h264 della coda
+  (default 2,5 s) e due frame di contesto, carica video+refs nel workflow extend
+  (`MiniMax-H3-Turbo-R2V-Extend-2Refs1Vid_API.json`), genera e piazza la continuazione dopo la
+  clip; se non c'è spazio rifiuta e rimanda al bridge; durata limitata allo spazio disponibile.
+- Pulsante «Extend selected clip (v2v)» nel pannello NL Generate; timeout 3600 s; placement
+  automatico post-import.
+- Prova live dry run: estratto 1 s + 2 PNG, 2 reference immagini + 1 video patchate, workflow 32
+  nodi, submitted=false. Evidenze in `prove/p11-v2v-extend/`.
+- Restano: generazione reale su GPU più veloce, vision del frame entrante, transizioni/audio.
+
 ## Parità NL — P7 release e performance (23/11/2026)
 
 - `cargo build --release -p filmcraft -p filmcraft-cli`: 422 s, nessun errore; `filmcraft.exe` 80,4 MB,
