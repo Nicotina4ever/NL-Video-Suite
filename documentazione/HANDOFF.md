@@ -61,8 +61,8 @@ Matrice dettagliata: `documentazione/PARITA_FEATURE.md`.
 | F8 portable | da fare | — |
 
 Ultimi test (23/11/2026): clippy engine+UI pulito; engine 966 + 17 passati; UI 367 + 4 + 1 + 828
-passati, 0 falliti. Commit fork: `4927a196` (P4b copertine), `c46162f5` (P3a clipping/sgrossa),
-`d9102850` (P1 impostazioni + pannelli). Base `48f2ab9e`.
+passati, 0 falliti. Commit fork: `660f4ad9` (P8b/P9a quick edit + doctor/API), `4927a196` (P4b copertine),
+`c46162f5` (P3a clipping/sgrossa), `d9102850` (P1 impostazioni + pannelli). Base `48f2ab9e`.
 Release finale pronta: `filmcraft-nl/target/release/filmcraft.exe` (77 MB, 02:05) con F5/F6/ASR,
 dialoghi GUI, risoluzione da sequenza e ASR GPU-first (da ricompilare a fine P1–P7: la release non
 contiene ancora i pannelli NL).
