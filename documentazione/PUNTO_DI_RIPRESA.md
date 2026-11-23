@@ -1,55 +1,64 @@
-# Punto di ripresa — pausa del 23/11/2026
+# Punto di ripresa — aggiornato al 23/11/2026 (dopo la ripresa pomeridiana)
 
-Stato congelato su richiesta dell'operatore. Tutto è committato: nessuna modifica pendente
-(`git status` pulito in `filmcraft-nl` e in `documentazione`), nessun job in esecuzione, nessun
-servizio avviato dalla suite.
+Stato aggiornato dopo il lavoro successivo alla pausa. Tutto committato, nessun job in esecuzione,
+nessun servizio avviato dalla suite. Regola rispettata: Ollama e ComfyUI mai in esecuzione insieme
+per le nostre prove.
 
-## Dove siamo arrivati
+## Cosa è stato completato (in più rispetto al punto di ripresa precedente)
 
-- **Fasi chiuse**
-  - P1 impostazioni/pannelli, P3a clipping+sgrossa, P4b copertine, P8a inventario versione test,
-    P8b default rapido, P9a workflow doctor+API+import, P9b Prompt AI/H3/parametri/dry run,
-    P8d storia AI con libreria reference e timeline, P9d reference media + video scena + musica,
-    P8c longform (capitoli+marcatori) e ricerca progetto.
-- **Commit fork principali** (in `filmcraft-nl`, gli ultimi in cima)
-  - `208dc2d8` P8c longform + ricerca (pannello **NL Analyze**)
-  - `7cd91d24` P8d libreria reference (sheet/plate → keyframe di scena)
-  - `7aff8f47` P9b compilatore H3 + chat testuale Ollama
-  - `a4abc203` P9b prompt AI + parametri workflow + dry run
-  - `826a1d5d` P9d reference media + video da keyframe + musica di scena
-  - `f602e3a3` P8d storia AI → scene → keyframe → timeline
-  - `660f4ad9` P8b/P9a quick edit + doctor/API; `4927a196` P4b; `c46162f5` P3a; `d9102850` P1
-- **Documenti vivi**: `HANDOFF.md`, `PARITA_FEATURE.md`, `TRACCIA_PARITA.md`, `TODO.md`,
-  `STATO_INTEGRAZIONE.md`, `PERFORMANCE.md`, `inventario/*`, `prove/*`.
-- **Evidenze live più recenti**
-  - `prove/p8c-longform/` (46 parole → 6 blocchi → 2 capitoli con qwen3.5:9b, 2 marcatori)
-  - `prove/p8c-search/` (21 documenti, 3 query con risultati attesi)
-  - `prove/p8d-story/` (storia 10 scene, keyframe 512, place in timeline; libreria sheet/plate in
-    dry run), `prove/p9b-prompt-params/` (prompt AI, H3 base+full-reference, dry run v2v 23 nodi,
-    78 parametri), `prove/p9d-reference/` (reference image live, rifiuto video senza input).
-- **Verifiche**: `cargo fmt --check`, clippy `-D warnings` (engine/ui/cli) puliti; **engine 1008+17
-  test**, **UI 368 unit + 4 + 1 + integrazione** verdi. Due test real-time
-  (`marked_playback_position`, `slip_monitor_ui`) sono flaky sotto carico e passano isolati.
+- **P9c coda varianti** (`nl.queue.add/list/prepare/send/remove/free`): seed deterministici, dedupe,
+  prepare con dry run (`submitted=false`), invio solo con `confirm:true`, free VRAM confermato;
+  pannello **NL Queue** con doppia conferma. Prova live: 3 varianti preparate, una inviata davvero
+  (z-image 512×512, 182 s). `prove/p9c-queue/`.
+- **Override dei widget**: `graphics.generateComfy overrides [{node,field,value}]` validati dal
+  motore (nodi/campi inesistenti rifiutati) + campo «Widget overrides JSON» nei pannelli Generate e
+  Queue. Usati nella prova video H3 (megapixels, durata).
+- **P9d video live**: MiniMax H3 reference-to-video con due reference immagini → **video 672×384,
+  2,33 s, con audio AAC stereo**, importato (488 s). `prove/p9d-video/`.
+- **P8d video di scena live**: `nl.story.generate kind=video` con keyframe+sheet come reference,
+  `useSheet`, overrides; video importato, collegato alla scena e **posizionato in timeline**
+  (clip video+audio) in 425 s. `prove/p8d-story/`.
+- **P9b prompt H3** (`nl.prompt.h3`): schema base/keyframe/full-reference, validazione, retry e
+  riparazione tag dialogo; prove base 34 s e full-reference 22 s. Anche **Prompt AI** validato,
+  **parametri reali** da `/object_info` e **dry run** senza invio (23 nodi v2v, 78 parametri).
+- **P8c**: capitoli longform + marcatori (`nl.longform.analyze/get/markers`), **export capitoli**
+  JSON/MD/SRT (`nl.longform.export` + selettore file), **ricerca progetto** (`nl.search.*`),
+  **assistente con citazioni** (`nl.assistant.ask`), **traduzioni** (`nl.translate.captions/text`,
+  nuova traccia EN/ES). Prove: `prove/p8c-longform/`, `p8c-search/`, `p8c-assistant/`,
+  `p8c-translate/`.
+- **P5 musica live**: Ace Step, MP3 10 s 48 kHz stereo, collegata alla scena e messa su A1
+  (`nl.story.extendAudio`/`placeAudio`). `prove/p5-music/`.
+- **P8d libreria reference**: character sheet + location plate generati una volta e usati dalle
+  keyframe di scena (dry run verificati). `prove/p8d-story/library-*.jsonl`.
 
-## Cosa manca (ordine proposto alla ripresa)
+## Commit fork principali
 
-1. **P9c** — coda varianti (seed deterministici, prepare/invia con conferma, dedupe, `/free`
-   controllato ogni N) e modifica interattiva dei widget del workflow.
-2. **P9d resto** — generazione **video live** con i workflow v2v/r2v copiati (H3 richiede offload:
-   modelli int8/int4 ~20 GB su 8 GB VRAM) e prova audio live Ace Step; estensione sezioni.
-3. **P8c resto** — assistente trascrizione con citazioni (l'indice esiste: `nl.search.*`), export
-   MD/JSON dei capitoli, traduzioni EN/ES (import SRT/VTT già coperto da `captions.import`),
-   topics/rough-cut.
-4. **P8d resto** — montage planner/creative montage/audio onset, shot map, pipeline/flows.
-5. **P8e** — subtitle studio, motion/titoli, graphic objects, narration/audio master.
-6. **P8f** — servizi/versioni/album/production package/storage/social + thumbnail nativa (con P6).
-7. **P2/P3b/P5 residui**, poi **P7** — release `cargo build --release` con tutti i pannelli,
-   misure performance in `prove/p7-performance/`, regressione GTA6 (solo lettura), ricevute,
-   pulizia finale della cache debug e spazio.
+`8a10f8fa` override UI + musica; `9374c3b9` video di scena + export capitoli; `cb5d81a6` assistente;
+`8c3711d2` coda varianti + traduzioni; `208dc2d8` longform + ricerca; `7cd91d24` libreria reference;
+`7aff8f47` H3; `a4abc203` prompt AI/parametri/dry run; `826a1d5d` reference media/video scena/musica;
+`f602e3a3` storia→timeline; `660f4ad9` P8b/P9a; `4927a196` P4b; `c46162f5` P3a; `d9102850` P1.
+
+## Verifiche
+
+- clippy `-D warnings` pulito (engine, ui, cli); **engine 1020+17 test**, **UI 368 + 4 + 1 +
+  integrazione** verdi. Due test real-time (`marked_playback_position`, `slip_monitor_ui`) sono
+  flaky sotto carico GPU/CPU intenso e passano isolati.
+- Nessun progetto utente toccato; nessun download; testi visibili senza "FilmCraft".
+
+## Cosa manca (ordine proposto)
+
+1. **P8e**: subtitle studio dedicato, motion/titoli, graphic objects, narration/audio master.
+2. **P8f**: versioni montaggio, album, production package, storage, social QA/export, thumbnail
+   nativa; servizi/doctor già presenti.
+3. **P8d resto**: montage planner/creative montage/audio onset, shot map, pipeline/flows.
+4. **P9d resto**: estensione video con v2v su segmento esistente e audio (Ace Step via coda);
+   i2v da keyframe con workflow dedicato (non presente: servirebbe un i2v a 1 reference).
+5. **P7**: release completa con tutti i pannelli, misure performance, regressione GTA6 (sola
+   lettura), ricevute, pulizia finale cache debug e spazio.
+6. **Portable** con motore AI e launcher unico.
 
 ## Come riprendere
 
-- Riprendere il goal attivo (azione `resume`) e continuare da **P9c**, poi P9d resto.
-- Riferimenti: `documentazione/TRACCIA_PARITA.md` (piano P1–P9), `TODO.md` (stato), questo file.
-- Regole invariate: sorgenti esterni in sola lettura, progetti utente intatti, mai Ollama e ComfyUI
-  insieme, niente download obbligatori, niente "FilmCraft" nei testi visibili, test mai indeboliti.
+Riprendere dal punto 1 dell'elenco qui sopra. Riferimenti: `TRACCIA_PARITA.md`, `TODO.md`,
+`HANDOFF.md`, questo file. Regole invariate: lettura sola delle sorgenti esterne, progetti utente
+intatti, mai Ollama e ComfyUI insieme, nessun download obbligatorio, test mai indeboliti.
