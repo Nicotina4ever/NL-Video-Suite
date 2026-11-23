@@ -69,6 +69,15 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
   servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
 
+## Parità NL — P8f versioni montaggio (23/11/2026)
+
+- `nl.versions.save/list/restore/delete`: snapshot della sequenza attiva in `nl/versions` accanto
+  al progetto; il ripristino salva prima lo stato corrente come versione automatica e applica lo
+  snapshot in un solo undo; le versioni richiedono un progetto salvato.
+- Pannello **NL Versions** con nome, Save, Refresh, elenco (clip/durata) e Restore/Delete per riga.
+- Prova live: «Director cut» salvata (14 clip, 26.78 s), modifica a 1024, restore → 1920 con
+  auto-version creata; `documentazione/prove/p8f-versions/`.
+
 ## Parità NL — P8f delivery: QA, spazio e production package (23/11/2026)
 
 - `nl.delivery.qa`: controlli deterministici prima della consegna (risoluzione ≥720p, durata, cue
