@@ -11,8 +11,13 @@
     "sequence": "nome «Mi ficco in GTA6», 4476 frame (circa 3 min a 23.976 fps), 2 tracce video, 3 tracce audio, verticale 1080×1920",
     "frame_export": "file.exportFrame target=program time=0 → PNG 1080×1920, 727 KB",
     "qa": "nl.delivery.qa → ready=true, 0 errori, 2 warning (sottotitoli/audio, non bloccanti)",
+    "export_media": {
+      "run": "file.exportMedia sulla copia, range custom 0–2 s, h264 crf 23, wait=true, con il binario release",
+      "result": "MP4 1080×1920, 60 frame, 2,005 s, 0,41 MB, encoder software, render 28,2 fps; export completo in 2,3 s (apertura inclusa)",
+      "file": "documentazione/prove/p7-regression/gta6-export.jsonl"
+    },
     "integrity": "hash SHA-256 dell'originale identico prima e dopo la prova; nessuna scrittura sull'originale, nessun progetto utente toccato",
-    "files": ["documentazione/prove/p7-regression/gta6-open.jsonl", "documentazione/prove/p7-regression/gta6-frame.png"]
+    "files": ["documentazione/prove/p7-regression/gta6-open.jsonl", "documentazione/prove/p7-regression/gta6-frame.png", "documentazione/prove/p7-regression/gta6-export.jsonl"]
   },
   "checks": [
     "Apertura e ispezione della copia con il binario debug della suite",

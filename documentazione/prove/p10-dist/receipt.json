@@ -20,6 +20,14 @@
     ]
   },
   "live_evidence": {
+  "release_rebuild_0_2_0": {
+    "date": "2026-11-23",
+    "note": "portabile rigenerato con la release nuova (tutti i 48 pannelli, provider, generativo, manutenzione)",
+    "command": "packaging/nl/portable.ps1 -NoBuild -Version 0.2.0 -OutputRoot %TEMP%\\nl-portable-release",
+    "result": "bundle NLVideoSuite-0.2.0-windows-x64: NL Video Suite.exe 84.288.000 byte, workflows, tools ffmpeg/ffprobe, DISTRIBUZIONE.md, README, launcher; zip 203,4 MB",
+    "files": ["documentazione/prove/p10-dist/portable-release-listing.json", "documentazione/prove/p10-dist/portable-release-README.txt"]
+  },
+
     "windows_portable": {
       "command": "packaging\\nl\\portable.ps1 -NoBuild -Version 0.1.0 -OutputRoot %TEMP%\\nl-portable-test",
       "result": "bundle creato in 14 s: NL Video Suite.exe 80.5 MB, workflows 51 JSON, tools ffmpeg.exe/ffprobe.exe, DISTRIBUZIONE.md, README.txt, launcher .cmd; zip 202.3 MB",

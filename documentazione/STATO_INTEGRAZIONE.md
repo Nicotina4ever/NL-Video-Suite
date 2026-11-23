@@ -76,8 +76,11 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
 - Misure con binari release: avvio CLI warm **71–80 ms** (primo avvio a freddo 404 ms), demo
   openDemo+inspect+storage **108 ms**, apertura/inspect progetto GTA6 (copia) **96 ms**, apertura +
   export frame program 1080×1920 **1176 ms**. Evidenze in `prove/p7-release/`.
-- Restano: export/riproduzione completa GTA6, rigenerazione del portabile con la release,
-  ricevuta finale P7 e pulizia definitiva del progetto (target/cache, da_eliminare).
+- Export GTA6: `file.exportMedia` range 0–2 s h264 → MP4 1080×1920, 60 frame, 0,41 MB, 28,2 fps,
+  completo in 2,3 s con apertura. Portabile **0.2.0** rigenerato con la release nuova (zip 203,4 MB).
+- Pulizia: cache `target/debug/incremental` rimossa (−11,9 GB), `da_eliminare` svuotato (−163,9 MB,
+  ricevute conservate), nessun log/tmp residuo trovato. Restano: riproduzione completa GTA6,
+  ricevuta finale P7 e pulizia finale di `target/` dopo aver copiato gli eseguibili.
 
 ## Parità NL — P7 regressione GTA6 read-only (23/11/2026)
 

@@ -1,0 +1,73 @@
+{
+  "date": "2026-11-23",
+  "id": "2026-11-23-ottimizzazione-p2",
+  "title": "Ottimizzazione spazio progetto NL Video Suite (passo 2)",
+  "operator_request": "Ottimizzare l'intera cartella di progetto: spostare in da_eliminare il non più necessario, tenere lo spazio sotto controllo, aggiornare la documentazione.",
+  "measured": {
+    "project_before_gb": 32.84,
+    "project_after_gb": 17.67,
+    "project_recovered_gb": 15.17,
+    "k_free_before_gb": 91.9,
+    "k_free_after_gb": 105.3,
+    "k_recovered_gb": 13.4,
+    "note": "I 756 MB di cartelle temporanee erano in %TEMP% (C:), quindi non contano nel disco K:."
+  },
+  "actions": [
+    {
+      "action": "removed",
+      "path": "filmcraft-nl/target/debug",
+      "bytes_gb": 14.3,
+      "reason": "cache di build/test rigenerabile; la release resta intatta",
+      "recoverable_by": "cargo test / cargo check ricreano la cache"
+    },
+    {
+      "action": "removed",
+      "path": "sviluppo/target",
+      "bytes_gb": 0.79,
+      "reason": "cache debug della vecchia app classica, non più usata come prodotto",
+      "recoverable_by": "cargo build nella vecchia app se servisse"
+    },
+    {
+      "action": "removed",
+      "path": "754 cartelle __pycache__ nel progetto",
+      "bytes_mb": 73.68,
+      "reason": "bytecode Python rigenerabile",
+      "recoverable_by": "Python le ricrea al primo import"
+    },
+    {
+      "action": "moved",
+      "path": "sviluppo/tests/artifacts",
+      "destination": "da_eliminare/2026-11-23-ottimizzazione-p2/sviluppo-tests-artifacts",
+      "bytes_gb": 0.16,
+      "reason": "artefatti dei test completati della vecchia suite (screenshot/media/report), non più necessari; conservati in archivio per traccia",
+      "recoverable_by": "i test della vecchia suite li rigenerano"
+    },
+    {
+      "action": "removed",
+      "path": "%TEMP%/filmcraft-* (917 cartelle)",
+      "bytes_mb": 756.01,
+      "reason": "cartelle temporanee create dai test del fork (fixture media, export di prova)",
+      "recoverable_by": "i test le ricreano"
+    }
+  ],
+  "not_touched": [
+    "Progetti utente: data/projects (Nicola Lanci Riferimenti autenti, Prova, Trailer), sviluppo/anteprima_creativa/data/projects/Mi ficco in GTA6, Pubblicità AI EP2, ZMateriale",
+    "Runtime Python e modelli: runtime/ (5,10 GB), models/ (4,05 GB), engines/ (0,32 GB)",
+    "Release del fork: filmcraft-nl/target/release/filmcraft.exe e le sue dipendenze (build incrementale per le fasi P5-P7)",
+    "Tool applicativi: app/tools (ffmpeg/ffprobe), app/stabile-backup (rollback)",
+    "documentazione/prove (tracciabilità delle fasi)",
+    "Nessun servizio avviato o fermato; ComfyUI in esecuzione non è stato toccato"
+  ],
+  "remaining_big_items": {
+    "runtime/python": "5,10 GB (interprete e pacchetti ASR/torch, necessari)",
+    "models": "4,05 GB (modelli ASR/allineatore dichiarati nel manifest, nessun download)",
+    "filmcraft-nl/target/release": "3,58 GB (release + dipendenze di build; potabile a fine P7 se non servono più build)",
+    "sviluppo/anteprima_creativa/data/projects": "2,56 GB (progetto utente GTA6: intoccabile)",
+    "data": "0,52 GB (progetti e cache dell'app)"
+  },
+  "final_pass_pending": [
+    "Dopo l'ultima release P7: rimuovere di nuovo filmcraft-nl/target/debug ricreato dai test finali",
+    "Valutare la rimozione di target/release/deps (3,3 GB) solo se non servono altre build; la ricevuta va aggiornata",
+    "Svuotare da_eliminare solo su richiesta esplicita dell'operatore"
+  ]
+}

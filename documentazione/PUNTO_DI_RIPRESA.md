@@ -30,9 +30,12 @@ Stato aggiornato dopo P10 (provider modulari e distribuzione) e P11 (text-to-vid
   96 ms, frame 1080×1920 1176 ms. Regressione GTA6 read-only su copia (hash originale invariato).
   `prove/p7-release/`, `prove/p7-regression/`.
 - **Pulizia spazio in corso**: rimossa la cache `target/debug/incremental` (11,9 GB) che causava anche
-  errori di link con artefatti stale; test engine 1042 verdi dopo la ricostruzione. Alla chiusura del
-  progetto restano da svuotare `target/` (deps debug/release dopo aver copiato gli eseguibili) e
-  `da_eliminare/`; prove, ricevute e media generati non si toccano.
+  errori di link con artefatti stale; `da_eliminare/` svuotato (−163,9 MB, ricevute conservate in
+  `documentazione/prove/da-eliminare-2026-11-23/`), nessun log/tmp residuo trovato. Test engine 1042
+  verdi dopo la ricostruzione. Alla chiusura del progetto resta da svuotare `target/` (deps
+  debug/release dopo aver copiato gli eseguibili); prove, ricevute e media non si toccano.
+- **P7 export e portabile**: export GTA6 0–2 s h264 (1080×1920, 60 frame, 0,41 MB, 28,2 fps) in 2,3 s
+  con apertura; portabile 0.2.0 rigenerato con la release nuova (zip 203,4 MB, eseguibile 84,3 MB).
 - **Da fare subito dopo**: rerun end-to-end automatico del bridge con timeout 1800 s (la generazione
   e il placement sono verificati separatamente), prompt bridge con analisi vision del frame entrante,
   transizioni/audio del ponte, estensione v2v; rename NL degli installer upstream e prova reale degli
