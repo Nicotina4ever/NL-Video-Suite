@@ -136,8 +136,42 @@ comandi. Nessun pannello duplica stato: legge `Session` e le risposte dei comand
 - Ricevute: `documentazione/prove/p1-.../receipt.json` + screenshot GUI quando i pannelli sono
   pronti; ogni fase = commit separato con messaggio `P<n>: ...`.
 
-## Ordine e criteri di accettazione
+## P8 — versione test classica (inventario `inventario/versione_test.md`)
 
+Tutte le funzioni della versione test vanno portate come pannelli/menù/comandi, **senza perdere
+il default rapido**. Sotto-fasi:
+
+- **P8b default rapido**: workspace di avvio **Quick Edit** (Program, Project, Effects, Timeline,
+  meters; nessun pannello NL agganciato), nessun contatto con ComfyUI/Ollama all'apertura, liste
+  costose in cache, test `opening_a_project_starts_no_ai_work`, misure in `PERFORMANCE.md`.
+- **P8c testo/longform**: analisi longform (topics, chapters, rough-cut preview/apply), indice
+  FTS5 e ricerca, assistente correzioni review-only, import SRT/VTT, traduzioni EN/ES.
+- **P8d montaggio/storia**: montage planner, creative montage + audio onset, story/narrative
+  (piano, scene, assemble, preflight), assistente narrativa, reference narrative, shot map,
+  pipeline/flows review-gated. Include P4: storia AI con affinamenti e **posizionamento in
+  timeline** degli elementi generati.
+- **P8e sottotitoli/grafica/audio**: subtitle studio completo (struttura, sync, align, export),
+  motion/titoli nativi, graphic objects, narration/audio master.
+- **P8f servizi/workflow/progetto**: workflow doctor + verifica API (unione P9a), import/parametri
+  workflow, provider/servizi start/stop, versioni montaggio, album, production package, storage,
+  social QA/export, thumbnail nativa.
+
+## P9 — Prompter_Comfyui (inventario `inventario/prompter_comfyui.md`)
+
+- **P9a** (fatto): workflow copiati in `workflows/prompter/` (+ provenance); **doctor unito alla
+  verifica API**: `nl.workflows.verify` legge `/object_info` (sola lettura), `nl.workflows.diagnose`
+  fa controlli statici + live (classi, modelli, reference, link, prompt, dimensioni, difetti noti),
+  `nl.workflows.fix` scrive una copia riparata, `nl.workflows.import` aggiunge workflow; pannello
+  **NL Workflows** con Verify, Doctor, Fix, Import.
+- **P9b** parametri reali da `/object_info` (enum/intervalli) e Prompt AI (brief → proposte JSON
+  validate → diff → applica), con bindings per workflow.
+- **P9c** coda varianti deterministiche (seed/tag), PREPARA (nessun upload) e INVIA con conferma,
+  dedupe; `/free` ComfyUI ogni N generazioni e pulsante manuale — senza mai uccidere processi.
+- **P9d** staging reference video/audio per v2v/r2v/extend: immagini via `/upload/image`, video e
+  audio nella cartella input ComfyUI con percorso relativo `Prompter_ComfyUI/<nome>` solo su
+  loopback; generazione con input e inserimento/estensione in timeline.
+
+## Ordine e criteri di accettazione
 1. **P1** — `prefs.schema` contiene `nl`; i valori sopravvivono a riavvio; i comandi usano le
    impostazioni; test verdi. **Fatto = commit + ricevuta.**
 2. **P2b** — nessuna stringa "FilmCraft" nei testi visibili (grep mirato + test); 8 pannelli

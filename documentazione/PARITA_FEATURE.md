@@ -166,6 +166,24 @@ La sequenza aperta è la fonte di verità. Le generazioni non devono inventare r
 6. **P6** Workflow repair/autofix e diagnostica servizi.
 7. **P7** Portable, regressione GTA6, documentazione e ottimizzazione.
 
+## Versione test classica e Prompter (P8/P9)
+
+La parità non è solo verso le 4 app esterne: va portato in `filmcraft-nl` **tutto ciò che la
+versione test della suite già faceva**. Inventario verificato (165 route, ~80 moduli, shell):
+`inventario/versione_test.md`; fasi e criteri: `TRACCIA_PARITA.md` §P8. Inventario Prompter:
+`inventario/prompter_comfyui.md`; workflow copiati in `workflows/prompter/` con `PROVENANCE.md`.
+
+- **P8b fatto**: workspace di avvio **Quick Edit** (nessun pannello NL agganciato), nessun lavoro AI
+  all'apertura, misure-obiettivo in `PERFORMANCE.md`.
+- **P9a fatto**: workflow doctor **unito** alla verifica API (`nl.workflows.verify` legge
+  `/object_info`, `nl.workflows.diagnose` statico+live, `nl.workflows.fix` copia riparata,
+  `nl.workflows.import` per aggiungere workflow in futuro) e pannello **NL Workflows**.
+- **Da fare**: P8c (longform/ricerca/assistente/import SRT/traduzioni), P8d (montaggio planner,
+  storia/narrativa con posizionamento in timeline, shot map, flows), P8e (sottotitoli studio,
+  motion, graphic objects, audio master), P8f (servizi/versioni/album/production package/storage/
+  social), P9b–d (parametri reali + Prompt AI, coda varianti/prepara/invia, v2v con reference
+  video/audio e inserimento in timeline).
+
 ## Regole non negoziabili
 
 - Ogni funzione ha comando headless **e** accesso GUI.

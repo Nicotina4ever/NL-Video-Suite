@@ -95,6 +95,35 @@ Matrice: `documentazione/PARITA_FEATURE.md`. Ogni voce deve avere GUI e comando.
 - [ ] P6: workflow repair/autofix, diagnostica servizi, avvio/stop ComfyUI e Ollama.
 - [ ] P7: verifica parità, portable, regressione GTA6, docs e ottimizzazione.
 
+## P8 — versione test classica (tutte le funzioni già presenti)
+
+Inventario verificato: `documentazione/inventario/versione_test.md` (165 route, ~80 moduli, shell).
+Regola: tutte come pannelli/menù/comandi, ma **default rapido** invariato.
+
+- [x] P8b: workspace di avvio **Quick Edit** (nessun pannello NL agganciato), nessun lavoro AI
+      all'apertura (`nl::performance_tests`), `documentazione/PERFORMANCE.md`, cache liste.
+- [ ] P8c: longform/topics/chapters/rough-cut, indice FTS e ricerca, assistente correzioni,
+      import SRT/VTT, traduzioni EN/ES.
+- [ ] P8d: montage planner/creative montage/audio onset, story/narrative + assistente + reference,
+      shot map, pipeline/flows; con **posizionamento in timeline** di ciò che si genera.
+- [ ] P8e: subtitle studio, motion/titoli, graphic objects, narration/audio master.
+- [ ] P8f: workflow doctor+API (unito P9a), versioni montaggio, album, production package,
+      storage, social QA/export, thumbnail nativa.
+
+## P9 — Prompter_Comfyui
+
+Inventario: `documentazione/inventario/prompter_comfyui.md`. Workflow copiati (8) in
+`workflows/prompter/` con `PROVENANCE.md`.
+
+- [x] P9a: pannello **NL Workflows**; doctor unito alla verifica API (`nl.workflows.verify` legge
+      `/object_info`, `nl.workflows.diagnose` statico+live, `nl.workflows.fix` copia riparata,
+      `nl.workflows.import` per aggiungere workflow in futuro).
+- [ ] P9b: parametri reali da `/object_info` + Prompt AI (brief→proposte validate→diff→applica).
+- [ ] P9c: coda varianti (seed deterministici, prepara/invia con conferma, dedupe) + free VRAM
+      controllato ogni N generazioni.
+- [ ] P9d: reference video/audio per v2v/r2v/extend, generazione e inserimento/estensione in
+      timeline.
+
 ## F8 — Consegna
 
 - [ ] Portable con motore AI e launcher unico.

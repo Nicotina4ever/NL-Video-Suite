@@ -55,7 +55,9 @@ Matrice dettagliata: `documentazione/PARITA_FEATURE.md`.
 | P2b Pannelli NL + branding | **fatto** | 10 pannelli nel dock, testi visibili senza “FilmCraft” |
 | P3a Clipping + Sgrossa | **fatto** | bridge ClipsAI, comandi `nl.clipping.*`/`nl.sgrossa.*`/`nl.subtitles.srt`; `prove/p3-clipping-sgrossa/` |
 | P4b Copertine AI dal frame | **fatto** | `graphics.generateCover`, `nl.cover.*`, pannello NL Cover; `prove/p4b-cover/` |
-| Parità completa NL | in corso (P2, P3b, P4, P5, P6) | `documentazione/PARITA_FEATURE.md`, `TRACCIA_PARITA.md` |
+| P8b Default rapido | **fatto** | workspace **Quick Edit** disponibile, nessun pannello NL docked di default, nessun AI all'apertura, `PERFORMANCE.md`; `prove/p8b-performance/` |
+| P9a Workflow doctor + API | **fatto** | `nl.workflows.verify/diagnose/fix/import`, pannello NL Workflows, 8 workflow Prompter copiati; `prove/p9-workflows/` |
+| Parità NL completa | in corso (P2, P3b, P4, P5, P6, P8c–f, P9b–d) | `documentazione/PARITA_FEATURE.md`, `TRACCIA_PARITA.md`, `inventario/versione_test.md` |
 | F8 portable | da fare | — |
 
 Ultimi test (23/11/2026): clippy engine+UI pulito; engine 966 + 17 passati; UI 367 + 4 + 1 + 828

@@ -69,6 +69,23 @@ Dettagli tecnici: `F2_IMPORT_NL.md`, `F3_TEXT.md`, `F4_SHORTS.md`.
   di nuovo a fine lavoro, insieme alla valutazione di `target/release/deps` (3,3 GB) se non
   servono altre build. `da_eliminare` si svuota solo su richiesta esplicita.
 
+## Parità NL — P8b default rapido e P9a workflow doctor+API (23/11/2026)
+
+- **Nessuna workspace built-in aggancia pannelli NL**: il layout di avvio resta *Editing* e per un
+  montaggio essenziale c'è **Quick Edit** (Window ▸ Workspaces). Aprire un progetto non crea job,
+  non contatta ComfyUI/Ollama e non legge `/object_info` (test `nl::performance_tests`). Garanzie e misure-obiettivo:
+  `documentazione/PERFORMANCE.md`; ricevuta `prove/p8b-performance/`.
+- **Workflow doctor unito alla verifica API** (come chiesto, unendo la “Verifica API” del Prompter
+  al workflow doctor): `nl.workflows.verify` legge `/object_info` (sola lettura, 5991 classi su
+  questa installazione), `nl.workflows.diagnose` controlla classi installate, file modello e
+  reference contro gli enum del server oltre ai difetti statici (link, prompt, dimensioni, LTX AV
+  split); `nl.workflows.fix` scrive una copia riparata, `nl.workflows.import` aggiunge workflow.
+  Pannello **NL Workflows** con Verify/Doctor/Fix/Import.
+- **Libreria iniziale**: 8 workflow copiati da `K:\AI\Prompter_Comfyui\workflows` (letta in sola
+  lettura) in `workflows/prompter/` con `PROVENANCE.md`; si amplia importando altri JSON API.
+- **Prova live**: 40 workflow esaminati, 4 con classi mancanti (tutti legacy calliope/regista),
+  **0 errori sui workflow copiati dal Prompter**; dettagli in `prove/p9-workflows/`.
+
 ## Parità NL — P3a/P4b clipping, sgrossa e copertine (23/11/2026)
 
 - **Clipping e Sgrossatura** girano sul bridge della suite (`clipsai_bridge.py`, motori vendored in

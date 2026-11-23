@@ -1,0 +1,944 @@
+{
+  "apiVerified": true,
+  "note": "live checks against /object_info included",
+  "totals": {
+    "errors": 67,
+    "warnings": 42,
+    "workflowsWithIssues": 24
+  },
+  "workflows": [
+    {
+      "counts": {
+        "error": 7,
+        "info": 0,
+        "warning": 0
+      },
+      "issues": [
+        {
+          "class": "UNETLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `Krea-2-Turbo.safetensors` is not available in this ComfyUI (unet_name)",
+          "node": "148",
+          "severity": "error"
+        },
+        {
+          "class": "CLIPLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `qwen3vl_4b_fp8_scaled.safetensors` is not available in this ComfyUI (clip_name)",
+          "node": "149",
+          "severity": "error"
+        },
+        {
+          "class": "VAELoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `qwen_image_vae.safetensors` is not available in this ComfyUI (vae_name)",
+          "node": "150",
+          "severity": "error"
+        },
+        {
+          "class": "LoraLoaderModelOnly",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `krea2\\Krea2-realism-V2.safetensors` is not available in this ComfyUI (lora_name)",
+          "node": "152",
+          "severity": "error"
+        },
+        {
+          "class": "UNETLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `Krea-2-Turbo.safetensors` is not available in this ComfyUI (unet_name)",
+          "node": "55",
+          "severity": "error"
+        },
+        {
+          "class": "CLIPLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `qwen3vl_4b_fp8_scaled.safetensors` is not available in this ComfyUI (clip_name)",
+          "node": "56",
+          "severity": "error"
+        },
+        {
+          "class": "VAELoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `qwen_image_vae.safetensors` is not available in this ComfyUI (vae_name)",
+          "node": "57",
+          "severity": "error"
+        }
+      ],
+      "path": "calliope/krea2_T2I_CharSheetV1_API.json"
+    },
+    {
+      "counts": {
+        "error": 0,
+        "info": 0,
+        "warning": 1
+      },
+      "issues": [
+        {
+          "class": "ApexPromptPreset",
+          "fix": "write a prompt (the panels fill it) or pick another workflow",
+          "message": "prompt slot `input_text` is empty",
+          "node": "7656",
+          "severity": "warning"
+        }
+      ],
+      "path": "prompter/qwen_reference.json"
+    },
+    {
+      "counts": {
+        "error": 0,
+        "info": 0,
+        "warning": 2
+      },
+      "issues": [
+        {
+          "class": "ApexPromptPreset",
+          "fix": "write a prompt (the panels fill it) or pick another workflow",
+          "message": "prompt slot `input_text` is empty",
+          "node": "7656",
+          "severity": "warning"
+        },
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `Qwen2511/img_00038_.png [output]` is not in ComfyUI's input list (image)",
+          "node": "7658",
+          "severity": "warning"
+        }
+      ],
+      "path": "regista/Character Sheet v5 Reference.json"
+    },
+    {
+      "counts": {
+        "error": 0,
+        "info": 5,
+        "warning": 4
+      },
+      "issues": [
+        {
+          "class": null,
+          "fix": "safe to leave; it carries a panel title or a note",
+          "message": "UI-only marker node (no class_type): ComfyUI skips it",
+          "node": "154",
+          "severity": "info"
+        },
+        {
+          "class": null,
+          "fix": "safe to leave; it carries a panel title or a note",
+          "message": "UI-only marker node (no class_type): ComfyUI skips it",
+          "node": "23",
+          "severity": "info"
+        },
+        {
+          "class": "CLIPTextEncode",
+          "fix": "write a prompt (the panels fill it) or pick another workflow",
+          "message": "prompt slot `text` is empty",
+          "node": "28:173",
+          "severity": "warning"
+        },
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `vlcsnap-2026-06-26-01h43m06s763.png` is not in ComfyUI's input list (image)",
+          "node": "39",
+          "severity": "warning"
+        },
+        {
+          "class": "CLIPTextEncode",
+          "fix": "write a prompt (the panels fill it) or pick another workflow",
+          "message": "prompt slot `text` is empty",
+          "node": "44:67",
+          "severity": "warning"
+        },
+        {
+          "class": null,
+          "fix": "safe to leave; it carries a panel title or a note",
+          "message": "UI-only marker node (no class_type): ComfyUI skips it",
+          "node": "58",
+          "severity": "info"
+        },
+        {
+          "class": null,
+          "fix": "safe to leave; it carries a panel title or a note",
+          "message": "UI-only marker node (no class_type): ComfyUI skips it",
+          "node": "60",
+          "severity": "info"
+        },
+        {
+          "class": null,
+          "fix": "safe to leave; it carries a panel title or a note",
+          "message": "UI-only marker node (no class_type): ComfyUI skips it",
+          "node": "61",
+          "severity": "info"
+        }
+      ],
+      "path": "regista/image/Flux.2 Character Replacer v2.4.json"
+    },
+    {
+      "counts": {
+        "error": 0,
+        "info": 0,
+        "warning": 1
+      },
+      "issues": [
+        {
+          "class": "CLIPTextEncode",
+          "fix": "write a prompt (the panels fill it) or pick another workflow",
+          "message": "prompt slot `text` is empty",
+          "node": "75:67",
+          "severity": "warning"
+        }
+      ],
+      "path": "regista/image/flux2-text2image-Var.json"
+    },
+    {
+      "counts": {
+        "error": 0,
+        "info": 0,
+        "warning": 4
+      },
+      "issues": [
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `img_upres-2026-05-03 21-21-45-0001.png` is not in ComfyUI's input list (image)",
+          "node": "108",
+          "severity": "warning"
+        },
+        {
+          "class": "CLIPTextEncode",
+          "fix": "write a prompt (the panels fill it) or pick another workflow",
+          "message": "prompt slot `text` is empty",
+          "node": "123",
+          "severity": "warning"
+        },
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `ComfyUI_temp_gkrvy_00004_.png` is not in ComfyUI's input list (image)",
+          "node": "140",
+          "severity": "warning"
+        },
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `ComfyUI_temp_gkrvy_00005_.png` is not in ComfyUI's input list (image)",
+          "node": "225",
+          "severity": "warning"
+        }
+      ],
+      "path": "regista/image/flux2_klein_zit_1bg_2char_workflow (API).json"
+    },
+    {
+      "counts": {
+        "error": 0,
+        "info": 0,
+        "warning": 1
+      },
+      "issues": [
+        {
+          "class": "CLIPTextEncode",
+          "fix": "write a prompt (the panels fill it) or pick another workflow",
+          "message": "prompt slot `text` is empty",
+          "node": "75:67",
+          "severity": "warning"
+        }
+      ],
+      "path": "regista/image/image_flux2_text_to_image_9b.json"
+    },
+    {
+      "counts": {
+        "error": 0,
+        "info": 1,
+        "warning": 1
+      },
+      "issues": [
+        {
+          "class": "EmptyFlux2LatentImage",
+          "fix": "generated sizes round to 8/16 px",
+          "message": "height 756 is not a multiple of 8",
+          "node": "98:11",
+          "severity": "info"
+        },
+        {
+          "class": "CLIPTextEncode",
+          "fix": "write a prompt (the panels fill it) or pick another workflow",
+          "message": "prompt slot `text` is empty",
+          "node": "98:15",
+          "severity": "warning"
+        }
+      ],
+      "path": "regista/image/image_ideogram4_t2i_fixed.json"
+    },
+    {
+      "counts": {
+        "error": 0,
+        "info": 0,
+        "warning": 1
+      },
+      "issues": [
+        {
+          "class": "CLIPTextEncode",
+          "fix": "write a prompt (the panels fill it) or pick another workflow",
+          "message": "prompt slot `text` is empty",
+          "node": "76:71",
+          "severity": "warning"
+        }
+      ],
+      "path": "regista/image/image_z_image.json"
+    },
+    {
+      "counts": {
+        "error": 1,
+        "info": 0,
+        "warning": 0
+      },
+      "issues": [
+        {
+          "class": "UnetLoaderGGUF",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `qwen-image-edit-2511-Q8_0.gguf` is not available in this ComfyUI (unet_name)",
+          "node": "268",
+          "severity": "error"
+        }
+      ],
+      "path": "regista/image_edit/Qwen_EDIT_2511.json"
+    },
+    {
+      "counts": {
+        "error": 0,
+        "info": 0,
+        "warning": 1
+      },
+      "issues": [
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `image_z_image_turbo_fun_union_controlnet_input_image.png` is not in ComfyUI's input list (image)",
+          "node": "58",
+          "severity": "warning"
+        }
+      ],
+      "path": "regista/image_edit/z-image-edit-immagini.json"
+    },
+    {
+      "counts": {
+        "error": 0,
+        "info": 0,
+        "warning": 1
+      },
+      "issues": [
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `Lanci da Lanciano 01.jpg` is not in ComfyUI's input list (image)",
+          "node": "5",
+          "severity": "warning"
+        }
+      ],
+      "path": "regista/analisi/analisi_immagini-Var2.json"
+    },
+    {
+      "counts": {
+        "error": 0,
+        "info": 0,
+        "warning": 1
+      },
+      "issues": [
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `Lanci da Lanciano 01.jpg` is not in ComfyUI's input list (image)",
+          "node": "5",
+          "severity": "warning"
+        }
+      ],
+      "path": "regista/analisi/analisi_immagini.json"
+    },
+    {
+      "counts": {
+        "error": 8,
+        "info": 0,
+        "warning": 3
+      },
+      "issues": [
+        {
+          "class": "VAELoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_video_vae_fp16.safetensors` is not available in this ComfyUI (vae_name)",
+          "node": "119",
+          "severity": "error"
+        },
+        {
+          "class": "VAELoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_audio_vae_fp32.safetensors` is not available in this ComfyUI (vae_name)",
+          "node": "120",
+          "severity": "error"
+        },
+        {
+          "class": "UNETLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_ref2va_int8_convrot.safetensors` is not available in this ComfyUI (unet_name)",
+          "node": "127",
+          "severity": "error"
+        },
+        {
+          "class": "CLIPLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\qwen3vl_32b_h3_ultra_uncensored_heretic_int8_convrot.safetensors` is not available in this ComfyUI (clip_name)",
+          "node": "128",
+          "severity": "error"
+        },
+        {
+          "class": "LoraLoaderModelOnly",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors` is not available in this ComfyUI (lora_name)",
+          "node": "5959",
+          "severity": "error"
+        },
+        {
+          "class": "LoraLoaderModelOnly",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\h3-realism-people-t2v-i2v-r2v(r34l1sm).safetensors` is not available in this ComfyUI (lora_name)",
+          "node": "6126",
+          "severity": "error"
+        },
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `00027-2672012960.png` is not in ComfyUI's input list (image)",
+          "node": "6147",
+          "severity": "warning"
+        },
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `00027-2672012960.png` is not in ComfyUI's input list (image)",
+          "node": "6148",
+          "severity": "warning"
+        }
+      ],
+      "path": "calliope/MiniMax-H3-Turbo-R2V-Extend-2Refs1Vid_API.json"
+    },
+    {
+      "counts": {
+        "error": 10,
+        "info": 0,
+        "warning": 1
+      },
+      "issues": [
+        {
+          "class": "VAELoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_video_vae_fp16.safetensors` is not available in this ComfyUI (vae_name)",
+          "node": "207",
+          "severity": "error"
+        },
+        {
+          "class": "VAELoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_audio_vae_fp32.safetensors` is not available in this ComfyUI (vae_name)",
+          "node": "208",
+          "severity": "error"
+        },
+        {
+          "class": "UNETLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_fl2va_int8_convrot.safetensors` is not available in this ComfyUI (unet_name)",
+          "node": "215",
+          "severity": "error"
+        },
+        {
+          "class": "CLIPLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\qwen3vl_32b_minimax_h3_int8_convrot.comfy.safetensors` is not available in this ComfyUI (clip_name)",
+          "node": "216",
+          "severity": "error"
+        },
+        {
+          "class": "LoraLoaderModelOnly",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_fl2v_turbo_4step_v1.1_768p_comfyui_bf16.safetensors` is not available in this ComfyUI (lora_name)",
+          "node": "6006",
+          "severity": "error"
+        },
+        {
+          "class": "SolAttnPatch",
+          "fix": "install the custom node pack or pick another workflow",
+          "message": "node class `SolAttnPatch` is not installed in this ComfyUI",
+          "node": "6020",
+          "severity": "error"
+        },
+        {
+          "class": "UNETLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `ltx-2.5\\ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors` is not available in this ComfyUI (unet_name)",
+          "node": "6062:5569",
+          "severity": "error"
+        },
+        {
+          "class": "VAELoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `ltx-2.5\\ltx-2.5-audio-vae-bf16.safetensors` is not available in this ComfyUI (vae_name)",
+          "node": "6062:5570",
+          "severity": "error"
+        }
+      ],
+      "path": "calliope/minimax_h3-Turbo_Image2Video_20260813_API.json"
+    },
+    {
+      "counts": {
+        "error": 10,
+        "info": 0,
+        "warning": 1
+      },
+      "issues": [
+        {
+          "class": "VAELoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_video_vae_fp16.safetensors` is not available in this ComfyUI (vae_name)",
+          "node": "207",
+          "severity": "error"
+        },
+        {
+          "class": "VAELoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_audio_vae_fp32.safetensors` is not available in this ComfyUI (vae_name)",
+          "node": "208",
+          "severity": "error"
+        },
+        {
+          "class": "UNETLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_fl2va_int8_convrot.safetensors` is not available in this ComfyUI (unet_name)",
+          "node": "215",
+          "severity": "error"
+        },
+        {
+          "class": "CLIPLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\qwen3vl_32b_minimax_h3_int8_convrot.comfy.safetensors` is not available in this ComfyUI (clip_name)",
+          "node": "216",
+          "severity": "error"
+        },
+        {
+          "class": "LoraLoaderModelOnly",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_fl2v_turbo_4step_v1.1_768p_comfyui_bf16.safetensors` is not available in this ComfyUI (lora_name)",
+          "node": "6006",
+          "severity": "error"
+        },
+        {
+          "class": "SolAttnPatch",
+          "fix": "install the custom node pack or pick another workflow",
+          "message": "node class `SolAttnPatch` is not installed in this ComfyUI",
+          "node": "6020",
+          "severity": "error"
+        },
+        {
+          "class": "UNETLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `ltx-2.5\\ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors` is not available in this ComfyUI (unet_name)",
+          "node": "6062:5569",
+          "severity": "error"
+        },
+        {
+          "class": "VAELoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `ltx-2.5\\ltx-2.5-audio-vae-bf16.safetensors` is not available in this ComfyUI (vae_name)",
+          "node": "6062:5570",
+          "severity": "error"
+        }
+      ],
+      "path": "calliope/minimax_h3-Turbo_Text2Video_20260813_API.json"
+    },
+    {
+      "counts": {
+        "error": 6,
+        "info": 0,
+        "warning": 2
+      },
+      "issues": [
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `CharSheet_00002_.png` is not in ComfyUI's input list (image)",
+          "node": "148",
+          "severity": "warning"
+        },
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `CharSheet_00005_.png` is not in ComfyUI's input list (image)",
+          "node": "149",
+          "severity": "warning"
+        },
+        {
+          "class": "UNETLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_ref2va_int8_convrot.safetensors` is not available in this ComfyUI (unet_name)",
+          "node": "161",
+          "severity": "error"
+        },
+        {
+          "class": "LoraLoaderModelOnly",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors` is not available in this ComfyUI (lora_name)",
+          "node": "162",
+          "severity": "error"
+        },
+        {
+          "class": "CLIPLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\qwen3vl_32b_minimax_h3_int8_convrot.comfy.safetensors` is not available in this ComfyUI (clip_name)",
+          "node": "163",
+          "severity": "error"
+        },
+        {
+          "class": "VAELoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_video_vae_fp16.safetensors` is not available in this ComfyUI (vae_name)",
+          "node": "164",
+          "severity": "error"
+        },
+        {
+          "class": "VAELoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_audio_vae_fp32.safetensors` is not available in this ComfyUI (vae_name)",
+          "node": "165",
+          "severity": "error"
+        },
+        {
+          "class": "LoraLoaderModelOnly",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\h3-realism-people-t2v-i2v-r2v(r34l1sm).safetensors` is not available in this ComfyUI (lora_name)",
+          "node": "180",
+          "severity": "error"
+        }
+      ],
+      "path": "calliope/video_minimax_h3_r2v_2ref_API.json"
+    },
+    {
+      "counts": {
+        "error": 6,
+        "info": 0,
+        "warning": 3
+      },
+      "issues": [
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `CharSheet_00002_.png` is not in ComfyUI's input list (image)",
+          "node": "148",
+          "severity": "warning"
+        },
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `CharSheet_00005_.png` is not in ComfyUI's input list (image)",
+          "node": "149",
+          "severity": "warning"
+        },
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `CharSheet_00008_.png` is not in ComfyUI's input list (image)",
+          "node": "155",
+          "severity": "warning"
+        },
+        {
+          "class": "UNETLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_ref2va_int8_convrot.safetensors` is not available in this ComfyUI (unet_name)",
+          "node": "161",
+          "severity": "error"
+        },
+        {
+          "class": "LoraLoaderModelOnly",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors` is not available in this ComfyUI (lora_name)",
+          "node": "162",
+          "severity": "error"
+        },
+        {
+          "class": "CLIPLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\qwen3vl_32b_minimax_h3_int8_convrot.comfy.safetensors` is not available in this ComfyUI (clip_name)",
+          "node": "163",
+          "severity": "error"
+        },
+        {
+          "class": "VAELoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_video_vae_fp16.safetensors` is not available in this ComfyUI (vae_name)",
+          "node": "164",
+          "severity": "error"
+        },
+        {
+          "class": "VAELoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_audio_vae_fp32.safetensors` is not available in this ComfyUI (vae_name)",
+          "node": "165",
+          "severity": "error"
+        }
+      ],
+      "path": "calliope/video_minimax_h3_r2v_3ref_API.json"
+    },
+    {
+      "counts": {
+        "error": 6,
+        "info": 0,
+        "warning": 4
+      },
+      "issues": [
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `CharSheet_00002_.png` is not in ComfyUI's input list (image)",
+          "node": "148",
+          "severity": "warning"
+        },
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `CharSheet_00005_.png` is not in ComfyUI's input list (image)",
+          "node": "149",
+          "severity": "warning"
+        },
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `CharSheet_00008_.png` is not in ComfyUI's input list (image)",
+          "node": "155",
+          "severity": "warning"
+        },
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `CharSheet_00003_.png` is not in ComfyUI's input list (image)",
+          "node": "156",
+          "severity": "warning"
+        },
+        {
+          "class": "UNETLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_ref2va_int8_convrot.safetensors` is not available in this ComfyUI (unet_name)",
+          "node": "161",
+          "severity": "error"
+        },
+        {
+          "class": "LoraLoaderModelOnly",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors` is not available in this ComfyUI (lora_name)",
+          "node": "162",
+          "severity": "error"
+        },
+        {
+          "class": "CLIPLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\qwen3vl_32b_minimax_h3_int8_convrot.comfy.safetensors` is not available in this ComfyUI (clip_name)",
+          "node": "163",
+          "severity": "error"
+        },
+        {
+          "class": "VAELoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_video_vae_fp16.safetensors` is not available in this ComfyUI (vae_name)",
+          "node": "164",
+          "severity": "error"
+        }
+      ],
+      "path": "calliope/video_minimax_h3_r2v_4ref_API.json"
+    },
+    {
+      "counts": {
+        "error": 6,
+        "info": 0,
+        "warning": 5
+      },
+      "issues": [
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `CharSheet_00002_.png` is not in ComfyUI's input list (image)",
+          "node": "148",
+          "severity": "warning"
+        },
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `CharSheet_00005_.png` is not in ComfyUI's input list (image)",
+          "node": "149",
+          "severity": "warning"
+        },
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `CharSheet_00008_.png` is not in ComfyUI's input list (image)",
+          "node": "155",
+          "severity": "warning"
+        },
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `CharSheet_00003_.png` is not in ComfyUI's input list (image)",
+          "node": "156",
+          "severity": "warning"
+        },
+        {
+          "class": "UNETLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_ref2va_int8_convrot.safetensors` is not available in this ComfyUI (unet_name)",
+          "node": "161",
+          "severity": "error"
+        },
+        {
+          "class": "LoraLoaderModelOnly",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors` is not available in this ComfyUI (lora_name)",
+          "node": "162",
+          "severity": "error"
+        },
+        {
+          "class": "CLIPLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\qwen3vl_32b_minimax_h3_int8_convrot.comfy.safetensors` is not available in this ComfyUI (clip_name)",
+          "node": "163",
+          "severity": "error"
+        },
+        {
+          "class": "VAELoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_video_vae_fp16.safetensors` is not available in this ComfyUI (vae_name)",
+          "node": "164",
+          "severity": "error"
+        }
+      ],
+      "path": "calliope/video_minimax_h3_r2v_5ref_API.json"
+    },
+    {
+      "counts": {
+        "error": 6,
+        "info": 0,
+        "warning": 1
+      },
+      "issues": [
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `CharSheet_00002_.png` is not in ComfyUI's input list (image)",
+          "node": "148",
+          "severity": "warning"
+        },
+        {
+          "class": "UNETLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_ref2va_int8_convrot.safetensors` is not available in this ComfyUI (unet_name)",
+          "node": "161",
+          "severity": "error"
+        },
+        {
+          "class": "LoraLoaderModelOnly",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors` is not available in this ComfyUI (lora_name)",
+          "node": "162",
+          "severity": "error"
+        },
+        {
+          "class": "CLIPLoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\qwen3vl_32b_minimax_h3_int8_convrot.comfy.safetensors` is not available in this ComfyUI (clip_name)",
+          "node": "163",
+          "severity": "error"
+        },
+        {
+          "class": "VAELoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_video_vae_fp16.safetensors` is not available in this ComfyUI (vae_name)",
+          "node": "164",
+          "severity": "error"
+        },
+        {
+          "class": "VAELoader",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\minimax_h3_audio_vae_fp32.safetensors` is not available in this ComfyUI (vae_name)",
+          "node": "165",
+          "severity": "error"
+        },
+        {
+          "class": "LoraLoaderModelOnly",
+          "fix": "choose one that exists or install it; nothing is downloaded automatically",
+          "message": "model file `minimax-h3\\h3-realism-people-t2v-i2v-r2v(r34l1sm).safetensors` is not available in this ComfyUI (lora_name)",
+          "node": "180",
+          "severity": "error"
+        }
+      ],
+      "path": "calliope/video_minimax_h3_r2v_API.json"
+    },
+    {
+      "counts": {
+        "error": 0,
+        "info": 0,
+        "warning": 1
+      },
+      "issues": [
+        {
+          "class": "VHS_LoadVideoFFmpeg",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `scent of woman.mp4` is not in ComfyUI's input list (video)",
+          "node": "24",
+          "severity": "warning"
+        }
+      ],
+      "path": "prompter/Minimax-H3_-_V2V_Extend_Any_Video_latent_masking.json"
+    },
+    {
+      "counts": {
+        "error": 0,
+        "info": 0,
+        "warning": 1
+      },
+      "issues": [
+        {
+          "class": "VHS_LoadVideo",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `GTA_6_trailer_di_lancio_4K_46.mp4` is not in ComfyUI's input list (video)",
+          "node": "144",
+          "severity": "warning"
+        }
+      ],
+      "path": "prompter/minimax ref all V2V.json"
+    },
+    {
+      "counts": {
+        "error": 1,
+        "info": 0,
+        "warning": 2
+      },
+      "issues": [
+        {
+          "class": "FastUnsharpSharpen",
+          "fix": "install the custom node pack or pick another workflow",
+          "message": "node class `FastUnsharpSharpen` is not installed in this ComfyUI",
+          "node": "104",
+          "severity": "error"
+        },
+        {
+          "class": "LoadImage",
+          "fix": "the panel supplies its own file when generating",
+          "message": "reference file `20251009_215917_537080_divingIllustriousReal_v40VAE_838516971_1440x2560.png` is not in ComfyUI's input list (image)",
+          "node": "106",
+          "severity": "warning"
+        },
+        {
+          "class": "CLIPTextEncode",
+          "fix": "write a prompt (the panels fill it) or pick another workflow",
+          "message": "prompt slot `text` is empty",
+          "node": "6",
+          "severity": "warning"
+        }
+      ],
+      "path": "regista/video/Wan2.2-Remix-comfy-i2v-workflow.json"
+    }
+  ]
+}

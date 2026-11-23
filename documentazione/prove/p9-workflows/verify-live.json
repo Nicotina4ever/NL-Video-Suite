@@ -1,0 +1,412 @@
+{
+  "date": "2026-11-23 04:03:39",
+  "comfyui": null,
+  "class_count": 5991,
+  "workflows": [
+    {
+      "path": "calliope\\Krea2_t2i_20260818_API.json",
+      "classes": 17,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "calliope\\krea2_T2I_CharSheetV1_API.json",
+      "classes": 22,
+      "missing": [],
+      "model_issues": [
+        "Krea-2-Turbo.safetensors [UNETLoader.unet_name]",
+        "qwen3vl_4b_fp8_scaled.safetensors [CLIPLoader.clip_name]",
+        "qwen_image_vae.safetensors [VAELoader.vae_name]",
+        "Krea-2-Turbo.safetensors [UNETLoader.unet_name]",
+        "qwen3vl_4b_fp8_scaled.safetensors [CLIPLoader.clip_name]",
+        "qwen_image_vae.safetensors [VAELoader.vae_name]",
+        "krea2\\Krea2-realism-V2.safetensors [LoraLoaderModelOnly.lora_name]"
+      ],
+      "ref_issues": []
+    },
+    {
+      "path": "calliope\\minimax_h3-Turbo_Image2Video_20260813_API.json",
+      "classes": 45,
+      "missing": [
+        "SolAttnPatch"
+      ],
+      "model_issues": [
+        "minimax-h3\\minimax_h3_video_vae_fp16.safetensors [VAELoader.vae_name]",
+        "minimax-h3\\minimax_h3_audio_vae_fp32.safetensors [VAELoader.vae_name]",
+        "minimax-h3\\minimax_h3_fl2va_int8_convrot.safetensors [UNETLoader.unet_name]",
+        "minimax-h3\\qwen3vl_32b_minimax_h3_int8_convrot.comfy.safetensors [CLIPLoader.clip_name]",
+        "minimax-h3\\minimax_h3_fl2v_turbo_4step_v1.1_768p_comfyui_bf16.safetensors [LoraLoaderModelOnly.lora_name]",
+        "ltx-2.5\\ltx-2.5-audio-vae-bf16.safetensors [VAELoader.vae_name]",
+        "ltx-2.5\\ltx-2.5-video-vae-bf16.safetensors [VAELoader.vae_name]",
+        "ltx-2.5\\ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors [UNETLoader.unet_name]",
+        "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors [CLIPLoader.clip_name]"
+      ],
+      "ref_issues": []
+    },
+    {
+      "path": "calliope\\minimax_h3-Turbo_Text2Video_20260813_API.json",
+      "classes": 43,
+      "missing": [
+        "SolAttnPatch"
+      ],
+      "model_issues": [
+        "minimax-h3\\minimax_h3_video_vae_fp16.safetensors [VAELoader.vae_name]",
+        "minimax-h3\\minimax_h3_audio_vae_fp32.safetensors [VAELoader.vae_name]",
+        "minimax-h3\\minimax_h3_fl2va_int8_convrot.safetensors [UNETLoader.unet_name]",
+        "minimax-h3\\qwen3vl_32b_minimax_h3_int8_convrot.comfy.safetensors [CLIPLoader.clip_name]",
+        "minimax-h3\\minimax_h3_fl2v_turbo_4step_v1.1_768p_comfyui_bf16.safetensors [LoraLoaderModelOnly.lora_name]",
+        "ltx-2.5\\ltx-2.5-audio-vae-bf16.safetensors [VAELoader.vae_name]",
+        "ltx-2.5\\ltx-2.5-video-vae-bf16.safetensors [VAELoader.vae_name]",
+        "ltx-2.5\\ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors [UNETLoader.unet_name]",
+        "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors [CLIPLoader.clip_name]"
+      ],
+      "ref_issues": []
+    },
+    {
+      "path": "calliope\\MiniMax-H3-Turbo-R2V-Extend-2Refs1Vid_API.json",
+      "classes": 25,
+      "missing": [
+        "MiniMaxH3VideoExtendPatched",
+        "MiniMaxH3EncodeAVPatched"
+      ],
+      "model_issues": [
+        "minimax-h3\\minimax_h3_video_vae_fp16.safetensors [VAELoader.vae_name]",
+        "minimax-h3\\minimax_h3_audio_vae_fp32.safetensors [VAELoader.vae_name]",
+        "minimax-h3\\minimax_h3_ref2va_int8_convrot.safetensors [UNETLoader.unet_name]",
+        "minimax-h3\\qwen3vl_32b_h3_ultra_uncensored_heretic_int8_convrot.safetensors [CLIPLoader.clip_name]",
+        "minimax-h3\\minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors [LoraLoaderModelOnly.lora_name]",
+        "minimax-h3\\h3-realism-people-t2v-i2v-r2v(r34l1sm).safetensors [LoraLoaderModelOnly.lora_name]"
+      ],
+      "ref_issues": [
+        "00027-2672012960.png [LoadImage.image]",
+        "00027-2672012960.png [LoadImage.image]",
+        "20260410_Static_low_4071_0.mp4 [VHS_LoadVideo.video]"
+      ]
+    },
+    {
+      "path": "calliope\\video_minimax_h3_r2v_2ref_API.json",
+      "classes": 21,
+      "missing": [],
+      "model_issues": [
+        "minimax-h3\\minimax_h3_ref2va_int8_convrot.safetensors [UNETLoader.unet_name]",
+        "minimax-h3\\minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors [LoraLoaderModelOnly.lora_name]",
+        "minimax-h3\\qwen3vl_32b_minimax_h3_int8_convrot.comfy.safetensors [CLIPLoader.clip_name]",
+        "minimax-h3\\minimax_h3_video_vae_fp16.safetensors [VAELoader.vae_name]",
+        "minimax-h3\\minimax_h3_audio_vae_fp32.safetensors [VAELoader.vae_name]",
+        "minimax-h3\\h3-realism-people-t2v-i2v-r2v(r34l1sm).safetensors [LoraLoaderModelOnly.lora_name]"
+      ],
+      "ref_issues": [
+        "CharSheet_00002_.png [LoadImage.image]",
+        "CharSheet_00005_.png [LoadImage.image]"
+      ]
+    },
+    {
+      "path": "calliope\\video_minimax_h3_r2v_3ref_API.json",
+      "classes": 21,
+      "missing": [],
+      "model_issues": [
+        "minimax-h3\\minimax_h3_ref2va_int8_convrot.safetensors [UNETLoader.unet_name]",
+        "minimax-h3\\minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors [LoraLoaderModelOnly.lora_name]",
+        "minimax-h3\\qwen3vl_32b_minimax_h3_int8_convrot.comfy.safetensors [CLIPLoader.clip_name]",
+        "minimax-h3\\minimax_h3_video_vae_fp16.safetensors [VAELoader.vae_name]",
+        "minimax-h3\\minimax_h3_audio_vae_fp32.safetensors [VAELoader.vae_name]",
+        "minimax-h3\\h3-realism-people-t2v-i2v-r2v(r34l1sm).safetensors [LoraLoaderModelOnly.lora_name]"
+      ],
+      "ref_issues": [
+        "CharSheet_00002_.png [LoadImage.image]",
+        "CharSheet_00005_.png [LoadImage.image]",
+        "CharSheet_00008_.png [LoadImage.image]"
+      ]
+    },
+    {
+      "path": "calliope\\video_minimax_h3_r2v_4ref_API.json",
+      "classes": 21,
+      "missing": [],
+      "model_issues": [
+        "minimax-h3\\minimax_h3_ref2va_int8_convrot.safetensors [UNETLoader.unet_name]",
+        "minimax-h3\\minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors [LoraLoaderModelOnly.lora_name]",
+        "minimax-h3\\qwen3vl_32b_minimax_h3_int8_convrot.comfy.safetensors [CLIPLoader.clip_name]",
+        "minimax-h3\\minimax_h3_video_vae_fp16.safetensors [VAELoader.vae_name]",
+        "minimax-h3\\minimax_h3_audio_vae_fp32.safetensors [VAELoader.vae_name]",
+        "minimax-h3\\h3-realism-people-t2v-i2v-r2v(r34l1sm).safetensors [LoraLoaderModelOnly.lora_name]"
+      ],
+      "ref_issues": [
+        "CharSheet_00002_.png [LoadImage.image]",
+        "CharSheet_00005_.png [LoadImage.image]",
+        "CharSheet_00008_.png [LoadImage.image]",
+        "CharSheet_00003_.png [LoadImage.image]"
+      ]
+    },
+    {
+      "path": "calliope\\video_minimax_h3_r2v_5ref_API.json",
+      "classes": 21,
+      "missing": [],
+      "model_issues": [
+        "minimax-h3\\minimax_h3_ref2va_int8_convrot.safetensors [UNETLoader.unet_name]",
+        "minimax-h3\\minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors [LoraLoaderModelOnly.lora_name]",
+        "minimax-h3\\qwen3vl_32b_minimax_h3_int8_convrot.comfy.safetensors [CLIPLoader.clip_name]",
+        "minimax-h3\\minimax_h3_video_vae_fp16.safetensors [VAELoader.vae_name]",
+        "minimax-h3\\minimax_h3_audio_vae_fp32.safetensors [VAELoader.vae_name]",
+        "minimax-h3\\h3-realism-people-t2v-i2v-r2v(r34l1sm).safetensors [LoraLoaderModelOnly.lora_name]"
+      ],
+      "ref_issues": [
+        "CharSheet_00002_.png [LoadImage.image]",
+        "CharSheet_00005_.png [LoadImage.image]",
+        "CharSheet_00008_.png [LoadImage.image]",
+        "CharSheet_00003_.png [LoadImage.image]",
+        "1_0.png [LoadImage.image]"
+      ]
+    },
+    {
+      "path": "calliope\\video_minimax_h3_r2v_API.json",
+      "classes": 21,
+      "missing": [],
+      "model_issues": [
+        "minimax-h3\\minimax_h3_ref2va_int8_convrot.safetensors [UNETLoader.unet_name]",
+        "minimax-h3\\minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors [LoraLoaderModelOnly.lora_name]",
+        "minimax-h3\\qwen3vl_32b_minimax_h3_int8_convrot.comfy.safetensors [CLIPLoader.clip_name]",
+        "minimax-h3\\minimax_h3_video_vae_fp16.safetensors [VAELoader.vae_name]",
+        "minimax-h3\\minimax_h3_audio_vae_fp32.safetensors [VAELoader.vae_name]",
+        "minimax-h3\\h3-realism-people-t2v-i2v-r2v(r34l1sm).safetensors [LoraLoaderModelOnly.lora_name]"
+      ],
+      "ref_issues": [
+        "CharSheet_00002_.png [LoadImage.image]"
+      ]
+    },
+    {
+      "path": "prompter\\apex_h3_character_sheet.json",
+      "classes": 37,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "prompter\\krea2_turbo.json",
+      "classes": 17,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "prompter\\MiniMax Music.json",
+      "classes": 12,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "prompter\\minimax ref all V2V.json",
+      "classes": 21,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": [
+        "GTA_6_trailer_di_lancio_4K_46.mp4 [VHS_LoadVideo.video]"
+      ]
+    },
+    {
+      "path": "prompter\\minimax_h3_video_reference.json",
+      "classes": 23,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "prompter\\Minimax-H3_-_V2V_Extend_Any_Video_latent_masking.json",
+      "classes": 50,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": [
+        "scent of woman.mp4 [VHS_LoadVideoFFmpeg.video]"
+      ]
+    },
+    {
+      "path": "prompter\\qwen_reference.json",
+      "classes": 32,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "prompter\\video_minimax_h3_r2v (2).json",
+      "classes": 22,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "regista\\Character Sheet v5 Reference.json",
+      "classes": 32,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": [
+        "Qwen2511/img_00038_.png [output] [LoadImage.image]"
+      ]
+    },
+    {
+      "path": "regista\\analisi\\analisi_immagini-Var2.json",
+      "classes": 6,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": [
+        "Lanci da Lanciano 01.jpg [LoadImage.image]"
+      ]
+    },
+    {
+      "path": "regista\\analisi\\analisi_immagini.json",
+      "classes": 6,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": [
+        "Lanci da Lanciano 01.jpg [LoadImage.image]"
+      ]
+    },
+    {
+      "path": "regista\\audio\\audio_ace_step1_5_xl_sft.json",
+      "classes": 11,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "regista\\audio\\MiniMax Music.json",
+      "classes": 12,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "regista\\image\\Flux.2 Character Replacer v2.4.json",
+      "classes": 38,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": [
+        "vlcsnap-2026-06-26-01h43m06s763.png [LoadImage.image]"
+      ]
+    },
+    {
+      "path": "regista\\image\\flux2_klein_zit_1bg_2char_workflow (API).json",
+      "classes": 27,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": [
+        "img_upres-2026-05-03 21-21-45-0001.png [LoadImage.image]",
+        "ComfyUI_temp_gkrvy_00004_.png [LoadImage.image]",
+        "ComfyUI_temp_gkrvy_00005_.png [LoadImage.image]"
+      ]
+    },
+    {
+      "path": "regista\\image\\flux2-text2image-Var.json",
+      "classes": 13,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "regista\\image\\image_flux2_text_to_image_9b.json",
+      "classes": 13,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "regista\\image\\image_ideogram4_t2i_fixed.json",
+      "classes": 13,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "regista\\image\\image_ideogram4_t2i_int8.json",
+      "classes": 21,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "regista\\image\\image_krea2_turbo_t2i.json",
+      "classes": 17,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "regista\\image\\image_z_image.json",
+      "classes": 9,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "regista\\image\\z-image-turbo.json",
+      "classes": 10,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "regista\\image_edit\\nanoBanana2_v10_qwen_image_edit_best.json",
+      "classes": 25,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "regista\\image_edit\\Qwen_EDIT_2511.json",
+      "classes": 26,
+      "missing": [],
+      "model_issues": [
+        "qwen-image-edit-2511-Q8_0.gguf [UnetLoaderGGUF.unet_name]"
+      ],
+      "ref_issues": []
+    },
+    {
+      "path": "regista\\image_edit\\qwen_edit_local.json",
+      "classes": 25,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "regista\\image_edit\\z-image-edit-immagini.json",
+      "classes": 16,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": [
+        "image_z_image_turbo_fun_union_controlnet_input_image.png [LoadImage.image]"
+      ]
+    },
+    {
+      "path": "regista\\video\\MiniMax_H3_00022_ 44 (2) 4.json",
+      "classes": 20,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "regista\\video\\MiniMax-H3-Gguff-Lora-Test.json",
+      "classes": 24,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "regista\\video\\MiniMaxH3Gguff_e_Lora_Test.json",
+      "classes": 24,
+      "missing": [],
+      "model_issues": [],
+      "ref_issues": []
+    },
+    {
+      "path": "regista\\video\\Wan2.2-Remix-comfy-i2v-workflow.json",
+      "classes": 13,
+      "missing": [
+        "FastUnsharpSharpen"
+      ],
+      "model_issues": [],
+      "ref_issues": [
+        "20251009_215917_537080_divingIllustriousReal_v40VAE_838516971_1440x2560.png [LoadImage.image]"
+      ]
+    }
+  ]
+}
