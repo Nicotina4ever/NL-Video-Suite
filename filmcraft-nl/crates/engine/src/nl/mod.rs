@@ -418,6 +418,41 @@ fn issue_counts(issues: &[crate::nl::state::WorkflowIssue]) -> Value {
     json!({"error": count("error"), "warning": count("warning"), "info": count("info")})
 }
 
+/// `nl.workflows.capabilities` — the reference slots and LoRA nodes of one workflow, so the
+/// Generate panel knows which reference fields to show and never offers references to a T2V/T2I.
+fn workflows_capabilities(s: &mut Session, p: &Value) -> Result<Value> {
+    let path = p
+        .get("workflow")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|p| !p.is_empty())
+        .ok_or_else(|| bad("nl.workflows.capabilities", "pass `workflow`"))?;
+    let file = models::find(s, path).ok_or_else(|| bad("nl.workflows.capabilities", format!("workflow not found: {path}")))?;
+    let text = std::fs::read_to_string(&file).map_err(|e| bad("nl.workflows.capabilities", format!("{}: {e}", file.display())))?;
+    let workflow: Value = serde_json::from_str(&text).map_err(|e| bad("nl.workflows.capabilities", format!("{}: not JSON: {e}", file.display())))?;
+    let capabilities = models::capabilities(&workflow);
+    let mut loras = Vec::new();
+    for (id, node) in workflow.as_object().into_iter().flat_map(|nodes| nodes.iter()) {
+        let class = node.get("class_type").and_then(Value::as_str).unwrap_or_default();
+        if !class.to_ascii_lowercase().contains("lora") {
+            continue;
+        }
+        loras.push(json!({
+            "node": id,
+            "class": class,
+            "name": node.get("inputs").and_then(|i| i.get("lora_name")).and_then(Value::as_str).unwrap_or_default(),
+        }));
+    }
+    Ok(json!({
+        "path": path,
+        "capabilities": capabilities,
+        "loras": loras,
+        "imageRefs": capabilities["imageRefs"].as_array().map_or(0, Vec::len),
+        "videoInputs": capabilities["videoInputs"].as_array().map_or(0, Vec::len),
+        "audioInputs": capabilities["audioInputs"].as_array().map_or(0, Vec::len),
+    }))
+}
+
 /// `nl.workflows.parameters` — the real widgets of one workflow, resolved from `/object_info`.
 fn workflows_parameters(s: &mut Session, p: &Value) -> Result<Value> {
     let path = p
@@ -592,6 +627,7 @@ pub fn commands() -> Vec<CommandSpec> {
         spec("nl.workflows.verify", "NL Verify ComfyUI API", "{}", workflows_verify),
         spec("nl.workflows.diagnose", "NL Workflow Doctor", r#"{"workflow":str?,"all":bool?,"api":bool?}"#, workflows_diagnose),
         spec("nl.workflows.parameters", "NL Workflow Parameters", r#"{"workflow":str,"api":bool?,"limit":int?}"#, workflows_parameters),
+        spec("nl.workflows.capabilities", "NL Workflow Capabilities", r#"{"workflow":str}"#, workflows_capabilities),
         spec(
             "nl.workflows.presets",
             "NL Workflow Presets",

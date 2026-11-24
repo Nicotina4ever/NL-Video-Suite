@@ -38,6 +38,65 @@ pub struct PendingComfy {
     place: Option<Value>,
 }
 
+const MODEL_KEYS: &[&str] = &["ckpt_name", "unet_name", "lora_name", "vae_name", "clip_name", "text_encoder", "model_name", "control_net_name"];
+
+fn normalize_model_path(value: &str) -> String {
+    value.replace('\\', "/").to_ascii_lowercase()
+}
+
+/// ComfyUI refuses a model name that is not in the list it reports for that node. A workflow
+/// exported on another machine can carry the right filename with the wrong folder case
+/// (`minimax-h3` vs `MiniMaxH3`), so match by full path first and then by basename, ignoring case
+/// and separator. This repairs the copy in memory only; the workflow file is never edited.
+fn repair_model_names(s: &mut Session, workflow: &mut Value) -> Result<usize> {
+    let Some(nodes) = workflow.as_object() else { return Ok(0) };
+    if nodes.values().all(|node| {
+        node.get("inputs")
+            .and_then(Value::as_object)
+            .is_none_or(|inputs| inputs.iter().all(|(key, value)| !MODEL_KEYS.contains(&key.as_str()) || !value.is_string()))
+    }) {
+        return Ok(0);
+    }
+    let url = s.prefs.nl.comfy_url();
+    let info = match s.nl.object_info.clone() {
+        Some(info) => info,
+        None => {
+            let info = crate::nl::http::get_json(&url, "object_info", Duration::from_secs(120)).map_err(|e| bad(format!("ComfyUI {url}: {e}")))?;
+            s.nl.object_info = Some(info.clone());
+            info
+        }
+    };
+    let Some(nodes) = workflow.as_object_mut() else { return Ok(0) };
+    let mut repaired = 0;
+    for node in nodes.values_mut() {
+        let class = node.get("class_type").and_then(Value::as_str).unwrap_or_default().to_string();
+        let Some(required) = info.get(&class).and_then(|class| class.pointer("/input/required")).and_then(Value::as_object) else { continue };
+        let Some(inputs) = node.get_mut("inputs").and_then(Value::as_object_mut) else { continue };
+        for (key, value) in inputs.iter_mut() {
+            if !MODEL_KEYS.contains(&key.as_str()) {
+                continue;
+            }
+            let Value::String(current) = value else { continue };
+            let Some(options) = required.get(key).and_then(Value::as_array).and_then(|spec| spec.first()).and_then(Value::as_array) else { continue };
+            let names: Vec<&str> = options.iter().filter_map(Value::as_str).collect();
+            if names.contains(&current.as_str()) {
+                continue;
+            }
+            let wanted = normalize_model_path(current);
+            let wanted_base = wanted.rsplit('/').next().unwrap_or(&wanted);
+            let candidate = names
+                .iter()
+                .find(|name| normalize_model_path(name) == wanted)
+                .or_else(|| names.iter().find(|name| normalize_model_path(name).rsplit('/').next().is_some_and(|base| base == wanted_base)));
+            if let Some(candidate) = candidate {
+                *current = candidate.to_string();
+                repaired += 1;
+            }
+        }
+    }
+    Ok(repaired)
+}
+
 /// `graphics.generateComfy` — generate media with a local ComfyUI and import it.
 fn generate(s: &mut Session, p: &Value) -> Result<Value> {
     let prompt = p.get("prompt").and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty()).ok_or_else(|| bad("`prompt` is required"))?.to_string();
@@ -75,6 +134,10 @@ fn generate(s: &mut Session, p: &Value) -> Result<Value> {
     // Widget overrides from the parameter panel / queue: they must name an existing node and field,
     // so a typo is refused instead of silently ignored.
     let overridden = apply_overrides(&mut workflow, p.get("overrides"))?;
+    let repaired = repair_model_names(s, &mut workflow)?;
+    if repaired > 0 {
+        s.toast(format!("ComfyUI: repaired {repaired} model name(s) to the names this ComfyUI has"));
+    }
     // Reference files (image/video/audio) are uploaded and named in the workflow's loaders before
     // submitting: a workflow without the input is refused here, not left to fail in ComfyUI.
     let staged = stage_references(&url, p, &mut workflow)?;
@@ -93,6 +156,7 @@ fn generate(s: &mut Session, p: &Value) -> Result<Value> {
             "references": staged,
             "nodes": workflow.as_object().map_or(0, serde_json::Map::len),
             "overridden": overridden,
+            "modelNamesRepaired": repaired,
             "submitted": false,
         }));
     }
@@ -121,8 +185,18 @@ fn generate(s: &mut Session, p: &Value) -> Result<Value> {
     s.jobs.push(job);
     s.comfy_jobs.push(PendingComfy { job: id, files, epoch: s.document_epoch, story: story_target, place });
     if wait {
+        s.nl.results.remove("comfy.last");
         run();
         poll(s);
+        if !s.nl.results.contains_key("comfy.last") {
+            let error = s
+                .jobs
+                .iter()
+                .find(|job| job.id == id)
+                .and_then(|job| job.result.lock().ok().and_then(|result| result.clone().and_then(|r| r.err())))
+                .unwrap_or_else(|| "ComfyUI finished without importing a media file".to_string());
+            return Err(bad(format!("ComfyUI: {error}")));
+        }
     } else {
         std::thread::Builder::new()
             .name("filmcraft-comfy".into())
@@ -553,8 +627,18 @@ fn generate_cover(s: &mut Session, p: &Value) -> Result<Value> {
     s.jobs.push(job);
     s.comfy_jobs.push(PendingComfy { job: id, files, epoch: s.document_epoch, story: story_target, place });
     if wait {
+        s.nl.results.remove("comfy.last");
         run();
         poll(s);
+        if !s.nl.results.contains_key("comfy.last") {
+            let error = s
+                .jobs
+                .iter()
+                .find(|job| job.id == id)
+                .and_then(|job| job.result.lock().ok().and_then(|result| result.clone().and_then(|r| r.err())))
+                .unwrap_or_else(|| "ComfyUI finished without importing a media file".to_string());
+            return Err(bad(format!("ComfyUI: {error}")));
+        }
     } else {
         std::thread::Builder::new()
             .name("filmcraft-comfy-cover".into())
@@ -659,6 +743,11 @@ fn upload_image(url: &str, path: &Path) -> Result<String> {
 fn stage_references(url: &str, p: &Value, workflow: &mut Value) -> Result<Vec<Value>> {
     let mut staged = Vec::new();
     let mut images: Vec<String> = Vec::new();
+    for role in ["character", "background"] {
+        if let Some(path) = p.get(role).and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty()) {
+            images.push(path.to_string());
+        }
+    }
     if let Some(list) = p.get("images").and_then(Value::as_array) {
         images.extend(list.iter().filter_map(Value::as_str).map(str::trim).filter(|s| !s.is_empty()).map(str::to_string));
     }
@@ -687,18 +776,65 @@ fn stage_references(url: &str, p: &Value, workflow: &mut Value) -> Result<Vec<Va
         staged.push(json!({"role": "image", "files": names, "patched": patched}));
     }
     for role in ["video", "audio"] {
-        let Some(path) = p.get(role).and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty()) else { continue };
-        let file = std::path::Path::new(path);
-        if !file.is_file() {
-            return Err(bad(format!("{role} reference not found: {path}")));
+        let mut files: Vec<String> = Vec::new();
+        let plural = if role == "video" { "videos" } else { "audios" };
+        if let Some(list) = p.get(plural).and_then(Value::as_array) {
+            files.extend(list.iter().filter_map(Value::as_str).map(str::trim).filter(|s| !s.is_empty()).map(str::to_string));
         }
-        let name = upload_file(url, file)?;
-        let patched = patch_ordered_references(workflow, role, std::slice::from_ref(&name));
+        if let Some(path) = p.get(role).and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty()) {
+            files.push(path.to_string());
+        }
+        if files.is_empty() {
+            continue;
+        }
+        let mut names = Vec::new();
+        for path in &files {
+            let file = std::path::Path::new(path);
+            if !file.is_file() {
+                return Err(bad(format!("{role} reference not found: {path}")));
+            }
+            names.push(upload_file(url, file)?);
+        }
+        let patched = patch_ordered_references(workflow, role, &names);
         if patched == 0 {
             let expected = if role == "video" { "LoadVideo or VHS_LoadVideo" } else { "LoadAudio or LoadAudioUI" };
             return Err(bad(format!("the workflow has no {role} input ({expected}): pick a workflow that declares it")));
         }
-        staged.push(json!({"role": role, "files": [name], "patched": patched}));
+        if patched < names.len() {
+            return Err(bad(format!(
+                "the workflow has only {patched} {role} input(s) for {} reference(s): pick a workflow with enough inputs or pass fewer files",
+                names.len()
+            )));
+        }
+        staged.push(json!({"role": role, "files": names, "patched": patched}));
+    }
+    if let Some(loras) = p.get("loras").and_then(Value::as_array) {
+        let mut changed = Vec::new();
+        for lora in loras {
+            let Some(name) = lora.get("name").and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty()) else { continue };
+            let strength = lora.get("strength").and_then(Value::as_f64).unwrap_or(1.0);
+            let wanted_node = lora.get("node").and_then(Value::as_str);
+            let Some(nodes) = workflow.as_object_mut() else { break };
+            let target = nodes.iter_mut().find(|(id, node)| {
+                let class = node.get("class_type").and_then(Value::as_str).unwrap_or_default().to_ascii_lowercase();
+                class.contains("lora") && wanted_node.is_none_or(|wanted| wanted == *id)
+            });
+            let Some((id, node)) = target else {
+                return Err(bad(format!("no LoRA node in this workflow for `{name}`: pick a workflow with LoraLoader or set the widget override")));
+            };
+            let inputs = node.get_mut("inputs").and_then(Value::as_object_mut).ok_or_else(|| bad("the LoRA node has no inputs"))?;
+            inputs.insert("lora_name".into(), json!(name));
+            if inputs.contains_key("strength_model") {
+                inputs.insert("strength_model".into(), json!(strength));
+            }
+            if inputs.contains_key("strength_clip") {
+                inputs.insert("strength_clip".into(), json!(strength));
+            }
+            changed.push(json!({"node": id, "name": name, "strength": strength}));
+        }
+        if !changed.is_empty() {
+            staged.push(json!({"role": "lora", "items": changed}));
+        }
     }
     Ok(staged)
 }
@@ -981,7 +1117,7 @@ pub(crate) fn commands() -> Vec<crate::CommandSpec> {
             label: "Generate with ComfyUI…",
             menu: &["Graphics and Titles"],
             shortcut: None,
-            params: r#"{"prompt":str,"workflow":str?,"negative":str?,"lyrics":str?,"seed":n?,"width":n?,"height":n?,"resolutionMode":"image|video"?,"imageScale":f?,"videoScale":"2/3|1/2|1/3"?,"image":str?,"images":[str]?,"video":str?,"audio":str?,"overrides":[{"node":str,"field":str,"value":any}]?,"dryRun":bool?,"url":str?,"wait":bool?,"timeoutSeconds":n?}"#,
+            params: r#"{"prompt":str,"workflow":str?,"negative":str?,"lyrics":str?,"seed":n?,"width":n?,"height":n?,"resolutionMode":"image|video"?,"imageScale":f?,"videoScale":"2/3|1/2|1/3"?,"character":str?,"background":str?,"image":str?,"images":[str]?,"video":str?,"videos":[str]?,"audio":str?,"audios":[str]?,"loras":[{"node":str?,"name":str,"strength":f?}]?,"overrides":[{"node":str,"field":str,"value":any}]?,"dryRun":bool?,"url":str?,"wait":bool?,"timeoutSeconds":n?}"#,
             enabled: crate::commands::always,
             run: generate,
             journal: false,

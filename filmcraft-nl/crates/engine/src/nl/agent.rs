@@ -16,6 +16,8 @@ use serde_json::{Value, json};
 use crate::commands::{CommandSpec, always, bad};
 use crate::{EngineError, Result, Session};
 
+use filmcraft_project::{BinEntry, ItemId, ItemKind, MediaRef};
+
 const MAX_ENTRIES: usize = 24;
 const MAX_TITLE: usize = 160;
 const MAX_TEXT: usize = 4000;
@@ -424,6 +426,20 @@ fn place_plan(s: &mut Session, plan: &mut Value, start: Tick) -> Result<usize> {
             .and_then(|items| items.first())
             .and_then(Value::as_u64)
             .ok_or_else(|| bad_cmd("nl.agent.sketch", "the placeholder image was not imported"))?;
+        // The placeholder carries its own details: later passes and the Properties panel can see
+        // what this object has to become without reading the sidecar plan.
+        let details = entry.clone();
+        let _ = s.edit("NL Placeholder Details", |project, _| {
+            if let Some(project_item) = project.item_mut(ItemId(item)) {
+                project_item.metadata.insert("nl.role".into(), "agent-placeholder".into());
+                project_item.metadata.insert("nl.title".into(), title.to_string());
+                project_item.metadata.insert("nl.prompt".into(), details["prompt"].as_str().unwrap_or("").to_string());
+                project_item.metadata.insert("nl.workflow".into(), details["workflow"].as_str().unwrap_or("").to_string());
+                project_item.metadata.insert("nl.quality".into(), details["workflowQuality"].as_str().unwrap_or("").to_string());
+                project_item.metadata.insert("nl.kind".into(), details["kind"].as_str().unwrap_or("image").to_string());
+            }
+            Ok(())
+        });
         let name = format!("NL · {title}");
         let _ = s.execute("clip.rename", json!({"item": item, "name": name}));
         let placed_result = s.execute(
@@ -909,6 +925,21 @@ fn chat(s: &mut Session, p: &Value) -> Result<Value> {
     }))
 }
 
+/// `nl.agent.prompt` — edit one object's prompt before it goes to ComfyUI.
+fn prompt_set(s: &mut Session, p: &Value) -> Result<Value> {
+    let id = p.get("id").and_then(Value::as_u64).ok_or_else(|| bad_cmd("nl.agent.prompt", "serve `id`"))?;
+    let prompt = text(p.get("prompt"), MAX_PROMPT);
+    let mut plan = load(s);
+    let entries = plan["entries"].as_array_mut().ok_or_else(|| bad_cmd("nl.agent.prompt", "plan has no entries"))?;
+    let entry =
+        entries.iter_mut().find(|entry| entry["id"].as_u64() == Some(id)).ok_or_else(|| bad_cmd("nl.agent.prompt", format!("no object {id} in the plan")))?;
+    entry["prompt"] = json!(prompt);
+    entry["status"] = json!(if entry["status"] == "generated" { "generated" } else { "ready" });
+    save(s, &plan)?;
+    s.nl.results.insert("agent.plan", plan.clone());
+    Ok(json!({"id": id, "prompt": prompt, "plan": plan}))
+}
+
 /// `nl.agent.place` — put the current plan's missing objects on the timeline.
 fn place(s: &mut Session, p: &Value) -> Result<Value> {
     let mut plan = load(s);
@@ -918,6 +949,351 @@ fn place(s: &mut Session, p: &Value) -> Result<Value> {
     let placed = place_plan(s, &mut plan, start)?;
     save(s, &plan)?;
     Ok(json!({"placed": placed, "plan": plan}))
+}
+
+fn media_path(s: &Session, id: u64) -> Option<String> {
+    let item = s.project.item(ItemId(id))?;
+    let ItemKind::Media(clip) = &item.kind else { return None };
+    let MediaRef::File { path } = &clip.media else { return None };
+    Some(path.clone())
+}
+
+fn find_bin_named(bin: &filmcraft_project::Bin, name: &str) -> Option<u64> {
+    if bin.name == name {
+        return Some(bin.id.0);
+    }
+    for child in &bin.children {
+        if let BinEntry::Bin(sub) = child
+            && let Some(found) = find_bin_named(sub, name)
+        {
+            return Some(found);
+        }
+    }
+    None
+}
+
+fn footage_ai_bin(s: &mut Session) -> Result<u64> {
+    if let Some(id) = find_bin_named(&s.project.root, "Footage_AI") {
+        return Ok(id);
+    }
+    s.edit("New Footage_AI Bin", |project, _| Ok(project.add_bin("Footage_AI", None).0))
+}
+
+fn into_footage_ai(s: &mut Session, item: u64, name: &str) -> Result<u64> {
+    let bin = footage_ai_bin(s)?;
+    s.execute("project.moveToBin", json!({"items": [item], "bin": bin}))?;
+    let _ = s.execute("clip.rename", json!({"item": item, "name": name}));
+    Ok(bin)
+}
+
+/// The last ComfyUI import: its project item and the downloaded file.
+fn last_comfy(s: &Session) -> Option<(u64, String)> {
+    let last = s.nl.results.get("comfy.last")?;
+    Some((last["first"]["item"].as_u64()?, last["first"]["path"].as_str()?.to_string()))
+}
+
+/// Move a generated file into the project and relink the item. The download folder is a cache, not
+/// the project: the project must keep working if that cache is cleaned.
+fn adopt_generated(s: &mut Session, item: u64, source: &str) -> Result<String> {
+    let folder = project_dir(s)?.join("generated");
+    std::fs::create_dir_all(&folder).map_err(|e| bad_cmd("nl.agent", format!("{}: {e}", folder.display())))?;
+    let dest = move_to_project(std::path::Path::new(source), &folder, item)?;
+    s.execute("media.relink", json!({"item": item, "path": dest.to_string_lossy(), "force": true}))?;
+    Ok(dest.to_string_lossy().to_string())
+}
+
+fn generate_asset(s: &mut Session, prompt: &str, workflow: &str, kind: &str, extra: Value) -> Result<Value> {
+    let mut params = json!({"prompt": prompt, "workflow": workflow, "kind": kind, "wait": true});
+    if let Some(extra) = extra.as_object() {
+        for (key, value) in extra {
+            params[key] = value.clone();
+        }
+    }
+    s.execute("graphics.generateComfy", params)?;
+    let (item, source) = last_comfy(s).ok_or_else(|| bad_cmd("nl.agent", "ComfyUI returned no media"))?;
+    let asset = adopt_generated(s, item, &source)?;
+    Ok(json!({"item": item, "asset": asset, "workflow": workflow}))
+}
+
+/// Whether every model name in a workflow exists in this ComfyUI. A workflow that references a
+/// checkpoint/VAE/LoRA the machine does not have is not a candidate for automatic selection.
+fn workflow_models_available(s: &mut Session, path: &str) -> bool {
+    let Some(file) = super::models::find(s, path) else { return false };
+    let Ok(text) = std::fs::read_to_string(file) else { return false };
+    let Ok(workflow) = serde_json::from_str::<Value>(&text) else { return false };
+    let info = match s.nl.object_info.clone() {
+        Some(info) => info,
+        None => {
+            let url = s.prefs.nl.comfy_url();
+            let Ok(info) = super::http::get_json(&url, "object_info", Duration::from_secs(120)) else { return false };
+            s.nl.object_info = Some(info.clone());
+            info
+        }
+    };
+    const MODEL_KEYS: [&str; 8] = ["ckpt_name", "unet_name", "lora_name", "vae_name", "clip_name", "text_encoder", "model_name", "control_net_name"];
+    for node in workflow.as_object().into_iter().flat_map(|nodes| nodes.values()) {
+        let class = node.get("class_type").and_then(Value::as_str).unwrap_or_default();
+        if info.get(class).is_none() {
+            return false;
+        }
+        let Some(required) = info.get(class).and_then(|class| class.pointer("/input/required")).and_then(Value::as_object) else { continue };
+        for (key, value) in node.get("inputs").and_then(Value::as_object).into_iter().flatten() {
+            if !MODEL_KEYS.contains(&key.as_str()) {
+                continue;
+            }
+            let Value::String(current) = value else { continue };
+            let Some(options) = required.get(key).and_then(Value::as_array).and_then(|spec| spec.first()).and_then(Value::as_array) else { continue };
+            let names: Vec<&str> = options.iter().filter_map(Value::as_str).collect();
+            if names.contains(&current.as_str()) {
+                continue;
+            }
+            let wanted = current.replace('\\', "/").to_ascii_lowercase();
+            let wanted_base = wanted.rsplit('/').next().unwrap_or(&wanted);
+            let available = names.iter().any(|name| {
+                let name = name.replace('\\', "/").to_ascii_lowercase();
+                name == wanted || name.rsplit('/').next().is_some_and(|base| base == wanted_base)
+            });
+            if !available {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+/// A text-to-video workflow with an image input; a T2V has none and cannot animate a still.
+fn choose_i2v_workflow(s: &mut Session, quality: &str) -> Option<Value> {
+    let target = quality_index(quality);
+    let list = super::models::workflows(s, "video").ok()?;
+    let mut best: Option<(i32, Value)> = None;
+    for workflow in list {
+        let name = workflow["name"].as_str().unwrap_or("");
+        let path = workflow["path"].as_str().unwrap_or("");
+        let images = workflow["capabilities"]["imageRefs"].as_array().map_or(0, Vec::len);
+        if name.is_empty() || path.is_empty() || images == 0 || workflow.get("error").is_some() {
+            continue;
+        }
+        if !workflow_models_available(s, path) {
+            continue;
+        }
+        let mut score = workflow_score(name, "video", target);
+        if images == 1 {
+            score += 25;
+        }
+        if name.to_ascii_lowercase().contains("r2v") {
+            score += 80;
+        }
+        if name.to_ascii_lowercase().contains("image2video") || name.to_ascii_lowercase().contains("i2v") {
+            score += 20;
+        }
+        let candidate = json!({
+            "path": path,
+            "name": name,
+            "kind": "video",
+            "imageInputs": images,
+            "quality": QUALITY_TIERS[workflow_quality(name)],
+            "score": score,
+            "reason": format!("{name}: i2v con {images} ingresso/i immagine, qualità {}", QUALITY_TIERS[workflow_quality(name)]),
+        });
+        if best.as_ref().is_none_or(|(best_score, _)| score > *best_score) {
+            best = Some((score, candidate));
+        }
+    }
+    best.map(|(_, candidate)| candidate)
+}
+
+/// `nl.agent.characterSheet` — a four-view character sheet, put in Footage_AI for reuse.
+fn character_sheet(s: &mut Session, p: &Value) -> Result<Value> {
+    let name = text(p.get("name"), MAX_TITLE);
+    let description = text(p.get("description").or_else(|| p.get("prompt")), MAX_PROMPT);
+    if description.is_empty() {
+        return Err(bad_cmd("nl.agent.characterSheet", "serve `description` o `prompt` (come è fatto il personaggio)"));
+    }
+    let quality = p.get("quality").and_then(Value::as_str).unwrap_or("alta");
+    let workflow = choose_workflow(s, "image", quality).ok_or_else(|| bad_cmd("nl.agent.characterSheet", "no image workflow for this quality"))?;
+    let path = workflow["path"].as_str().unwrap_or("");
+    let prompt = format!(
+        "Character reference sheet, four views on a clean white background: front full body, side full body, back full body, and close-up headshot. \
+         {description}. Same costume and proportions in every view, sharp focus, professional character design sheet."
+    );
+    let mut result = generate_asset(s, &prompt, path, "image", json!({"resolutionMode": "image"}))?;
+    let item = result["item"].as_u64().ok_or_else(|| bad_cmd("nl.agent.characterSheet", "no item"))?;
+    let label = if name.is_empty() { "Character Sheet".to_string() } else { format!("Character Sheet · {name}") };
+    let bin = into_footage_ai(s, item, &label)?;
+    result["item"] = json!(item);
+    result["bin"] = json!(bin);
+    result["label"] = json!(label);
+    s.nl.results.insert("agent.characterSheet", result.clone());
+    Ok(result)
+}
+
+/// `nl.agent.animate` — a still (Footage_AI item or path) becomes a video with an i2v workflow and
+/// replaces the plan object's placeholder in place.
+fn animate(s: &mut Session, p: &Value) -> Result<Value> {
+    let entry_id = p.get("id").and_then(Value::as_u64);
+    let mut plan = load(s);
+    let entry = entry_id.and_then(|id| plan["entries"].as_array().and_then(|entries| entries.iter().find(|entry| entry["id"].as_u64() == Some(id))).cloned());
+    let prompt = text(p.get("prompt").or_else(|| entry.as_ref().and_then(|entry| entry.get("prompt"))), MAX_PROMPT);
+    if prompt.is_empty() {
+        return Err(bad_cmd("nl.agent.animate", "serve `prompt` o un oggetto del piano con prompt"));
+    }
+    let image = p
+        .get("image")
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .or_else(|| entry.as_ref().and_then(|entry| entry["asset"].as_str()).map(str::to_string))
+        .or_else(|| entry.as_ref().and_then(|entry| entry["generatedItem"].as_u64()).and_then(|item| media_path(s, item)))
+        .or_else(|| p.get("item").and_then(Value::as_u64).and_then(|item| media_path(s, item)))
+        .ok_or_else(|| bad_cmd("nl.agent.animate", "serve `image`, `item` (Footage_AI), o un oggetto con asset generato"))?;
+    let quality = p.get("quality").and_then(Value::as_str).unwrap_or("standard");
+    let workflow = match p.get("workflow").and_then(Value::as_str) {
+        Some(path) => json!({"path": path, "name": path}),
+        None => choose_i2v_workflow(s, quality).ok_or_else(|| bad_cmd("nl.agent.animate", "no image-to-video workflow found"))?,
+    };
+    let path = workflow["path"].as_str().unwrap_or("");
+    let seconds = p
+        .get("seconds")
+        .and_then(Value::as_u64)
+        .or_else(|| entry.as_ref().and_then(|entry| entry["seconds"].as_f64()).map(|seconds| seconds.round() as u64))
+        .unwrap_or(4);
+    if p.get("dryRun").and_then(Value::as_bool).unwrap_or(false) {
+        let dry = s.execute(
+            "graphics.generateComfy",
+            json!({"prompt": prompt, "workflow": path, "kind": "video", "image": image, "seconds": seconds, "dryRun": true}),
+        )?;
+        return Ok(json!({"dryRun": true, "workflow": path, "generated": dry}));
+    }
+    let mut result = generate_asset(s, &prompt, path, "video", json!({"image": image, "seconds": seconds}))?;
+    let item = result["item"].as_u64().ok_or_else(|| bad_cmd("nl.agent.animate", "no item"))?;
+    let mut replaced = false;
+    if let Some(entry) = entry {
+        let id = entry["id"].as_u64().unwrap_or(0);
+        if let Some(clip) = entry["clip"].as_u64() {
+            s.execute("clip.replaceFromBin", json!({"clips": [clip], "item": item, "keepSourceIn": false}))?;
+            let title = entry["title"].as_str().unwrap_or("NL");
+            let _ = s.execute("clip.rename", json!({"clips": [clip], "name": format!("NL · {title}")}));
+            replaced = true;
+        }
+        if let Some(index) = plan["entries"].as_array().and_then(|entries| entries.iter().position(|row| row["id"].as_u64() == Some(id))) {
+            plan["entries"][index]["generatedItem"] = json!(item);
+            plan["entries"][index]["status"] = json!("generated");
+            plan["entries"][index]["asset"] = result["asset"].clone();
+            plan["entries"][index]["workflow"] = json!(path);
+            save(s, &plan)?;
+        }
+    }
+    result["replaced"] = json!(replaced);
+    result["workflow"] = json!(path);
+    s.nl.results.insert("agent.animate", result.clone());
+    Ok(result)
+}
+
+/// `nl.agent.squad` — a small production squad working in order. The roles are selective: a run
+/// with only `prompts` does not touch the story, and `assets`/`video` only queue work for the
+/// ComfyUI queue. The local LLM and ComfyUI never work at the same time: planning is synchronous,
+/// render jobs are submitted later by `run`.
+fn squad(s: &mut Session, p: &Value) -> Result<Value> {
+    let action = p.get("action").and_then(Value::as_str).unwrap_or("plan");
+    let roles: Vec<String> = p
+        .get("roles")
+        .and_then(Value::as_array)
+        .map(|roles| roles.iter().filter_map(Value::as_str).map(str::to_string).collect())
+        .unwrap_or_else(|| vec!["story".into(), "prompts".into()]);
+    if action == "plan" {
+        let brief = text(p.get("brief").or_else(|| p.get("message")), MAX_TEXT);
+        let mode = p.get("mode").and_then(Value::as_str).unwrap_or("story");
+        let media = p.get("media").and_then(Value::as_str).unwrap_or(if mode == "series" { "video" } else { "image" });
+        let quality = p.get("quality").and_then(Value::as_str).unwrap_or("standard");
+        let mut stages = Vec::new();
+        if roles.iter().any(|role| role == "story") {
+            if brief.is_empty() {
+                return Err(bad_cmd("nl.agent.squad", "serve `brief` per lo stadio story"));
+            }
+            let result = chat(
+                s,
+                &json!({"message": brief, "mode": mode, "media": media, "quality": quality, "scenes": p.get("scenes").cloned().unwrap_or(json!(6)), "place": false}),
+            )?;
+            stages.push(json!({"role": "story", "status": "done", "title": result["title"], "entries": result["entries"]}));
+        }
+        if roles.iter().any(|role| role == "script") {
+            let plan = load(s);
+            let shots: usize = plan["entries"].as_array().map_or(0, |entries| entries.iter().filter(|entry| entry.get("shot").is_some()).count());
+            stages.push(json!({"role": "script", "status": "done", "shots": shots, "note": "scene/shot già prodotti dallo story agent"}));
+        }
+        if roles.iter().any(|role| role == "prompts") {
+            let result = prompts(s, &json!({}))?;
+            stages.push(json!({"role": "prompts", "status": "done", "updated": result["updated"]}));
+        }
+        let plan = load(s);
+        if roles.iter().any(|role| role == "assets" || role == "video") {
+            let kinds: Vec<&str> = roles
+                .iter()
+                .filter_map(|role| match role.as_str() {
+                    "assets" => Some("image"),
+                    "video" => Some("video"),
+                    _ => None,
+                })
+                .collect();
+            let queued = plan["entries"]
+                .as_array()
+                .map_or(0, |entries| entries.iter().filter(|entry| kinds.contains(&entry["kind"].as_str().unwrap_or("image"))).count());
+            stages.push(json!({
+                "role": "assets/video",
+                "status": "ready",
+                "queued": queued,
+                "note": "usa action=run per inviare tutto alla coda ComfyUI quando il LLM è a riposo",
+            }));
+        }
+        let mut plan = load(s);
+        plan["stages"] = json!(stages);
+        plan["squadRoles"] = json!(roles);
+        save(s, &plan)?;
+        s.nl.results.insert("agent.plan", plan.clone());
+        return Ok(json!({"action": "plan", "stages": stages, "plan": plan}));
+    }
+    if action == "run" {
+        let mut plan = load(s);
+        let kinds: Vec<&str> = roles
+            .iter()
+            .filter_map(|role| match role.as_str() {
+                "assets" => Some("image"),
+                "video" => Some("video"),
+                _ => None,
+            })
+            .collect();
+        let entries = plan["entries"].as_array().cloned().unwrap_or_default();
+        let mut submitted = Vec::new();
+        for (index, entry) in entries.iter().enumerate() {
+            let kind = entry["kind"].as_str().unwrap_or("image");
+            if !kinds.is_empty() && !kinds.contains(&kind) {
+                continue;
+            }
+            if entry["status"].as_str() == Some("generated") || entry["prompt"].as_str().unwrap_or("").trim().is_empty() {
+                continue;
+            }
+            let workflow = entry["workflow"].as_str().unwrap_or("");
+            if workflow.is_empty() {
+                continue;
+            }
+            let result = s.execute(
+                "graphics.generateComfy",
+                json!({
+                    "prompt": entry["prompt"],
+                    "workflow": workflow,
+                    "kind": kind,
+                    "wait": false,
+                }),
+            )?;
+            let job = result["job"].as_u64().or_else(|| result["id"].as_u64()).unwrap_or(0);
+            plan["entries"][index]["status"] = json!("queued");
+            plan["entries"][index]["job"] = json!(job);
+            submitted.push(json!({"id": entry["id"], "kind": kind, "job": job}));
+        }
+        save(s, &plan)?;
+        return Ok(json!({"action": "run", "submitted": submitted, "plan": plan}));
+    }
+    let plan = load(s);
+    Ok(json!({"action": "status", "stages": plan["stages"], "entries": plan["entries"]}))
 }
 
 pub(crate) fn commands() -> Vec<CommandSpec> {
@@ -950,8 +1326,27 @@ pub(crate) fn commands() -> Vec<CommandSpec> {
         spec("nl.agent.place", "NL Place Agent Plan", r#"{"startSeconds":f?}"#, place),
         spec("nl.agent.add", "NL Add Generation Object", r#"{"title":str?,"prompt":str?,"seconds":f?,"kind":"image|video"?,"startSeconds":f?}"#, add),
         spec("nl.agent.prompts", "NL Fill Object Prompts", r#"{"force":bool?}"#, prompts),
+        spec("nl.agent.prompt", "NL Edit Object Prompt", r#"{"id":int,"prompt":str}"#, prompt_set),
         spec("nl.agent.generate", "NL Generate Timeline Objects", r#"{"all":bool?,"id":int?,"workflow":str?,"dryRun":bool?}"#, generate),
         spec("nl.agent.collect", "NL Collect Project Assets", r#"{"dryRun":bool?}"#, collect),
+        spec(
+            "nl.agent.characterSheet",
+            "NL Character Sheet",
+            r#"{"name":str?,"description":str?,"prompt":str?,"quality":"bozza|standard|alta|massima"?}"#,
+            character_sheet,
+        ),
+        spec(
+            "nl.agent.animate",
+            "NL Animate Still to Video",
+            r#"{"id":int?,"item":id?,"image":str?,"prompt":str?,"workflow":str?,"quality":str?,"seconds":int?,"dryRun":bool?}"#,
+            animate,
+        ),
+        spec(
+            "nl.agent.squad",
+            "NL Production Squad",
+            r#"{"action":"plan|run|status"?,"roles":["story","script","prompts","assets","video"]?,"brief":str?,"mode":"story|series|objects"?,"media":"image|video"?,"quality":str?,"scenes":int?}"#,
+            squad,
+        ),
     ]
 }
 

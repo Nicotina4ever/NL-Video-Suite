@@ -65,11 +65,15 @@ pub const PANEL_COMMANDS: &[(PanelKind, &[&str])] = &[
             "nl.agent.sketch",
             "nl.agent.add",
             "nl.agent.prompts",
+            "nl.agent.prompt",
             "nl.agent.generate",
             "nl.agent.collect",
             "nl.agent.chat",
             "nl.agent.workflows",
             "nl.agent.place",
+            "nl.agent.characterSheet",
+            "nl.agent.animate",
+            "nl.agent.squad",
         ],
     ),
     (
@@ -300,6 +304,301 @@ fn workflow_options(app: &mut FilmcraftApp, ui: &egui::Ui, kind: &str) -> Vec<(S
     list
 }
 
+/// The parameters a Generate click sends. The compact action row is above the long advanced
+/// fields, so the operator can always reach Generate without scrolling a docked panel.
+fn generate_params(d: &GenerateDraft, kind: &str, options: &[(String, String)]) -> Value {
+    let mut params = json!({
+        "prompt": d.prompt.trim(),
+        "seed": d.seed,
+        "resolutionMode": kind,
+        "kind": kind,
+    });
+    if let Some((path, _)) = options.get(d.workflow) {
+        params["workflow"] = json!(path);
+    }
+    if !d.negative.trim().is_empty() {
+        params["negative"] = json!(d.negative.trim());
+    }
+    if !d.overrides.trim().is_empty()
+        && let Ok(overrides) = serde_json::from_str::<Value>(&d.overrides)
+        && overrides.is_array()
+    {
+        params["overrides"] = overrides;
+    }
+    let mut overrides: Vec<Value> = params["overrides"].as_array().cloned().unwrap_or_default();
+    for (key, value) in &d.param_overrides {
+        if let Some((node, field)) = key.split_once('.') {
+            overrides.push(json!({"node": node, "field": field, "value": value}));
+        }
+    }
+    if !overrides.is_empty() {
+        params["overrides"] = json!(overrides);
+    }
+    if !d.character.trim().is_empty() {
+        params["character"] = json!(d.character.trim());
+    }
+    if !d.background.trim().is_empty() {
+        params["background"] = json!(d.background.trim());
+    }
+    let images: Vec<String> = d.ref_images.iter().map(|path| path.trim()).filter(|path| !path.is_empty()).map(str::to_string).collect();
+    if !images.is_empty() {
+        params["images"] = json!(images);
+    }
+    let videos: Vec<String> = d.videos.iter().map(|path| path.trim()).filter(|path| !path.is_empty()).map(str::to_string).collect();
+    if !videos.is_empty() {
+        params["videos"] = json!(videos);
+    }
+    let audios: Vec<String> = d.audios.iter().map(|path| path.trim()).filter(|path| !path.is_empty()).map(str::to_string).collect();
+    if !audios.is_empty() {
+        params["audios"] = json!(audios);
+    }
+    if !d.lora.trim().is_empty() {
+        params["loras"] = json!([{"name": d.lora.trim(), "strength": d.lora_strength.trim().parse::<f64>().unwrap_or(1.0)}]);
+    }
+    params
+}
+
+/// The real widgets of a workflow from ComfyUI's `/object_info`, cached for a few seconds.
+fn workflow_parameters(app: &mut FilmcraftApp, ui: &egui::Ui, path: &str) -> Value {
+    if path.is_empty() {
+        return Value::Null;
+    }
+    let id = egui::Id::unique(("nl-workflow-params", path));
+    let now = ui.input(|i| i.time);
+    if let Some((at, value)) = ui.data(|d| d.get_temp::<(f64, Value)>(id))
+        && now - at < 5.0
+    {
+        return value;
+    }
+    let value = app.session.execute("nl.workflows.parameters", json!({"workflow": path, "api": true})).unwrap_or(Value::Null);
+    ui.data_mut(|d| d.insert_temp(id, (now, value.clone())));
+    value
+}
+
+/// Dropdowns for the workflow's real model/LoRA/sampler widgets, exactly as ComfyUI reports them.
+/// Choosing a value becomes an `overrides` entry, so no JSON has to be typed by hand.
+fn model_parameter_section(app: &mut FilmcraftApp, ui: &mut egui::Ui, workflow: &str, d: &mut GenerateDraft) {
+    let report = workflow_parameters(app, ui, workflow);
+    if report.is_null() {
+        return;
+    }
+    if d.params_workflow != workflow {
+        d.param_overrides.clear();
+        d.params_workflow = workflow.to_string();
+    }
+    let fields = [
+        "unet_name",
+        "ckpt_name",
+        "lora_name",
+        "vae_name",
+        "clip_name",
+        "text_encoder",
+        "model_name",
+        "control_net_name",
+        "sampler_name",
+        "scheduler",
+        "steps",
+        "cfg",
+        "denoise",
+        "weight_dtype",
+        "type",
+    ];
+    let parameters: Vec<Value> = report["parameters"]
+        .as_array()
+        .map(|rows| {
+            rows.iter()
+                .filter(|row| row.get("linked").and_then(Value::as_bool) != Some(true))
+                .filter(|row| row.get("field").and_then(Value::as_str).is_some_and(|field| fields.contains(&field)))
+                .cloned()
+                .collect()
+        })
+        .unwrap_or_default();
+    if parameters.is_empty() {
+        return;
+    }
+    ui.collapsing(format!("Modelli, LoRA e parametri ({})", parameters.len()), |ui| {
+        if button(app, ui, "generate.params_reset", "Ripristina i valori del workflow") {
+            d.param_overrides.clear();
+        }
+        for row in parameters.into_iter().take(14) {
+            let node = row["node"].as_str().unwrap_or_default();
+            let field = row["field"].as_str().unwrap_or_default();
+            let key = format!("{node}.{field}");
+            let current = d.param_overrides.get(&key).cloned().unwrap_or_else(|| row["value"].clone());
+            let label = format!("{} · {field}", row["title"].as_str().unwrap_or(node));
+            match row["kind"].as_str() {
+                Some("choice") => {
+                    let choices: Vec<String> =
+                        row["choices"].as_array().map(|c| c.iter().filter_map(Value::as_str).map(str::to_string).collect()).unwrap_or_default();
+                    let selected = current.as_str().unwrap_or("").to_string();
+                    ui.label(RichText::new(&label).size(10.0).color(app.tokens.text_dim));
+                    let combo = craft_ui::ComboBox::from_id_salt(("nl-param", key.clone()))
+                        .selected_text(selected.clone())
+                        .width(ui.available_width().min(430.0))
+                        .show_ui(ui, |ui| {
+                            for choice in &choices {
+                                if ui.selectable_label(*choice == selected, choice).clicked() {
+                                    d.param_overrides.insert(key.clone(), json!(choice));
+                                }
+                            }
+                        });
+                    app.auto.add(&format!("nl.generate.param.{key}"), combo.response.rect, &label);
+                }
+                Some("int") | Some("float") => {
+                    let mut number = current.as_f64().unwrap_or(0.0);
+                    ui.label(RichText::new(&label).size(10.0).color(app.tokens.text_dim));
+                    let response = ui.add(egui::DragValue::new(&mut number).speed(1.0));
+                    app.auto.add(&format!("nl.generate.param.{key}"), response.rect, &label);
+                    if response.changed() {
+                        d.param_overrides.insert(key.clone(), json!(number));
+                    }
+                }
+                _ => {}
+            }
+        }
+    });
+}
+
+/// Capabilities of the selected workflow: reference slots and LoRA nodes. Cached briefly because
+/// the panel asks on every frame and the file does not change while the picker is open.
+fn workflow_capabilities(app: &mut FilmcraftApp, ui: &egui::Ui, path: &str) -> Value {
+    if path.is_empty() {
+        return Value::Null;
+    }
+    let id = egui::Id::unique(("nl-workflow-caps", path));
+    let now = ui.input(|i| i.time);
+    if let Some((at, value)) = ui.data(|d| d.get_temp::<(f64, Value)>(id))
+        && now - at < 5.0
+    {
+        return value;
+    }
+    let value = app.session.execute("nl.workflows.capabilities", json!({"workflow": path})).unwrap_or(Value::Null);
+    ui.data_mut(|d| d.insert_temp(id, (now, value.clone())));
+    value
+}
+
+/// Keys the native picker writes into the session result map. The map's keys are `'static`, so
+/// each slot has one fixed key; the panel applies it on the next frame.
+const PICK_REF_IMAGE: [&str; 8] =
+    ["refpick.ref0", "refpick.ref1", "refpick.ref2", "refpick.ref3", "refpick.ref4", "refpick.ref5", "refpick.ref6", "refpick.ref7"];
+const PICK_REF_VIDEO: [&str; 3] = ["refpick.video0", "refpick.video1", "refpick.video2"];
+const PICK_REF_AUDIO: [&str; 3] = ["refpick.audio0", "refpick.audio1", "refpick.audio2"];
+
+/// A path field with a native picker. The callback writes the picked path where the next frame can
+/// apply it: a panel writes its draft copy back at the end of the frame, so writing the field from
+/// inside the picker would be overwritten.
+fn reference_row(app: &mut FilmcraftApp, ui: &mut egui::Ui, key: &str, pick_key: &'static str, label: &str, value: &mut String) {
+    field(app, ui, key, label, value);
+    if button(app, ui, &format!("{key}.browse"), "Scegli file…") {
+        app.pick_ui(
+            crate::native_dialogs::FileDialog::open_file(label, &["png", "jpg", "jpeg", "webp", "mp4", "mov", "mkv", "wav", "mp3", "flac"]),
+            move |app, paths| {
+                if let Some(path) = paths.first() {
+                    app.session.nl.results.insert(pick_key, json!(path));
+                }
+            },
+        );
+    }
+}
+
+/// Take one path the picker wrote for `key`, if any.
+fn picked_reference(app: &mut FilmcraftApp, key: &'static str) -> Option<String> {
+    app.session.nl.results.remove(key).and_then(|value| value.as_str().map(str::to_string))
+}
+
+/// The reference fields a workflow really has. A T2V/T2I without loaders shows nothing, so the
+/// panel never asks for a character sheet a text-only workflow cannot use.
+fn reference_section(app: &mut FilmcraftApp, ui: &mut egui::Ui, workflow: &str, d: &mut GenerateDraft) {
+    let caps = workflow_capabilities(app, ui, workflow);
+    if caps.is_null() {
+        return;
+    }
+    let images = caps["imageRefs"].as_array().map_or(0, Vec::len);
+    let videos = caps["videoInputs"].as_array().map_or(0, Vec::len);
+    let audios = caps["audioInputs"].as_array().map_or(0, Vec::len);
+    let loras = caps["loras"].as_array().cloned().unwrap_or_default();
+    let has_refs = images > 0 || videos > 0 || audios > 0;
+    if !has_refs && loras.is_empty() {
+        return;
+    }
+    ui.add_space(4.0);
+    ui.separator();
+    ui.label(RichText::new(if has_refs { "Reference dell'oggetto" } else { "LoRA extra" }).size(12.0).strong());
+    if images > 0 {
+        ui.label(
+            RichText::new(format!(
+                "Il workflow ha {images} ingresso/i immagine; i primi due sono character sheet e background, gli altri reference opzionali."
+            ))
+            .size(10.0)
+            .color(app.tokens.text_faint),
+        );
+        reference_row(app, ui, "generate.character", "refpick.character", "Character sheet (immagine 1)", &mut d.character);
+        if images >= 2 {
+            reference_row(app, ui, "generate.background", "refpick.background", "Background / location (immagine 2)", &mut d.background);
+        }
+        let extra = images.saturating_sub(2);
+        if d.ref_images.len() < extra {
+            d.ref_images.resize(extra, String::new());
+        }
+        for index in 0..extra.min(PICK_REF_IMAGE.len()) {
+            let label = format!("Reference image {}", index + 3);
+            reference_row(app, ui, &format!("generate.ref{index}"), PICK_REF_IMAGE[index], &label, &mut d.ref_images[index]);
+        }
+    }
+    if videos > 0 {
+        if d.videos.len() < videos {
+            d.videos.resize(videos, String::new());
+        }
+        for index in 0..videos.min(PICK_REF_VIDEO.len()) {
+            let label = format!("Video reference {}", index + 1);
+            reference_row(app, ui, &format!("generate.video{index}"), PICK_REF_VIDEO[index], &label, &mut d.videos[index]);
+        }
+    }
+    if audios > 0 {
+        if d.audios.len() < audios {
+            d.audios.resize(audios, String::new());
+        }
+        for index in 0..audios.min(PICK_REF_AUDIO.len()) {
+            let label = format!("Audio reference {}", index + 1);
+            reference_row(app, ui, &format!("generate.audio{index}"), PICK_REF_AUDIO[index], &label, &mut d.audios[index]);
+        }
+    }
+    if !loras.is_empty() {
+        field(app, ui, "generate.lora", "LoRA extra (nome file)", &mut d.lora);
+        field(app, ui, "generate.lora_strength", "LoRA strength", &mut d.lora_strength);
+    }
+    if has_refs {
+        ui.horizontal_wrapped(|ui| {
+            if button(app, ui, "generate.reference_tags", "Aggiungi tag <Picture N>") {
+                let mut tags = Vec::new();
+                let count = usize::from(!d.character.trim().is_empty()) + usize::from(!d.background.trim().is_empty());
+                for index in 0..count {
+                    tags.push(format!("<Picture {}>", index + 1));
+                }
+                for (index, path) in d.ref_images.iter().enumerate() {
+                    if !path.trim().is_empty() {
+                        tags.push(format!("<Picture {}>", index + 3));
+                    }
+                }
+                if !tags.is_empty() {
+                    if !d.prompt.trim().is_empty() {
+                        d.prompt.push(' ');
+                    }
+                    d.prompt.push_str(&tags.join(" "));
+                }
+            }
+            ui.label(RichText::new("MiniMax H3: i tag seguono l'ordine dei file.").size(10.0).color(app.tokens.text_faint));
+        });
+    }
+    if let Some(first) = loras.first() {
+        ui.label(
+            RichText::new(format!("LoRA nel workflow: nodo {} · {}", first["node"].as_str().unwrap_or(""), first["name"].as_str().unwrap_or("(vuoto)")))
+                .size(10.0)
+                .color(app.tokens.text_faint),
+        );
+    }
+}
+
 /// The default workflow index for a kind from the NL preferences, else 0.
 fn default_workflow(options: &[(String, String)], app: &FilmcraftApp, kind: &str) -> usize {
     let nl = &app.session.prefs.nl;
@@ -346,6 +645,15 @@ struct GenerateDraft {
     workflow: usize,
     scale: usize,
     overrides: String,
+    param_overrides: std::collections::BTreeMap<String, Value>,
+    params_workflow: String,
+    character: String,
+    background: String,
+    ref_images: Vec<String>,
+    videos: Vec<String>,
+    audios: Vec<String>,
+    lora: String,
+    lora_strength: String,
 }
 
 pub(super) fn draft<T: Clone + Default + Send + Sync + 'static>(ui: &egui::Ui, id: &str) -> T {
@@ -359,9 +667,44 @@ pub(super) fn save_draft<T: Clone + Send + Sync + 'static>(ui: &egui::Ui, id: &s
 // ---------------------------------------------------------------- panels
 
 fn generate(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    let height = ui.available_height().clamp(160.0, 520.0);
+    egui::ScrollArea::vertical().id_salt("nl-generate-scroll").max_height(height).auto_shrink([false, false]).show(ui, |ui| generate_body(app, ui));
+}
+
+fn generate_body(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     title(app, ui, "NL Generate", "Images from a prompt with the local ComfyUI. The size comes from the open sequence: 1× or 2×, rounded to the model's grid.");
     error_line(app, ui);
     let mut d: GenerateDraft = draft(ui, "nl-generate");
+    if let Some(value) = picked_reference(app, "refpick.character") {
+        d.character = value;
+    }
+    if let Some(value) = picked_reference(app, "refpick.background") {
+        d.background = value;
+    }
+    for index in 0..PICK_REF_IMAGE.len() {
+        if let Some(value) = picked_reference(app, PICK_REF_IMAGE[index]) {
+            if d.ref_images.len() <= index {
+                d.ref_images.resize(index + 1, String::new());
+            }
+            d.ref_images[index] = value;
+        }
+    }
+    for index in 0..PICK_REF_VIDEO.len() {
+        if let Some(value) = picked_reference(app, PICK_REF_VIDEO[index]) {
+            if d.videos.len() <= index {
+                d.videos.resize(index + 1, String::new());
+            }
+            d.videos[index] = value;
+        }
+    }
+    for index in 0..PICK_REF_AUDIO.len() {
+        if let Some(value) = picked_reference(app, PICK_REF_AUDIO[index]) {
+            if d.audios.len() <= index {
+                d.audios.resize(index + 1, String::new());
+            }
+            d.audios[index] = value;
+        }
+    }
     let kinds = [("image", "Image"), ("video", "Video")];
     let mut kind_label = kinds[d.kind.min(kinds.len() - 1)].1.to_string();
     let kind_combo = craft_ui::ComboBox::from_id_salt("nl-generate-kind").selected_text(&kind_label).show_ui(ui, |ui| {
@@ -378,6 +721,9 @@ fn generate(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         d.workflow = default_workflow(&options, app, kind);
     }
     combo(app, ui, "generate.workflow", "Workflow", &mut d.workflow, &options);
+    if let Some((path, _)) = options.get(d.workflow).cloned() {
+        model_parameter_section(app, ui, &path, &mut d);
+    }
     ui.add_space(4.0);
     let mut prompt = d.prompt.clone();
     ui.label(RichText::new("Prompt").size(12.0).color(app.tokens.text_dim));
@@ -433,6 +779,42 @@ fn generate(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
                 }
             }
         });
+    }
+    let top_params = generate_params(&d, kind, &options);
+    ui.horizontal_wrapped(|ui| {
+        if button(app, ui, "generate.run", "Generate") {
+            if d.prompt.trim().is_empty() {
+                app.ui.status = "Write a prompt first.".into();
+            } else {
+                run(app, ui, "graphics.generateComfy", top_params.clone());
+            }
+        }
+        if button(app, ui, "generate.dry_run", "Dry run (no send)") {
+            if d.prompt.trim().is_empty() {
+                app.ui.status = "Write a prompt first.".into();
+            } else {
+                let mut dry = top_params.clone();
+                dry["dryRun"] = json!(true);
+                let ctx = ui.ctx().clone();
+                match crate::menus::invoke(app, &ctx, "graphics.generateComfy", dry) {
+                    Ok(value) => {
+                        ui.data_mut(|data| data.insert_temp(egui::Id::unique("nl-generate-dry"), value));
+                    }
+                    Err(e) => app.ui.status = e,
+                }
+            }
+        }
+        if kind == "video" && button(app, ui, "generate.t2v", "Text → Video (no reference)") {
+            let prompt = d.prompt.trim().to_string();
+            if prompt.is_empty() {
+                app.ui.status = "Write a prompt first.".into();
+            } else {
+                run(app, ui, "nl.generate.text", json!({"prompt": prompt, "seconds": 4, "wait": false}));
+            }
+        }
+    });
+    if let Some((path, _)) = options.get(d.workflow).cloned() {
+        reference_section(app, ui, &path, &mut d);
     }
     ui.add_space(4.0);
     ui.label(RichText::new("Timeline analysis (local vision)").size(12.0).color(app.tokens.text_dim));
@@ -509,58 +891,6 @@ fn generate(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     };
     size_preview(app, ui, kind, scale);
     ui.add_space(6.0);
-    let mut params = json!({
-        "prompt": d.prompt.trim(),
-        "seed": d.seed,
-        "resolutionMode": kind,
-        "kind": kind,
-    });
-    if let Some((path, _)) = options.get(d.workflow) {
-        params["workflow"] = json!(path);
-    }
-    if !d.negative.trim().is_empty() {
-        params["negative"] = json!(d.negative.trim());
-    }
-    if !d.overrides.trim().is_empty() {
-        match serde_json::from_str::<Value>(&d.overrides) {
-            Ok(overrides) if overrides.is_array() => params["overrides"] = overrides,
-            _ => {
-                app.ui.status = "Widget overrides must be a JSON array like [{\"node\":\"1\",\"field\":\"steps\",\"value\":8}]".into();
-            }
-        }
-    }
-    ui.horizontal(|ui| {
-        if button(app, ui, "generate.run", "Generate") {
-            if d.prompt.trim().is_empty() {
-                app.ui.status = "Write a prompt first.".into();
-            } else {
-                run(app, ui, "graphics.generateComfy", params.clone());
-            }
-        }
-        if kind == "video" && button(app, ui, "generate.t2v", "Text → Video (no reference)") {
-            let prompt = d.prompt.trim().to_string();
-            if prompt.is_empty() {
-                app.ui.status = "Write a prompt first.".into();
-            } else {
-                run(app, ui, "nl.generate.text", json!({"prompt": prompt, "seconds": 4, "wait": false}));
-            }
-        }
-        if button(app, ui, "generate.dry_run", "Dry run (no send)") {
-            if d.prompt.trim().is_empty() {
-                app.ui.status = "Write a prompt first.".into();
-            } else {
-                let mut dry = params.clone();
-                dry["dryRun"] = json!(true);
-                let ctx = ui.ctx().clone();
-                match crate::menus::invoke(app, &ctx, "graphics.generateComfy", dry) {
-                    Ok(value) => {
-                        ui.data_mut(|data| data.insert_temp(egui::Id::unique("nl-generate-dry"), value));
-                    }
-                    Err(e) => app.ui.status = e,
-                }
-            }
-        }
-    });
     if let Some(dry) = ui.data(|data| data.get_temp::<Value>(egui::Id::unique("nl-generate-dry"))) {
         let size = dry["size"]
             .as_object()
@@ -887,6 +1217,11 @@ fn home(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
 /// NL Agent: from a subject to a timeline of generation objects, with prompts written by the
 /// local model and generated media replacing the placeholders in place.
 fn agent(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    let height = ui.available_height().clamp(160.0, 520.0);
+    egui::ScrollArea::vertical().id_salt("nl-agent-scroll").max_height(height).auto_shrink([false, false]).show(ui, |ui| agent_body(app, ui));
+}
+
+fn agent_body(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     title(
         app,
         ui,
@@ -903,6 +1238,12 @@ fn agent(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         mode: usize,
         media: usize,
         quality: usize,
+        sheet_name: String,
+        sheet_description: String,
+        squad_story: bool,
+        squad_prompts: bool,
+        squad_assets: bool,
+        squad_video: bool,
     }
     let mut d: AgentDraft = draft(ui, "nl-agent");
     let modes = [("story", "Storia"), ("series", "Serie"), ("objects", "Oggetti")];
@@ -969,6 +1310,87 @@ fn agent(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
             .color(app.tokens.text_faint),
         );
     }
+    ui.collapsing("Squadra di produzione", |ui| {
+        ui.label(RichText::new("Ruoli attivi in questo giro (l'agente attiva solo quelli scelti, in sequenza).").size(10.0).color(app.tokens.text_faint));
+        ui.horizontal_wrapped(|ui| {
+            ui.checkbox(&mut d.squad_story, "Storia");
+            ui.checkbox(&mut d.squad_prompts, "Prompt");
+            ui.checkbox(&mut d.squad_assets, "Asset immagini");
+            ui.checkbox(&mut d.squad_video, "Video i2v");
+        });
+        let mut roles = Vec::new();
+        if d.squad_story {
+            roles.push("story");
+        }
+        if d.squad_prompts {
+            roles.push("prompts");
+        }
+        if d.squad_assets {
+            roles.push("assets");
+        }
+        if d.squad_video {
+            roles.push("video");
+        }
+        let brief = if !d.message.trim().is_empty() { d.message.clone() } else { d.subject.clone() };
+        ui.horizontal_wrapped(|ui| {
+            if button(app, ui, "agent.squad_plan", "Pianifica squadra") && !brief.trim().is_empty() {
+                let scenes = d.scenes.trim().parse::<u64>().unwrap_or(6);
+                run(
+                    app,
+                    ui,
+                    "nl.agent.squad",
+                    json!({
+                        "action": "plan",
+                        "roles": roles,
+                        "brief": brief.trim(),
+                        "mode": mode,
+                        "media": media,
+                        "quality": quality,
+                        "scenes": scenes,
+                    }),
+                );
+            }
+            if button(app, ui, "agent.squad_run", "Esegui coda ComfyUI") {
+                run(app, ui, "nl.agent.squad", json!({"action": "run", "roles": roles}));
+            }
+        });
+        if let Some(plan) = app.session.nl.result("agent.plan").cloned()
+            && let Some(stages) = plan["stages"].as_array()
+        {
+            for stage in stages {
+                ui.label(
+                    RichText::new(format!(
+                        "{} · {} · {}",
+                        stage["role"].as_str().unwrap_or(""),
+                        stage["status"].as_str().unwrap_or(""),
+                        stage["note"].as_str().or_else(|| stage["title"].as_str()).unwrap_or("")
+                    ))
+                    .size(10.0)
+                    .color(app.tokens.text_faint),
+                );
+            }
+        }
+        ui.label(
+            RichText::new("La pianificazione usa il LLM; la coda ComfyUI parte solo quando premi Esegui, così locale LLM e ComfyUI non competono.")
+                .size(10.0)
+                .color(app.tokens.text_faint),
+        );
+    });
+    ui.collapsing("Character sheet in Footage_AI", |ui| {
+        field(app, ui, "agent.sheet_name", "Nome personaggio", &mut d.sheet_name);
+        field(app, ui, "agent.sheet_description", "Descrizione fisica / costume", &mut d.sheet_description);
+        if button(app, ui, "agent.sheet_create", "Genera character sheet") {
+            let description = if d.sheet_description.trim().is_empty() { d.message.clone() } else { d.sheet_description.clone() };
+            run(app, ui, "nl.agent.characterSheet", json!({"name": d.sheet_name.trim(), "description": description.trim(), "quality": quality}));
+        }
+        if let Some(sheet) = app.session.nl.result("agent.characterSheet").cloned() {
+            ui.label(
+                RichText::new(format!("In Footage_AI: item {} · {}", sheet["item"].as_u64().unwrap_or(0), sheet["asset"].as_str().unwrap_or("")))
+                    .size(10.0)
+                    .color(app.tokens.text_faint),
+            );
+        }
+    });
     ui.add_space(6.0);
     ui.separator();
     ui.label(RichText::new("Sketch rapida di oggetti").size(12.0).strong());
@@ -1039,11 +1461,18 @@ fn agent(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
                 ui.label(RichText::new(format!("{title} · {status} · {seconds:.0}s")).size(11.0).strong());
                 ui.label(RichText::new(format!("{workflow} · {}", entry["workflowQuality"].as_str().unwrap_or(""))).size(9.5).color(app.tokens.text_faint));
                 let prompt = entry["prompt"].as_str().unwrap_or("");
-                ui.label(
-                    RichText::new(if prompt.is_empty() { "Prompt vuoto: usa «Compila prompt con AI» o scrivilo nel piano." } else { prompt })
-                        .size(10.0)
-                        .color(app.tokens.text_faint),
-                );
+                let id = entry["id"].as_u64().unwrap_or(0);
+                let mut edited = prompt.to_string();
+                let response = ui.add(egui::TextEdit::multiline(&mut edited).desired_rows(2).desired_width(f32::INFINITY).id_salt(("nl-agent-prompt", id)));
+                app.auto.add(&format!("nl.agent.prompt.edit.{id}"), response.rect, title);
+                let saved = ui.add_enabled(!edited.trim().is_empty(), egui::Button::new("Salva prompt"));
+                app.auto.add(&format!("nl.agent.prompt.save.{id}"), saved.rect, "Salva prompt");
+                if saved.clicked() && edited.trim() != prompt.trim() {
+                    run(app, ui, "nl.agent.prompt", json!({"id": id, "prompt": edited.trim()}));
+                }
+                if entry.get("asset").is_some() && button(app, ui, &format!("agent.animate.{id}"), "Anima in video (i2v)") {
+                    run(app, ui, "nl.agent.animate", json!({"id": id, "seconds": seconds.round() as u64, "quality": quality}));
+                }
             }
         });
     } else {
