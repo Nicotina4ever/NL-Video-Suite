@@ -1,7 +1,30 @@
 # TODO operativo — NL Video Suite
 
-Aggiornato: 23/11/2026. Regola di scheduling: **mai Ollama e ComfyUI insieme**; per Ollama usare
+Aggiornato: 24/11/2026. Regola di scheduling: **mai Ollama e ComfyUI insieme**; per Ollama usare
 un modello piccolo (`lfm2.5:latest` o `granite4.2:3b`), poi scaricarlo prima di un job ComfyUI.
+
+## P19–P23 — chiusura 2.0.0 (24/11/2026)
+
+- [x] **P19 workspace/routing**: `WORKSPACES` 12 con «NL Video Suite», menu Window ▸ Workspaces,
+  pulsante Workspaces, `Alt+Shift+9`, `set_workspace` persistente, `NL_PANELS` (29),
+  `nl::body`, `nl.context`, `panel.placeholder` osservabile.
+- [x] **P19 Home**: NL Home elenca tutti i 28 pannelli (incluso Shot Map) e lo stato di
+  progetto/sequenza/trascrizione/job.
+- [x] **P20 NL Transcript** e pannelli: ASR manager (modelli/provider/device/import/traduzione),
+  Social profili + nomi controlli, Clips AI focus automatico + stabilità/reattività,
+  Longform rough cut, Shot Map stato, Studio riepilogo, Services leggibile.
+- [x] **P20 contratto comandi**: `PANEL_COMMANDS` + test di registro; test runtime 29 pannelli con
+  `nl.context`, 0 placeholder, Home 28 pulsanti.
+- [x] **P21 reframe**: port camera path (`camera-cpu-v3`), keyframe `motion.position`, offset
+  corretto sulla picture dipinta, prova live GTA6 (composed 2/2, legacy 63/63).
+- [x] **P21 repo**: `REFRAME_REPOS.md` (licenze API, algoritmo, integrabilità, decisione).
+- [x] **P22 audit**: `audit.py` sull'exe 2.0.0 → 29 pannelli, 0 placeholder, 0 senza contesto,
+  0 comandi falliti (4 rifiuti attesi), 28 pulsanti Home, 29 screenshot; `audit.json` + `receipt.json`.
+- [x] **P23 test completi**: fmt, clippy engine/UI/CLI, engine 1055+17, UI 374+4+1+818+6+3,
+  CLI 20+23.
+- [x] **P23 release**: `NL Video Suite.exe` 2.0.0 (SHA-256 F37354B1…), CLI, bundle
+  `distribuzione/NLVideoSuite-2.0.0-windows-x64` + zip, smoke audit bundle e fallback reframe.
+- [ ] **P23 push/pulizia**: commit, push GitHub, verifica GitHub, ricevuta spazio e docs finali.
 
 ## Punto di ripresa (leggere prima di tutto)
 

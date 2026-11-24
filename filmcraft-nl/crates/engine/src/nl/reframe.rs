@@ -38,21 +38,86 @@ fn media_path(s: &Session, media: filmcraft_project::ItemId) -> Option<PathBuf> 
     }
 }
 
-/// Ask the suite's OpenCV runtime where the main face is across a few frames. This is our own
-/// detector (Haar cascade shipped with OpenCV): no model download and no tracking dependency.
-fn auto_focus(s: &Session, source: &Path, start: f64, end: f64) -> Option<(f64, f64)> {
+/// The camera trajectory of one candidate, ported from the old NL Video Suite's own
+/// camera-cpu-v3 (`sviluppo/bridge/camera_path.py`). It samples the range every 250 ms with the
+/// OpenCV Haar detector shipped in the suite runtime, detects scene cuts, locks the main face and
+/// smooths the crop with a bounded, critically damped path. No model is downloaded.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct CameraTrack {
+    /// `(seconds from the start of the range, x, y)` points, sorted and deduplicated.
+    pub points: Vec<(f64, f64, f64)>,
+    pub samples: usize,
+    pub scene_cuts: usize,
+    pub coverage: f64,
+    pub maximum_gap_ms: f64,
+    pub shots: u64,
+    pub preferred_fit: String,
+    pub advice: String,
+    pub version: String,
+    pub behavior: String,
+}
+
+impl CameraTrack {
+    fn first_centre(&self) -> Option<(f64, f64)> {
+        self.points.first().map(|(_, x, y)| (*x, *y))
+    }
+
+    fn to_json(&self) -> Value {
+        json!({
+            "tracking": "smooth",
+            "points": self.points.len(),
+            "samples": self.samples,
+            "sceneCuts": self.scene_cuts,
+            "coverage": self.coverage,
+            "maximumGapMs": self.maximum_gap_ms,
+            "shots": self.shots,
+            "preferredFit": self.preferred_fit,
+            "advice": self.advice,
+            "version": self.version,
+            "behavior": self.behavior,
+        })
+    }
+}
+
+fn camera_track(s: &Session, source: &Path, start: f64, end: f64, stability: f64, response: f64, behavior: &str) -> Option<CameraTrack> {
     let root = crate::nl::suite_root()?;
     let python = root.join("runtime").join("python").join(if cfg!(windows) { "python.exe" } else { "python" });
     let ffmpeg = root.join("app").join("tools").join(if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" });
-    if !python.is_file() || !ffmpeg.is_file() {
+    if !python.is_file() {
         return None;
     }
     let dir = crate::nl::media_work_dir(s, &source.to_string_lossy(), "autofocus");
     std::fs::create_dir_all(&dir).ok()?;
-    let mut frames = Vec::new();
-    for index in 0..7 {
-        let at = start + (end - start) * (index as f64 + 0.5) / 7.0;
-        let png = dir.join(format!("focus-{index}.png"));
+    let script = dir.join("reframe_camera.py");
+    std::fs::write(&script, include_str!("reframe_camera.py")).ok()?;
+    let request = dir.join("camera-request.json");
+    let start_ms = (start * 1000.0).round() as i64;
+    let end_ms = (end * 1000.0).round() as i64;
+    let mut payload = json!({
+        "start_ms": start_ms,
+        "end_ms": end_ms,
+        "stability": stability,
+        "response": response,
+        "behavior": behavior,
+    });
+    payload["source"] = json!(source.to_string_lossy());
+    std::fs::write(&request, serde_json::to_vec(&payload).ok()?).ok()?;
+    if let Some(track) = run_camera(&python, &script, &request) {
+        return Some(track);
+    }
+    // OpenCV could not read the video (a build without its FFmpeg backend): extract frames with
+    // the suite's own ffmpeg and run the same detector on them.
+    if !ffmpeg.is_file() {
+        return None;
+    }
+    let frames_dir = dir.join("frames");
+    std::fs::create_dir_all(&frames_dir).ok()?;
+    let mut paths = Vec::new();
+    let mut times = Vec::new();
+    let mut index = 0usize;
+    let mut at = start;
+    while at < end && index < 480 {
+        let png = frames_dir.join(format!("frame-{index:03}.png"));
         let output = Command::new(&ffmpeg)
             .args(["-hide_banner", "-loglevel", "error", "-y", "-ss", &format!("{at:.3}"), "-i"])
             .arg(source)
@@ -61,38 +126,76 @@ fn auto_focus(s: &Session, source: &Path, start: f64, end: f64) -> Option<(f64, 
             .output()
             .ok()?;
         if output.status.success() && png.is_file() {
-            frames.push(png);
+            paths.push(png.to_string_lossy().to_string());
+            times.push((at * 1000.0).round() as i64);
         }
+        index += 1;
+        at += 0.25;
     }
-    if frames.is_empty() {
+    if paths.len() < 2 {
         return None;
     }
-    let script = dir.join("auto-focus.py");
-    let code = r#"
-import cv2, sys
-cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-centres = []
-for path in sys.argv[1:]:
-    image = cv2.imread(path)
-    if image is None:
-        continue
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    faces = cascade.detectMultiScale(gray, 1.1, 5, minSize=(24, 24))
-    for x, y, w, h in faces:
-        centres.append(((x + w / 2) / image.shape[1], (y + h / 2) / image.shape[0]))
-if centres:
-    print(sum(c[0] for c in centres) / len(centres), sum(c[1] for c in centres) / len(centres))
-"#;
-    std::fs::write(&script, code).ok()?;
-    let output = Command::new(python).arg(&script).args(&frames).output().ok()?;
+    let mut payload = json!({
+        "frames": paths,
+        "times_ms": times,
+        "stability": stability,
+        "response": response,
+        "behavior": behavior,
+    });
+    payload["source"] = json!(source.to_string_lossy());
+    std::fs::write(&request, serde_json::to_vec(&payload).ok()?).ok()?;
+    run_camera(&python, &script, &request)
+}
+
+fn run_camera(python: &Path, script: &Path, request: &Path) -> Option<CameraTrack> {
+    let output = Command::new(python).arg(script).arg(request).output().ok()?;
     if !output.status.success() {
         return None;
     }
-    let text = String::from_utf8_lossy(&output.stdout);
-    let mut parts = text.split_whitespace();
-    let cx: f64 = parts.next()?.parse().ok()?;
-    let cy: f64 = parts.next()?.parse().ok()?;
-    (0.0..=1.0).contains(&cx).then_some((cx, cy))
+    let value: Value = serde_json::from_slice(&output.stdout).ok()?;
+    parse_camera_track(&value)
+}
+
+/// Parse the camera script's reply into points relative to the start of the range. Kept separate
+/// so the parsing and the clamping are testable without Python.
+pub(crate) fn parse_camera_track(value: &Value) -> Option<CameraTrack> {
+    let start_ms = value["points"].as_array().and_then(|points| points.first()).and_then(|point| point["source_ms"].as_f64()).unwrap_or(0.0);
+    let mut points: Vec<(f64, f64, f64)> = Vec::new();
+    for point in value["points"].as_array()? {
+        let at = point["source_ms"].as_f64()?;
+        let x = point["x"].as_f64()?;
+        let y = point["y"].as_f64()?;
+        if !at.is_finite() || !x.is_finite() || !y.is_finite() {
+            continue;
+        }
+        let seconds = ((at - start_ms) / 1000.0).max(0.0);
+        let x = x.clamp(0.0, 1.0);
+        let y = y.clamp(0.0, 1.0);
+        if points.last().is_some_and(|(last, lx, ly)| (*last - seconds).abs() < 1e-6 && (*lx - x).abs() < 1e-6 && (*ly - y).abs() < 1e-6) {
+            continue;
+        }
+        points.push((seconds, x, y));
+    }
+    if points.is_empty() {
+        return None;
+    }
+    let samples = value["samples"].as_array().map_or(0, Vec::len);
+    let scene_cuts = value["samples"].as_array().map_or(0, |samples| samples.iter().filter(|sample| sample["cut"].as_bool().unwrap_or(false)).count());
+    let coverage = value["diagnostics"]["coverage"].as_f64().unwrap_or(0.0);
+    let maximum_gap_ms = value["diagnostics"]["maximum_gap_ms"].as_f64().unwrap_or(0.0);
+    let shots = value["diagnostics"]["shots"].as_u64().unwrap_or(0);
+    Some(CameraTrack {
+        points,
+        samples,
+        scene_cuts,
+        coverage,
+        maximum_gap_ms,
+        shots,
+        preferred_fit: value["preferred_fit"].as_str().unwrap_or("cover").to_string(),
+        advice: value["advice"].as_str().unwrap_or("").to_string(),
+        version: value["version"].as_str().unwrap_or("camera-cpu-v3").to_string(),
+        behavior: value["behavior"].as_str().unwrap_or("composed").to_string(),
+    })
 }
 
 fn focus_offset(focus: &str, free_x: f64, free_y: f64) -> (f64, f64) {
@@ -179,13 +282,28 @@ pub(crate) struct ReframeSpec<'a> {
     pub title: &'a str,
     pub target: &'a str,
     pub focus: &'a str,
+    pub tracking: &'a str,
+    pub stability: f64,
+    pub response: f64,
+    pub behavior: &'a str,
     pub subtitles: bool,
     pub words: &'a [Value],
 }
 
+/// The offset that puts a normalized source centre at the centre of the target frame. The crop
+/// travels over the whole painted picture, so the shift is scaled by the painted size, not by the
+/// free margin; it is then clamped to the margin that keeps the picture covering the frame.
+fn centre_offset(centre: (f64, f64), painted_w: f64, painted_h: f64, target_w: f64, target_h: f64) -> (f64, f64) {
+    let free_x = (painted_w - target_w).max(0.0);
+    let free_y = (painted_h - target_h).max(0.0);
+    let dx = ((0.5 - centre.0) * painted_w).clamp(-free_x / 2.0, free_x / 2.0);
+    let dy = ((0.5 - centre.1) * painted_h).clamp(-free_y / 2.0, free_y / 2.0);
+    (dx, dy)
+}
+
 /// Create one new sequence for a candidate.
 pub(crate) fn create_sequence(s: &mut Session, spec: &ReframeSpec<'_>) -> Result<Value> {
-    let ReframeSpec { media, start, end, title, target, focus, subtitles, words } = *spec;
+    let ReframeSpec { media, start, end, title, target, focus, tracking, stability, response, behavior, subtitles, words } = *spec;
     if end <= start {
         return Err(bad_cmd("the candidate range is empty"));
     }
@@ -210,29 +328,73 @@ pub(crate) fn create_sequence(s: &mut Session, spec: &ReframeSpec<'_>) -> Result
     let painted_h = sh as f64 * scale / 100.0;
     let free_x = (painted_w - tw as f64).max(0.0);
     let free_y = (painted_h - th as f64).max(0.0);
-    let mut auto_centre = None;
-    let (dx, dy) = if focus == "auto" {
-        if let Some(source) = media_path(s, media).and_then(|path| auto_focus(s, &path, start, end)) {
-            auto_centre = Some(source);
-            let dx = ((0.5 - source.0) * free_x).clamp(-free_x / 2.0, free_x / 2.0);
-            let dy = ((0.5 - source.1) * free_y).clamp(-free_y / 2.0, free_y / 2.0);
-            (dx, dy)
-        } else {
-            (0.0, 0.0)
+    let mut camera = None;
+    let mut centre = None;
+    let (mut dx, mut dy) = (0.0, 0.0);
+    if focus == "auto" {
+        if let Some(source) = media_path(s, media)
+            && let Some(track) = camera_track(s, &source, start, end, stability, response, behavior)
+        {
+            centre = track.first_centre();
+            if let Some(c) = centre {
+                (dx, dy) = centre_offset(c, painted_w, painted_h, tw as f64, th as f64);
+            }
+            camera = Some(track);
         }
     } else {
-        focus_offset(focus, free_x, free_y)
-    };
+        (dx, dy) = focus_offset(focus, free_x, free_y);
+    }
     s.execute("effects.setParam", json!({"clip": clip, "effect": "motion", "param": "scale", "value": scale}))?;
-    s.execute("effects.setParam", json!({"clip": clip, "effect": "motion", "param": "position", "value": [tw as f64 / 2.0 + dx, th as f64 / 2.0 + dy]}))?;
+    let mut keyframes = 0usize;
+    let smooth = tracking == "smooth";
+    if let Some(track) = camera.as_ref().filter(|track| smooth && track.points.len() > 1) {
+        for (seconds, x, y) in &track.points {
+            let (ox, oy) = centre_offset((*x, *y), painted_w, painted_h, tw as f64, th as f64);
+            s.execute(
+                "effects.setParam",
+                json!({
+                    "clip": clip,
+                    "effect": "motion",
+                    "param": "position",
+                    "value": [tw as f64 / 2.0 + ox, th as f64 / 2.0 + oy],
+                    "keyframe": true,
+                    "time": Tick::from_seconds_f64(*seconds).0,
+                }),
+            )?;
+            keyframes += 1;
+        }
+    } else {
+        s.execute("effects.setParam", json!({"clip": clip, "effect": "motion", "param": "position", "value": [tw as f64 / 2.0 + dx, th as f64 / 2.0 + dy]}))?;
+    }
     let captions = if subtitles { add_captions(s, words, start, end)? } else { json!({"count": 0, "skipped": true}) };
+    let reframe = match camera {
+        Some(track) => {
+            let mut value = track.to_json();
+            value["keyframes"] = json!(keyframes);
+            value["offset"] = json!([dx, dy]);
+            value["faceCentre"] = json!(centre.map(|c| [c.0, c.1]));
+            value["scale"] = json!(scale);
+            value["focus"] = json!(focus);
+            value
+        }
+        None => json!({
+            "tracking": "static",
+            "points": 0,
+            "keyframes": 0,
+            "scale": scale,
+            "focus": focus,
+            "offset": [dx, dy],
+            "faceCentre": Value::Null,
+            "fallback": "camera tracker unavailable",
+        }),
+    };
     Ok(json!({
         "sequence": seq.0,
         "name": title,
         "clip": clip,
         "source": {"width": sw, "height": sh},
         "target": {"width": tw, "height": th},
-        "reframe": {"scale": scale, "focus": focus, "offset": [dx, dy], "faceCentre": auto_centre},
+        "reframe": reframe,
         "startSeconds": start,
         "endSeconds": end,
         "subtitles": captions,
@@ -254,10 +416,21 @@ fn reframe_sequence(s: &mut Session, p: &Value) -> Result<Value> {
         return Err(bad_cmd("`target` must be vertical or horizontal"));
     }
     let focus = p.get("focus").and_then(Value::as_str).unwrap_or("center");
+    let tracking = p.get("tracking").and_then(Value::as_str).unwrap_or("static");
+    if !matches!(tracking, "static" | "smooth") {
+        return Err(bad_cmd("`tracking` must be static or smooth"));
+    }
+    let behavior = p.get("behavior").and_then(Value::as_str).unwrap_or("composed");
+    if !matches!(behavior, "composed" | "legacy") {
+        return Err(bad_cmd("`behavior` must be composed or legacy"));
+    }
+    let stability = p.get("stability").and_then(Value::as_f64).unwrap_or(0.65).clamp(0.0, 1.0);
+    let response = p.get("response").and_then(Value::as_f64).unwrap_or(0.65).clamp(0.0, 1.0);
     let title = p.get("title").and_then(Value::as_str).unwrap_or("Clips AI");
     let subtitles = p.get("subtitles").and_then(Value::as_bool).unwrap_or(false);
     let words = p.get("words").and_then(Value::as_array).cloned().unwrap_or_default();
-    let result = create_sequence(s, &ReframeSpec { media, start, end, title, target, focus, subtitles, words: &words })?;
+    let result =
+        create_sequence(s, &ReframeSpec { media, start, end, title, target, focus, tracking, stability, response, behavior, subtitles, words: &words })?;
     s.nl.results.insert("reframe.last", result.clone());
     Ok(result)
 }
@@ -271,6 +444,16 @@ fn clipping_sequences(s: &mut Session, p: &Value) -> Result<Value> {
     }
     let target = p.get("target").and_then(Value::as_str).unwrap_or("vertical");
     let focus = p.get("focus").and_then(Value::as_str).unwrap_or("center");
+    let tracking = p.get("tracking").and_then(Value::as_str).unwrap_or("static");
+    if !matches!(tracking, "static" | "smooth") {
+        return Err(bad("nl.clipping.sequences", "`tracking` must be static or smooth"));
+    }
+    let behavior = p.get("behavior").and_then(Value::as_str).unwrap_or("composed");
+    if !matches!(behavior, "composed" | "legacy") {
+        return Err(bad("nl.clipping.sequences", "`behavior` must be composed or legacy"));
+    }
+    let stability = p.get("stability").and_then(Value::as_f64).unwrap_or(0.65).clamp(0.0, 1.0);
+    let response = p.get("response").and_then(Value::as_f64).unwrap_or(0.65).clamp(0.0, 1.0);
     let subtitles = p.get("subtitles").and_then(Value::as_bool).unwrap_or(true);
     let words = p.get("words").and_then(Value::as_array).cloned().unwrap_or_default();
     let mut sequences = Vec::new();
@@ -278,7 +461,8 @@ fn clipping_sequences(s: &mut Session, p: &Value) -> Result<Value> {
         let start = item.get("start").and_then(Value::as_f64).unwrap_or(0.0);
         let end = item.get("end").and_then(Value::as_f64).unwrap_or(start + 5.0);
         let title = item.get("title").and_then(Value::as_str).map(str::to_string).unwrap_or_else(|| format!("Clips AI {}", index + 1));
-        match create_sequence(s, &ReframeSpec { media, start, end, title: &title, target, focus, subtitles, words: &words }) {
+        let spec = ReframeSpec { media, start, end, title: &title, target, focus, tracking, stability, response, behavior, subtitles, words: &words };
+        match create_sequence(s, &spec) {
             Ok(value) => sequences.push(value),
             Err(e) => return Err(bad("nl.clipping.sequences", format!("{title}: {e}"))),
         }
@@ -303,13 +487,13 @@ pub(crate) fn commands() -> Vec<crate::CommandSpec> {
         spec(
             "nl.reframe.sequence",
             "NL Reframe Candidate",
-            r#"{"item":id?,"startSeconds":f,"endSeconds":f,"title":str?,"target":"vertical|horizontal"?,"focus":"auto|center|left|right|top|bottom"?,"subtitles":bool?,"words":[obj]?}"#,
+            r#"{"item":id?,"startSeconds":f,"endSeconds":f,"title":str?,"target":"vertical|horizontal"?,"focus":"auto|center|left|right|top|bottom"?,"tracking":"static|smooth"?,"stability":f?,"response":f?,"behavior":"composed|legacy"?,"subtitles":bool?,"words":[obj]?}"#,
             reframe_sequence,
         ),
         spec(
             "nl.clipping.sequences",
             "NL Clips AI → Sequences",
-            r#"{"items":[obj],"item":id?,"target":"vertical|horizontal"?,"focus":"auto|center|left|right|top|bottom"?,"subtitles":bool?,"words":[obj]?}"#,
+            r#"{"items":[obj],"item":id?,"target":"vertical|horizontal"?,"focus":"auto|center|left|right|top|bottom"?,"tracking":"static|smooth"?,"stability":f?,"response":f?,"behavior":"composed|legacy"?,"subtitles":bool?,"words":[obj]?}"#,
             clipping_sequences,
         ),
     ]
@@ -337,5 +521,48 @@ mod tests {
         assert!(focus_offset("left", 200.0, 0.0).0 > 0.0);
         assert!(focus_offset("right", 200.0, 0.0).0 < 0.0);
         assert_eq!(focus_offset("center", 200.0, 100.0), (0.0, 0.0));
+    }
+
+    #[test]
+    fn a_face_centre_becomes_a_bounded_crop_offset() {
+        assert_eq!(centre_offset((0.5, 0.5), 1280.0, 720.0, 640.0, 360.0), (0.0, 0.0));
+        let (dx, dy) = centre_offset((0.4, 0.3), 1280.0, 720.0, 640.0, 360.0);
+        assert!((dx - 128.0).abs() < 1e-9, "{dx}");
+        assert!((dy - 144.0).abs() < 1e-9, "{dy}");
+        // A face near the edge never moves the crop beyond the free range.
+        let (dx, dy) = centre_offset((0.0, 1.0), 1280.0, 720.0, 640.0, 360.0);
+        assert_eq!((dx, dy), (320.0, -180.0));
+    }
+
+    #[test]
+    fn the_camera_reply_is_relative_to_the_range_and_keeps_cuts() {
+        let value = json!({
+            "points": [
+                {"source_ms": 1000.0, "x": 0.4, "y": 0.5},
+                {"source_ms": 1500.0, "x": 0.6, "y": 0.5},
+                {"source_ms": 2000.0, "x": 99.0, "y": -4.0}
+            ],
+            "samples": [{"cut": false}, {"cut": true}],
+            "diagnostics": {"coverage": 0.9, "maximum_gap_ms": 250, "shots": 2},
+            "preferred_fit": "cover",
+            "advice": "ok",
+            "version": "camera-cpu-v3",
+            "behavior": "composed"
+        });
+        let track = parse_camera_track(&value).expect("a track");
+        assert_eq!(track.points.len(), 3);
+        assert!((track.points[0].0 - 0.0).abs() < 1e-9);
+        assert!((track.points[1].0 - 0.5).abs() < 1e-9);
+        assert_eq!(track.points[2].1, 1.0, "x is clamped");
+        assert_eq!(track.points[2].2, 0.0, "y is clamped");
+        assert_eq!(track.scene_cuts, 1);
+        assert_eq!(track.shots, 2);
+        assert_eq!(track.samples, 2);
+    }
+
+    #[test]
+    fn an_empty_camera_reply_is_no_track() {
+        assert!(parse_camera_track(&json!({"points": []})).is_none());
+        assert!(parse_camera_track(&json!({})).is_none());
     }
 }

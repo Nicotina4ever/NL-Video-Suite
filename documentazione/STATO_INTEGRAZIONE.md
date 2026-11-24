@@ -1,7 +1,26 @@
-# NL Video Suite — stato integrazione (22/11/2026)
+# NL Video Suite — stato integrazione (24/11/2026)
 
-Build: `filmcraft-nl/target/release/filmcraft.exe` (release, ~80 MB).
-Avvio: doppio clic, oppure `filmcraft.exe --control 9876` per l’automazione.
+Build: `NL Video Suite.exe` 2.0.0 (release) in radice; bundle in `distribuzione/`.
+Avvio: doppio clic, oppure `NL Video Suite.exe --control 9876` per l’automazione.
+
+## P19–P21 — chiusura della superficie NL (24/11/2026)
+
+- **Workspace NL built-in**: 12 workspace; «NL Video Suite» in Window ▸ Workspaces, nel pulsante
+  Workspaces e con `Alt+Shift+9`. `show_nl_layout()` seleziona e persiste il workspace.
+- **29 pannelli NL** in una lista unica (`NL_PANELS`); `nl::body()` garantisce un corpo per ognuno;
+  `nl.context` mostra progetto, sequenza (risoluzione/fps/playhead), selezione, trascrizione/cue,
+  ASR e ComfyUI; il placeholder generico è osservabile come `panel.placeholder` e l'audit ne
+  pretende l'assenza.
+- **Nuovo NL Transcript**; ASR manager con modelli/provider/device/import/traduzione; Social con
+  profili e controlli corretti; Clips AI con focus automatico, stabilità/reattività e
+  comportamento; Longform con rough cut; Shot Map con stato sequenza; Studio con riepilogo;
+  Services leggibile.
+- **Reframe automatico**: camera path nostra (`camera-cpu-v3`) portata nel motore; keyframe di
+  `motion.position`; offset calcolato sulla picture dipinta. Prova GTA6 0–6 s: composed 2 punti/2
+  keyframe, legacy 63/63, offset −797,33 px.
+- **Verifiche**: test runtime 29 pannelli (contesto, 0 placeholder), Home 28 pulsanti, contratto
+  comandi, clippy engine+UI pulito. Dettagli in `NL_PANELS.md`, `REFRAME_REPOS.md`,
+  `NL_PARITA_2026-11-24.md`, `prove/p19-nl-surface/`, `prove/p19-nl-audit/`.
 
 ## Cosa è integrato e verificato
 

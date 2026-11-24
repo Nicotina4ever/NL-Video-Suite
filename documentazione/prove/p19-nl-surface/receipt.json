@@ -1,0 +1,45 @@
+{
+  "date": "2026-11-24",
+  "phase": "P19 (workspace NL, routing, NL Home e contesto)",
+  "baseline": {
+    "exe": "NL Video Suite.exe 24/11/2026 14:30 (build P18 non committato)",
+    "panels_shown": 28,
+    "placeholders_on_nl_panels": [],
+    "workspace_in_menu": false,
+    "nl_audio_elements": 0,
+    "evidence": "documentazione/prove/p19-nl-surface/baseline.json e before/*.png"
+  },
+  "implemented": {
+    "workspace": "WORKSPACES 12 voci con «NL Video Suite»; menu Window ▸ Workspaces, pulsante Workspaces, Alt+Shift+9; show_nl_layout() passa da set_workspace e persiste il workspace",
+    "layout": "workspace(\"NL Video Suite\") con NL Home e tutti i 29 pannelli NL; test NL_PANELS/layout",
+    "routing": "nl::body() con Option<fn> per ogni pannello; early return is_nl in panels.rs; placeholder osservabile come `panel.placeholder`",
+    "context": "`nl.context` su ogni pannello: progetto, sequenza (W×H @ fps), playhead/durata, selezione, parole/cue, ASR, ComfyUI",
+    "home": "NL Home elenca 28 pannelli (tutti tranne Home) e mostra lo stato della sessione",
+    "tests": [
+      "dock::tests::nl_workspace_is_a_listed_builtin: passed",
+      "dock::tests::every_nl_panel_is_routed_and_lives_in_the_nl_layout: passed",
+      "dock::tests::nl_panels_are_unique_and_all_nl: passed",
+      "panels::nl::tests::every_nl_panel_has_a_body: passed",
+      "panels::nl::tests::home_links_every_nl_panel_once: passed",
+      "workspaces_ui::nl_workspace_is_in_the_menu_and_opens_every_nl_panel: passed",
+      "workspaces_ui::every_nl_panel_renders_context_and_no_placeholder: passed",
+      "workspaces_ui::nl_home_has_a_button_for_every_nl_panel: passed"
+    ]
+  },
+  "after": {
+    "exe": "NL Video Suite.exe 2.0.0 24/11/2026 17:45",
+    "panels": 29,
+    "workspace_listed": true,
+    "workspace_after": "NL Video Suite",
+    "missing_layout": [],
+    "missing_context": [],
+    "placeholders": [],
+    "home_buttons": 28,
+    "screenshots": 29,
+    "audit": "documentazione/prove/p19-nl-audit/audit.json"
+  },
+  "limits": [
+    "Il baseline non ha riprodotto il placeholder sull'exe del 14:30: il routing era già nel binario, mancava la registrazione del workspace. La ricevuta P18 dichiarava il workspace built-in: era falsa.",
+    "Il bundle portabile non include runtime/python: il reframe automatico funziona nell'installazione completa e fa fallback statico dichiarato nel bundle."
+  ]
+}

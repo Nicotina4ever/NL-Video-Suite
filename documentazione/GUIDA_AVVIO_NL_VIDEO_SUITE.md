@@ -1,7 +1,19 @@
-# Come avviare NL Video Suite (versione nuova)
+# Come avviare NL Video Suite (versione nuova, 2.0.0)
 
 Questa è la versione **nuova** (`filmcraft-nl`), diversa dalla suite classica avviata dai vecchi
 `.bat`. Non serve nessun installer per provarla.
+
+## La superficie NL in un colpo d'occhio
+
+- All'avvio scegli **Window ▸ Workspaces ▸ NL Video Suite** (oppure `Alt+Shift+9`, o il pulsante
+  Workspaces nella barra): il layout mette a vista **NL Home** (tutte le funzioni con un clic), i
+  pannelli di creazione, il Program, la timeline e i pannelli di finitura.
+- Ogni pannello NL mostra in alto il progetto, la sequenza aperta (risoluzione/fps/playhead/selection),
+  la trascrizione, il provider ASR e l'endpoint ComfyUI.
+- **NL Transcript** gestisce trascrizione, import SRT/VTT, sottotitoli e traduzioni; **NL Clips AI**
+  ha il reframe automatico con focus volti, stabilità/reattività e comportamento.
+- Il reframe automatico usa il runtime della suite (`runtime/python` + OpenCV); senza runtime il
+  risultato lo dichiara e usa il centro. Il bundle portabile non include `runtime/` né `models/`.
 
 ## Avvio rapido (consigliato)
 

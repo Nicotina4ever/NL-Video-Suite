@@ -1,7 +1,29 @@
 # Handoff — NL Video Suite / FilmCraft
 
-Aggiornato: 23/11/2026. Questo file serve a riprendere il lavoro in un'altra conversazione o
-harness senza perdere stato. Il codice e le prove restano su disco; questo è il riassunto.
+Aggiornato: 24/11/2026 (2.0.0). Questo file serve a riprendere il lavoro in un'altra conversazione
+o harness senza perdere stato. Il codice e le prove restano su disco; questo è il riassunto.
+
+## Ripresa rapida 2.0.0
+
+1. Apri `NL Video Suite.exe` nella radice (oppure il bundle 2.0.0 in `distribuzione/`).
+2. **Window ▸ Workspaces ▸ NL Video Suite** (o `Alt+Shift+9`): NL Home, creazione, Program,
+   timeline e finitura con tutti i 29 pannelli.
+3. Ogni pannello mostra in alto `nl.context` (progetto, sequenza, playhead, selezione,
+   trascrizione, ASR, ComfyUI). Se un pannello NL mostrasse «coming in a later milestone», è una
+   regressione: esegui l'audit (sotto) e confronta `NL_PANELS`.
+4. Reframe: **NL Clips AI → focus Automatico (volti)**, tracking fluido, stabilità/reattività,
+   comportamento composto/legacy; richiede `runtime/python` + OpenCV. Nel bundle senza runtime il
+   risultato dichiara il fallback statico.
+5. Audit ripetibile:
+   ```powershell
+   python documentazione\prove\p19-nl-audit\audit.py --exe "K:\AI\NL_Video_Suite\NL Video Suite.exe"
+   ```
+   Esito atteso: 29 pannelli, workspace nel menu e attivo, 0 senza contesto, 0 placeholder,
+   0 comandi falliti (4 rifiuti attesi), 28 pulsanti Home, 29 screenshot.
+6. Controlli: `cargo fmt --check`, clippy `-D warnings` engine/UI/CLI, `cargo test -p
+   filmcraft-engine`, `cargo test -p filmcraft-ui-egui`, `cargo test -p filmcraft-cli`.
+7. Stato, limiti e gap: `PUNTO_DI_RIPRESA.md`, `STATO_INTEGRAZIONE.md`, `NL_PANELS.md`,
+   `NL_PARITA_2026-11-24.md`, `REFRAME_REPOS.md`.
 
 ## Obiettivo
 

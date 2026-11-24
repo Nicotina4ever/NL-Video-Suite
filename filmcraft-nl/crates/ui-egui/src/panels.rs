@@ -138,6 +138,10 @@ pub fn eta_suffix(job: &serde_json::Value) -> String {
 }
 
 pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, p: PanelKind, rect: Rect) {
+    if p.is_nl() {
+        nl::show(app, ui, rect, p);
+        return;
+    }
     match p {
         PanelKind::Program if slip_monitor::active(app) => slip_monitor::show(app, ui, rect),
         PanelKind::Program if !app.session.state.edit_points.is_empty() => trim_monitor::show(app, ui, rect),
@@ -170,17 +174,13 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, p: PanelKind, rect: Rect)
         PanelKind::EssentialSound => essential_sound::show(app, ui, rect),
         PanelKind::TextToSpeech => tts::show(app, ui, rect),
         PanelKind::ProjectNotes => notes::show(app, ui, rect),
-        PanelKind::NlGenerate
-        | PanelKind::NlMusic
-        | PanelKind::NlAsr
-        | PanelKind::NlClipping
-        | PanelKind::NlSgrossa
-        | PanelKind::NlStory
-        | PanelKind::NlQueue
-        | PanelKind::NlSettings
-        | PanelKind::NlCover
-        | PanelKind::NlWorkflows => nl::show(app, ui, rect, p),
-        other => crate::dock::placeholder(ui, rect, &app.tokens, &tlf!("{panel} — coming in a later milestone", panel = crate::i18n::t(other.title()))),
+        other => {
+            // Keep the generic placeholder observable: the NL audit fails when it appears on an
+            // NL panel, so a routing regression cannot hide behind a text nobody asserts on.
+            let text = tlf!("{panel} — coming in a later milestone", panel = crate::i18n::t(other.title()));
+            app.auto.add("panel.placeholder", rect, &text);
+            crate::dock::placeholder(ui, rect, &app.tokens, &text)
+        }
     }
 }
 

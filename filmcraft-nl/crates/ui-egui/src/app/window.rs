@@ -56,11 +56,10 @@ impl FilmcraftApp {
         }
     }
 
-    /// Open the complete NL surface without registering a new built-in workspace: the Home
-    /// dashboard, creation tools, timeline and finishing panels in one readable dock layout.
+    /// Open the complete NL surface: the Home dashboard, creation tools, timeline and finishing
+    /// panels in one readable dock layout, selected and remembered as the current workspace.
     pub fn show_nl_layout(&mut self) {
-        self.ui.dock = crate::dock::workspace("NL Video Suite");
-        self.ui.workspace = "NL Video Suite".into();
+        self.set_workspace("NL Video Suite");
         self.ui.focused = PanelKind::NlHome;
         self.ui.status = "Layout NL Video Suite attivato.".into();
     }

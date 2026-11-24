@@ -187,6 +187,7 @@ fn save_switch_reset_rename_delete_and_restart() {
             "Editing",
             "Effects",
             "Learning",
+            "NL Video Suite",
             "Quick Edit",
             "Review",
             "Vertical",
@@ -444,4 +445,69 @@ fn the_header_workspace_menu_saves_resets_and_opens_the_dialogs() {
     d.click("header.workspaces.edit");
     assert!(matches!(d.app().ui.workspace_dialog, Some(WorkspaceDialog::Edit { .. })), "Edit Workspaces… opens its dialog");
     let _ = std::fs::remove_dir_all(&data);
+}
+
+/// The NL Video Suite workspace is a built-in workspace: it is listed in Window ▸ Workspaces, it
+/// switches by command id, by slug and by the header menu, and its layout holds every NL panel.
+#[test]
+fn nl_workspace_is_in_the_menu_and_opens_every_nl_panel() {
+    let data = data_dir("nl");
+    let mut d = Driver::launch(&data);
+    let menu = d.workspaces_menu();
+    assert!(menu.iter().any(|(label, _)| label == "NL Video Suite"), "NL workspace missing from the menu: {menu:?}");
+
+    assert_eq!(d.menu("window.workspace.nlvideosuite", json!({}))["workspace"], "NL Video Suite");
+    assert_eq!(d.workspace(), "NL Video Suite");
+    for panel in filmcraft_ui_egui::dock::NL_PANELS {
+        assert!(d.shows(panel), "{} is missing from the NL workspace", panel.title());
+    }
+
+    // The slug is normalized: spaces and case do not matter, as Premiere's workspace names.
+    d.ok("ui.set", json!({"workspace": "nl video suite"}));
+    assert_eq!(d.workspace(), "NL Video Suite");
+
+    // Switching away and back keeps the NL layout.
+    d.menu("window.workspace.editing", json!({}));
+    assert_eq!(d.workspace(), "Editing");
+    d.menu("window.workspace.nlvideosuite", json!({}));
+    assert_eq!(d.workspace(), "NL Video Suite");
+    assert!(d.shows(filmcraft_ui_egui::dock::PanelKind::NlHome));
+}
+
+/// Every NL panel draws the shared `nl.context` line with the open sequence and never the generic
+/// placeholder. This is the runtime half of the panel routing: the compile-time list alone cannot
+/// prove that a panel body does not fall through to `panel.placeholder`.
+#[test]
+fn every_nl_panel_renders_context_and_no_placeholder() {
+    let data = data_dir("nl-panels");
+    let mut d = Driver::launch(&data);
+    d.menu("window.workspace.nlvideosuite", json!({}));
+    for panel in filmcraft_ui_egui::dock::NL_PANELS {
+        d.ok("ui.panel.show", json!({"panel": panel.title()}));
+        d.frames(2);
+        let elements = d.ok("ui.elements", json!({"prefix": "nl."}));
+        let rows = elements.as_array().expect("ui.elements is an array");
+        assert!(rows.iter().any(|element| element["id"] == json!("nl.context")), "{} has no nl.context", panel.title());
+        assert!(!rows.iter().any(|element| element["id"] == json!("panel.placeholder")), "{} still shows the generic placeholder", panel.title());
+    }
+}
+
+/// NL Home is the one panel with every NL function: one button per NL panel except Home itself.
+#[test]
+fn nl_home_has_a_button_for_every_nl_panel() {
+    let data = data_dir("nl-home");
+    let mut d = Driver::launch(&data);
+    d.menu("window.workspace.nlvideosuite", json!({}));
+    d.ok("ui.panel.show", json!({"panel": "NL Home"}));
+    d.frames(2);
+    let elements = d.ok("ui.elements", json!({"prefix": "nl.nlhome."}));
+    let rows = elements.as_array().expect("ui.elements is an array");
+    assert_eq!(rows.len(), filmcraft_ui_egui::dock::NL_PANELS.len() - 1, "buttons: {rows:?}");
+    for panel in filmcraft_ui_egui::dock::NL_PANELS {
+        if panel == filmcraft_ui_egui::dock::PanelKind::NlHome {
+            continue;
+        }
+        let id = format!("nl.nlhome.{}", panel.id());
+        assert!(rows.iter().any(|element| element["id"] == json!(id)), "{} has no Home button", panel.title());
+    }
 }

@@ -32,16 +32,16 @@ Questo produce:
 ## 3. Creare il bundle portabile
 
 ```bash
-./packaging/nl/portable.sh --version 1.1.0 --no-build
+./packaging/nl/portable.sh --version 2.0.0 --no-build
 ```
 
-Risultato in `packaging/nl/out/NLVideoSuite-1.1.0-linux-x86_64/` (o `-macos-arm64`), con app, CLI,
-`workflows/`, README e launcher. Per un archivio: `--version 1.1.0` crea anche il `.tar.gz`.
+Risultato in `packaging/nl/out/NLVideoSuite-2.0.0-linux-x86_64/` (o `-macos-arm64`), con app, CLI,
+`workflows/`, README e launcher. Per un archivio: `--version 2.0.0` crea anche il `.tar.gz`.
 
 ## 4. Verifica automatica (headless)
 
 ```bash
-bash packaging/nl/test-portable.sh --bundle packaging/nl/out/NLVideoSuite-1.1.0-linux-x86_64
+bash packaging/nl/test-portable.sh --bundle packaging/nl/out/NLVideoSuite-2.0.0-linux-x86_64
 # con prova di installazione in una cartella temporanea:
 bash packaging/nl/test-portable.sh --bundle ... --install
 ```
@@ -57,7 +57,7 @@ stampa il comando e le prime righe dell'errore.
 
 ### Linux
 ```bash
-./packaging/nl/install.sh --bundle packaging/nl/out/NLVideoSuite-1.1.0-linux-x86_64
+./packaging/nl/install.sh --bundle packaging/nl/out/NLVideoSuite-2.0.0-linux-x86_64
 # avvio: ~/.local/bin/nl-video-suite
 # disinstallazione:
 ./packaging/nl/install.sh --uninstall
@@ -65,7 +65,7 @@ stampa il comando e le prime righe dell'errore.
 
 ### macOS
 ```bash
-./packaging/nl/install-macos.sh --bundle packaging/nl/out/NLVideoSuite-1.1.0-macos-arm64
+./packaging/nl/install-macos.sh --bundle packaging/nl/out/NLVideoSuite-2.0.0-macos-arm64
 # crea ~/Applications/NL Video Suite.app
 # se l'app è scaricata da internet e Gatekeeper la blocca:
 xattr -dr com.apple.quarantine "$HOME/Applications/NL Video Suite.app"

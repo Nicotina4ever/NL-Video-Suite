@@ -1,0 +1,43 @@
+{
+  "clip": 78,
+  "endSeconds": 6.0,
+  "name": "Clips AI",
+  "reframe": {
+    "advice": "Inseguimento precedente per confronto: preferisci Camera composta per nuovi lavori.",
+    "behavior": "legacy",
+    "coverage": 0.0,
+    "faceCentre": [
+      0.73359375,
+      0.43194444444444446
+    ],
+    "focus": "auto",
+    "keyframes": 63,
+    "maximumGapMs": 0.0,
+    "offset": [
+      -797.3333333333334,
+      0.0
+    ],
+    "points": 63,
+    "preferredFit": "cover",
+    "samples": 24,
+    "scale": 88.88888888888889,
+    "sceneCuts": 0,
+    "shots": 0,
+    "tracking": "smooth",
+    "version": "camera-cpu-v3"
+  },
+  "sequence": 76,
+  "source": {
+    "height": 2160,
+    "width": 3840
+  },
+  "startSeconds": 0.0,
+  "subtitles": {
+    "count": 0,
+    "skipped": true
+  },
+  "target": {
+    "height": 1920,
+    "width": 1080
+  }
+}

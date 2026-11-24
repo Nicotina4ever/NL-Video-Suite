@@ -9,6 +9,7 @@ use serde_json::{Value, json};
 
 use super::nl::{button, draft, error_line, field, run, save_draft, title};
 use crate::FilmcraftApp;
+use crate::dock::PanelKind;
 
 #[derive(Clone, Default)]
 struct SubtitleDraft {
@@ -481,6 +482,14 @@ pub(super) fn audio_panel(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         .size(11.0)
         .color(app.tokens.text_dim),
     );
+    ui.horizontal(|ui| {
+        if button(app, ui, "audio.mixer", "Apri Mixer") {
+            app.show_panel(PanelKind::AudioTrackMixer);
+        }
+        if button(app, ui, "audio.essential", "Apri Essential Sound") {
+            app.show_panel(PanelKind::EssentialSound);
+        }
+    });
     if let Some(first) = selected.first() {
         let mut d: AudioDraft = draft(ui, "nl-audio-draft");
         if d.preset.is_empty() {

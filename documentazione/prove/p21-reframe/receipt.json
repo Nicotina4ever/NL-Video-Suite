@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-24",
+  "phase": "P21 (reframe automatico con camera path della vecchia suite)",
+  "source": "sviluppo/bridge/camera_path.py (camera-cpu-v2/v3), codice nostro della vecchia NL Video Suite",
+  "port": "filmcraft-nl/crates/engine/src/nl/reframe_camera.py, incorporato con include_str! e scritto nella cartella di lavoro",
+  "engine": "filmcraft-nl/crates/engine/src/nl/reframe.rs: CameraTrack, camera_track(), parse_camera_track(), centre_offset(), keyframe motion.position",
+  "algorithm": [
+    "campioni ogni 250 ms con Haar OpenCV del runtime",
+    "scene cut su thumbnail 48x27 + istogramma",
+    "target lock con hysteresis, volti multipli/mancanti, dead-zone",
+    "damping critico con limiti di velocità/accelerazione",
+    "semplificazione adattiva e modalità composed (preferred_fit cover/blur)",
+    "fallback a frame estratti con ffmpeg se cv2.VideoCapture non legge il video",
+    "fallback statico dichiarato se il runtime/OpenCV manca"
+  ],
+  "live": {
+    "exe": "filmcraft-cli debug 2.0.0 (stesso motore della release 2.0.0)",
+    "project": "copia di documentazione/prove/f4-shorts/gta6-shorts.fcproj",
+    "item": 3,
+    "range": "0–6 s",
+    "target": "verticale 1080×1920",
+    "composed": {"points": 2, "keyframes": 2, "offsetX": -797.33, "samples": 24, "coverage": 0.6957, "preferredFit": "blur", "sequence": 70},
+    "legacy": {"points": 63, "keyframes": 63, "offsetX": -797.33, "xRange": [-527.2, -257.3], "sequence": 76},
+    "files": [
+      "documentazione/prove/p21-reframe/composed.json",
+      "documentazione/prove/p21-reframe/legacy.json",
+      "documentazione/prove/p21-reframe/sequence-inspect.json"
+    ]
+  },
+  "fix": {
+    "bug": "centre_offset usava il margine libero invece della picture dipinta: un volto a 0.734 spostava il crop solo di (0.5-0.734)*free_x invece del valore corretto",
+    "fix": "dx = (0.5-x)*painted_w, clamp a ±free_x/2; test a_face_centre_becomes_a_bounded_crop_offset",
+    "verified": "keyframe x da -527,2 a -257,3 px su 1080×1920, clip 78"
+  },
+  "repos": {
+    "file": "documentazione/REFRAME_REPOS.md",
+    "obi19999/smart-video-reframe": "MIT; comportamento YOLO/scene/EMA; nessun codice copiato; README con archivio scaricabile trattato come non fidato",
+    "x-eight/smart-video-reframe": "MIT; scheletro Python incompleto, non utilizzabile come implementazione",
+    "dapaaa07/Cliper-AI": "nessuna licenza (API license=null, README dice MIT ma manca LICENSE); solo specifica funzionale, nessun codice"
+  },
+  "tests": [
+    "nl::reframe::tests (5 test): parsing, clamping, offset, fallback vuoto",
+    "live composed/legacy su GTA6",
+    "cargo clippy -p filmcraft-engine -D warnings: passed"
+  ],
+  "limits": [
+    "Il bundle portabile senza runtime/python fa fallback statico e lo dichiara.",
+    "Il crop non certificato resta cover con avviso; lo sfondo sfocato non è implementato in questa fase."
+  ]
+}

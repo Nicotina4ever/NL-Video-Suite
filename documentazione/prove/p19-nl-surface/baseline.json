@@ -1,0 +1,1700 @@
+{
+  "date": "2026-11-24T16:12:46",
+  "exe": "K:\\AI\\NL_Video_Suite\\NL Video Suite.exe",
+  "exe_mtime": "2026-11-24T14:30:43",
+  "project": "C:\\Users\\Nicola\\AppData\\Local\\Temp\\nl-p19-project-h5m517fp\\gta6-copy.fcproj",
+  "port": 9877,
+  "panels": {
+    "NL Home": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 27,
+      "labels": [
+        "Apri layout NL completo",
+        "NL Generate",
+        "NL Music",
+        "NL Bridge",
+        "NL Story",
+        "NL Cover",
+        "NL Queue",
+        "NL Montage",
+        "NL Rough Cut",
+        "NL Clips AI",
+        "NL Longform",
+        "NL Analyze",
+        "NL Search",
+        "NL Versions",
+        "NL Album",
+        "NL Studio",
+        "NL Subtitles",
+        "NL Titles",
+        "NL Graphics",
+        "NL Audio",
+        "NL Delivery",
+        "NL Social",
+        "NL ASR",
+        "NL Speech",
+        "NL Services",
+        "NL Settings",
+        "NL Workflows"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Home.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlHome"
+    },
+    "NL Generate": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 10,
+      "labels": [
+        "Workflow",
+        "Prompt",
+        "Enhance prompt with AI",
+        "Analyze timeline with vision",
+        "Negative prompt (optional)",
+        "Seed (0 = random)",
+        "Widget overrides JSON (from Show parameters)",
+        "Use workflow overrides",
+        "Generate",
+        "Dry run (no send)"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Generate.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlGenerate"
+    },
+    "NL Music": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 5,
+      "labels": [
+        "Workflow",
+        "Style or subject",
+        "Lyrics",
+        "Seconds",
+        "Generate music"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Music.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlMusic"
+    },
+    "NL Bridge": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 7,
+      "labels": [
+        "Outgoing clip id",
+        "Incoming clip id",
+        "Bridge prompt",
+        "Plan bridge",
+        "Generate bridge",
+        "Generated file to place in the gap",
+        "Place file in gap"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Bridge.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlBridge"
+    },
+    "NL Story": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 2,
+      "labels": [
+        "Idea",
+        "Draft story with AI"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Story.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlStory"
+    },
+    "NL Cover": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 6,
+      "labels": [
+        "Workflow (needs an image input)",
+        "Description",
+        "Take the speech here",
+        "Seed (0 = random)",
+        "Generate cover from this frame",
+        "Use the selected image as cover"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Cover.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlCover"
+    },
+    "NL Queue": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 7,
+      "labels": [
+        "Variants prompt",
+        "Variants",
+        "First seed",
+        "Widget overrides JSON (optional)",
+        "Add variants",
+        "Free ComfyUI VRAM…",
+        "Check services"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Queue.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlQueue"
+    },
+    "NL Clips AI": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 4,
+      "labels": [
+        "Video sul disco (opzionale)",
+        "Scegli video…",
+        "Usa selezione corrente",
+        "Find candidates"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Clips_AI.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlClipping"
+    },
+    "NL Sgrossa": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 1,
+      "labels": [
+        "Analyse"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Sgrossa.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlSgrossa"
+    },
+    "NL Montage": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 6,
+      "labels": [
+        "Target seconds",
+        "Shot seconds",
+        "BPM (0 = off)",
+        "Beats per shot",
+        "Plan montage",
+        "New sequence name"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Montage.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlMontage"
+    },
+    "NL Longform": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 4,
+      "labels": [
+        "Export file (.md, .srt, .json)",
+        "Analizza capitoli",
+        "Metti i marker",
+        "Esporta"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Longform.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlLongform"
+    },
+    "NL Analyze": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 1,
+      "labels": [
+        "Analyze chapters"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Analyze.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlAnalyze"
+    },
+    "NL Search": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 4,
+      "labels": [
+        "Cerca",
+        "Risultati max",
+        "Ricostruisci indice",
+        "Cerca"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Search.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlSearch"
+    },
+    "NL Shot Map": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 5,
+      "labels": [
+        "Sensibilità (0–100)",
+        "Durata minima inquadratura (frame)",
+        "Rileva cambi scena",
+        "Apri Marker",
+        "Vai alla Timeline"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Shot_Map.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlShots"
+    },
+    "NL Social": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 3,
+      "labels": [
+        "Controlla la consegna",
+        "Apri NL Clips AI",
+        "Apri NL Delivery"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Social.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlSocial"
+    },
+    "NL Studio": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 5,
+      "labels": [
+        "Titles & Graphics",
+        "Graphics",
+        "Subtitles",
+        "Audio",
+        "Delivery"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Studio.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlStudio"
+    },
+    "NL Subtitles": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 2,
+      "labels": [
+        "Import SRT/VTT…",
+        "Export captions…"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Subtitles.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlSubtitles"
+    },
+    "NL Titles": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 10,
+      "labels": [
+        "Name",
+        "Role",
+        "Slab Color",
+        "Accent Color",
+        "Name Color",
+        "Show Role",
+        "Font",
+        "Intro s",
+        "Outro s",
+        "Place title on the timeline"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Titles.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlTitles"
+    },
+    "NL Graphics": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 7,
+      "labels": [
+        "Fill colour (#rrggbb)",
+        "Width",
+        "Height",
+        "X",
+        "Y",
+        "Seconds",
+        "Add graphic"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Graphics.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlGraphics"
+    },
+    "NL Audio": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 0,
+      "labels": [],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Audio.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlAudio"
+    },
+    "NL Delivery": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 6,
+      "labels": [
+        "Run checks",
+        "Social check",
+        "Preview cleanup",
+        "Clean up now",
+        "Storage report",
+        "Export production package…"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Delivery.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlDelivery"
+    },
+    "NL Album": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 17,
+      "labels": [
+        "Refresh",
+        "Insert",
+        "Insert",
+        "Insert",
+        "Insert",
+        "Insert",
+        "Insert",
+        "Insert",
+        "Insert",
+        "Insert",
+        "Insert",
+        "Insert",
+        "Insert",
+        "Insert",
+        "Insert",
+        "Insert",
+        "Insert"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Album.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlAlbum"
+    },
+    "NL Versions": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 3,
+      "labels": [
+        "Version name",
+        "Save current version",
+        "Refresh"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Versions.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlVersions"
+    },
+    "NL ASR": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 3,
+      "labels": [
+        "Language",
+        "Device",
+        "Transcribe selected media"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_ASR.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlAsr"
+    },
+    "NL Speech": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 4,
+      "labels": [
+        "Scansiona modelli",
+        "File audio/video da trascrivere",
+        "Scegli file…",
+        "Trascrivi"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Speech.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlSpeech"
+    },
+    "NL Services": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 5,
+      "labels": [
+        "Stato servizi",
+        "Modelli LLM",
+        "Spazio",
+        "Progetto",
+        "Impostazioni NL"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Services.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlServices"
+    },
+    "NL Settings": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 2,
+      "labels": [
+        "Scan ASR models",
+        "Open NL settings…"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Settings.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlSettings"
+    },
+    "NL Workflows": {
+      "show_ok": true,
+      "show_error": null,
+      "element_count": 8,
+      "labels": [
+        "Refresh library",
+        "Verify ComfyUI API",
+        "Doctor all workflows",
+        "Doctor this one",
+        "Write a repaired copy",
+        "Show parameters",
+        "JSON file",
+        "Import"
+      ],
+      "placeholder_text": false,
+      "screenshot": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\p19-nl-surface\\before\\NL_Workflows.png",
+      "screenshot_ok": true,
+      "focused_panel": "NlWorkflows"
+    }
+  },
+  "workspace_menu": [
+    "Tutti i pannelli",
+    "Assemblaggio",
+    "Audio",
+    "Sottotitoli e grafica",
+    "Colore",
+    "Montaggio",
+    "Effetti",
+    "Apprendimento",
+    "Quick Edit",
+    "Revisione",
+    "Verticale",
+    "Ripristina layout salvato",
+    "Salva le modifiche a questa area di lavoro",
+    "Salva come nuova area di lavoro…",
+    "Modifica aree di lavoro…"
+  ],
+  "inspect": {
+    "id": 1,
+    "ok": true,
+    "result": {
+      "activeSequence": 9,
+      "dialog": null,
+      "elements": 220,
+      "fps": 75.46041870117188,
+      "input": {
+        "effectiveWindowFocused": true,
+        "mode": "controlOnly",
+        "nativeWindowFocused": false
+      },
+      "keyboardFocus": null,
+      "pixelsPerPoint": 1.0,
+      "playback": {
+        "audioClock": false,
+        "dropped": 0,
+        "loop": false,
+        "playing": false,
+        "preroll": false,
+        "shown": 0,
+        "speed": 1.0
+      },
+      "playhead": 0,
+      "selection": [],
+      "sourcePlayback": {
+        "audioClock": false,
+        "playhead": 0,
+        "playing": false
+      },
+      "ui": {
+        "add_tracks": {
+          "audio": 1,
+          "audio_after": 0,
+          "audio_type": "standard",
+          "submix": 0,
+          "submix_after": 0,
+          "submix_type": "stereo",
+          "video": 1,
+          "video_after": 0
+        },
+        "audio_fx_editors": [],
+        "audio_gain": {
+          "adjust_db": 0.0,
+          "all_peaks_db": 0.0,
+          "max_peak_db": 0.0,
+          "mode": "",
+          "set_db": 0.0
+        },
+        "caption_export_format": null,
+        "caption_search": "",
+        "clip_dialog": null,
+        "closed_floating": [],
+        "collapsed_fx": [],
+        "color_dialog": null,
+        "create_proxies": null,
+        "dark": true,
+        "delete_tracks": {
+          "audio": false,
+          "audio_target": "empty",
+          "captions": false,
+          "captions_target": "empty",
+          "video": false,
+          "video_target": "empty"
+        },
+        "dock": {
+          "floating": [],
+          "root": {
+            "Split": {
+              "axis": "Vertical",
+              "first": {
+                "Split": {
+                  "axis": "Horizontal",
+                  "first": {
+                    "Split": {
+                      "axis": "Horizontal",
+                      "first": {
+                        "Tabs": {
+                          "active": 0,
+                          "panels": [
+                            "Source",
+                            "EffectControls",
+                            "AudioClipMixer",
+                            "Metadata"
+                          ]
+                        }
+                      },
+                      "second": {
+                        "Tabs": {
+                          "active": 0,
+                          "panels": [
+                            "Program"
+                          ]
+                        }
+                      },
+                      "size": {
+                        "Ratio": 0.5
+                      }
+                    }
+                  },
+                  "second": {
+                    "Tabs": {
+                      "active": 0,
+                      "panels": [
+                        "Properties",
+                        "EssentialGraphics",
+                        "Text"
+                      ]
+                    }
+                  },
+                  "size": {
+                    "Ratio": 0.7200000286102295
+                  }
+                }
+              },
+              "second": {
+                "Split": {
+                  "axis": "Horizontal",
+                  "first": {
+                    "Tabs": {
+                      "active": 0,
+                      "panels": [
+                        "Project",
+                        "MediaBrowser",
+                        "Libraries",
+                        "Info",
+                        "Effects",
+                        "Markers",
+                        "History"
+                      ]
+                    }
+                  },
+                  "second": {
+                    "Split": {
+                      "axis": "Horizontal",
+                      "first": {
+                        "Tabs": {
+                          "active": 0,
+                          "panels": [
+                            "Tools"
+                          ]
+                        }
+                      },
+                      "second": {
+                        "Split": {
+                          "axis": "Horizontal",
+                          "first": {
+                            "Tabs": {
+                              "active": 0,
+                              "panels": [
+                                "Timeline"
+                              ]
+                            }
+                          },
+                          "second": {
+                            "Tabs": {
+                              "active": 0,
+                              "panels": [
+                                "AudioMeters"
+                              ]
+                            }
+                          },
+                          "size": {
+                            "FixedSecond": 116.0
+                          }
+                        }
+                      },
+                      "size": {
+                        "FixedFirst": 64.0
+                      }
+                    }
+                  },
+                  "size": {
+                    "Ratio": 0.28999999165534973
+                  }
+                }
+              },
+              "size": {
+                "Ratio": 0.5699999928474426
+              }
+            }
+          }
+        },
+        "edit_cameras": null,
+        "effect_controls_split": 0.0,
+        "effects_search": "",
+        "essential_sound_tab": "Edit",
+        "expanded_bins": [],
+        "expanded_fx": [
+          "Video Transitions",
+          "Video Transitions/Dissolve"
+        ],
+        "export": {
+          "customEnd": 10.0,
+          "customStart": 0.0,
+          "fileName": "",
+          "forSequence": null,
+          "location": "",
+          "manager": null,
+          "openSections": [
+            "video",
+            "audio"
+          ],
+          "preset": "Match Source – Adaptive High Bitrate",
+          "quickOpen": false,
+          "quickPath": "",
+          "quickPreset": "",
+          "range": "entire",
+          "rangeFor": null,
+          "settings": {
+            "adaptiveBitrate": 0.20000000298023224,
+            "alpha": false,
+            "apvProfile": "",
+            "audio": {
+              "bitrate_kbps": 320,
+              "bits": 16,
+              "channels": 2,
+              "codec": "aac",
+              "flac_level": 5,
+              "float": false,
+              "sample_rate": 48000
+            },
+            "bitrateKbps": 10000,
+            "bitrateMode": "vbr1Pass",
+            "burnCaptions": false,
+            "captionSidecar": null,
+            "crf": 23.0,
+            "dnxProfile": "",
+            "effects": {
+              "image_overlay": {
+                "enabled": false,
+                "offset": [
+                  0.0,
+                  0.0
+                ],
+                "opacity": 100.0,
+                "path": "",
+                "placement": "topRight",
+                "size_percent": 15.0
+              },
+              "loudness": {
+                "enabled": false,
+                "target_lufs": -23.0,
+                "true_peak_dbtp": -2.0
+              },
+              "name_overlay": {
+                "enabled": false,
+                "offset": [
+                  0.0,
+                  0.0
+                ],
+                "opacity": 100.0,
+                "placement": "bottomCenter",
+                "size_percent": 5.0,
+                "text": ""
+              },
+              "timecode_overlay": {
+                "enabled": false,
+                "offset": [
+                  0.0,
+                  0.0
+                ],
+                "opacity": 100.0,
+                "placement": "bottomCenter",
+                "size_percent": 5.0,
+                "text": ""
+              },
+              "video_limiter": {
+                "enabled": false,
+                "max_percent": 100.0,
+                "min_percent": 0.0
+              }
+            },
+            "exrCompression": "none",
+            "fieldOrder": "progressive",
+            "format": "h264",
+            "frameRate": null,
+            "frameSize": null,
+            "gpuRendering": "off",
+            "h264IntraOnly": false,
+            "h264Level": null,
+            "h264Profile": "high",
+            "hardwareEncoding": "off",
+            "includeAudio": true,
+            "keyframeDistance": null,
+            "maxBitrateKbps": null,
+            "maxRenderQuality": false,
+            "maxThreads": 0,
+            "metadata": {
+              "comment": "",
+              "copyright": "",
+              "creator": "",
+              "description": "",
+              "title": ""
+            },
+            "multiplexer": "mp4",
+            "mxfVideoCodec": "dnxhr",
+            "partOfBatch": false,
+            "path": "",
+            "pixelAspect": null,
+            "proresProfile": "",
+            "quality": 90,
+            "range": null,
+            "renderAtMaxDepth": false,
+            "scale": 1.0,
+            "scaling": "scaleToFit",
+            "sdr": false
+          }
+        },
+        "extras": {
+          "dialog": null,
+          "dynamic_waveforms": true,
+          "opened": []
+        },
+        "failed_link": null,
+        "focused": "Timeline",
+        "gfx_edit": null,
+        "gfx_templates": {
+          "category": "",
+          "export": null,
+          "query": "",
+          "replace": null,
+          "selected": null,
+          "tab": ""
+        },
+        "guide_dialog": null,
+        "keyframe_selection": [],
+        "keys": {
+          "icon_columns": 3,
+          "maximized": null,
+          "saved_heights": null
+        },
+        "language": "it",
+        "link_media": null,
+        "lumetri_grid_folder": null,
+        "make_offline": null,
+        "markers_panel": {
+          "search": "",
+          "source": false
+        },
+        "mask_pen": null,
+        "media_browser": {
+          "editColumns": null,
+          "expanded": [],
+          "hover": null,
+          "pathEdit": null,
+          "treeWidth": 0.0
+        },
+        "mixer_fx_open": false,
+        "mixer_hidden": [],
+        "mixer_meter_input_only": false,
+        "mode": "Edit",
+        "multicam_record": true,
+        "panels": {
+          "events": {
+            "level": "",
+            "seen": 0,
+            "selected": null
+          },
+          "inspectorSource": "timeline",
+          "progress": {
+            "showFinished": true
+          },
+          "reference": {
+            "display": "composite",
+            "ganged": false,
+            "scopes": [
+              "vectorscopeYuv",
+              "waveform"
+            ],
+            "time": 0
+          },
+          "scopes": {
+            "brightness": "normal",
+            "clamp": true,
+            "colorSpace": "auto",
+            "paradeType": "rgb",
+            "preset": "",
+            "scale": "bits8",
+            "shown": [
+              "parade"
+            ],
+            "targets": "75",
+            "waveformType": "rgb"
+          },
+          "timecode": {
+            "rows": [
+              {
+                "display": "Timecode",
+                "mode": "current",
+                "source": "active"
+              }
+            ],
+            "showName": true
+          }
+        },
+        "pen_points": [],
+        "play_after_render": true,
+        "program": {
+          "compare_ref": null,
+          "display": "Composite",
+          "guides": [],
+          "high_quality": false,
+          "lock_guides": false,
+          "multicam": false,
+          "pan": [
+            0.0,
+            0.0
+          ],
+          "paused_res": "Full",
+          "res": "Half",
+          "safe_margins": false,
+          "show_guides": true,
+          "show_rulers": false,
+          "show_transport": true,
+          "snap": true,
+          "time_zoom": null,
+          "transparency_grid": false,
+          "transport_hidden": [
+            "playback.loop",
+            "playhead.prevEdit",
+            "playhead.nextEdit"
+          ],
+          "zoom": null
+        },
+        "project_manager": null,
+        "project_panel": {
+          "activeTab": null,
+          "anchor": null,
+          "bin": null,
+          "dialog": null,
+          "hover": null,
+          "rename": null,
+          "selectedBin": null,
+          "tabs": []
+        },
+        "project_search": "",
+        "save_preset": null,
+        "sequence_settings": {
+          "audio_tracks": 3,
+          "auto_tone_map": true,
+          "bin": null,
+          "display": "Timecode",
+          "drop_frame": false,
+          "fps_den": 1001,
+          "fps_num": 24000,
+          "height": 1080,
+          "max_render_quality": false,
+          "mix": "Stereo",
+          "name": "",
+          "new_sequence": false,
+          "sample_rate": 48000,
+          "scale_motion": true,
+          "tab": "general",
+          "video_tracks": 3,
+          "wide_gamut": false,
+          "width": 1920,
+          "working_space": "rec709"
+        },
+        "settings": null,
+        "show_header": true,
+        "show_menu_bar": true,
+        "show_scopes": false,
+        "show_status_bar": true,
+        "source": {
+          "compare_ref": null,
+          "display": "Composite",
+          "guides": [],
+          "high_quality": false,
+          "lock_guides": false,
+          "multicam": false,
+          "pan": [
+            0.0,
+            0.0
+          ],
+          "paused_res": "Full",
+          "res": "Half",
+          "safe_margins": false,
+          "show_guides": true,
+          "show_rulers": false,
+          "show_transport": true,
+          "snap": true,
+          "time_zoom": null,
+          "transparency_grid": false,
+          "transport_hidden": [
+            "playback.loop",
+            "playhead.prevEdit",
+            "playhead.nextEdit"
+          ],
+          "zoom": null
+        },
+        "status": "",
+        "sync_dialog": null,
+        "text_props_dialog": null,
+        "text_tab": "Captions",
+        "timeline": {
+          "a_scroll": 0.0,
+          "audio_track_h": 56.0,
+          "fit_pending": false,
+          "follow": true,
+          "header_w": 204.0,
+          "pps": 4.553455702549011,
+          "scroll": 0.0,
+          "show_audio_names": true,
+          "show_thumbnails": true,
+          "show_video_names": true,
+          "show_waveforms": true,
+          "split": 0.5,
+          "target_pps": 4.553455702549011,
+          "target_scroll": 0.0,
+          "thumbnail_mode": "Head",
+          "track_lanes": {},
+          "v_scroll": 0.0,
+          "video_track_h": 60.0
+        },
+        "tool": "Selection",
+        "transcript_search": "",
+        "transcript_sel": null,
+        "transition_duration": {
+          "frames": 0,
+          "transition": 0
+        },
+        "tts": {
+          "advancedOpen": true,
+          "confirmDownload": false,
+          "downloadJob": null,
+          "language": "en-US",
+          "loadedFrom": null,
+          "pace": 1.0,
+          "pending": null,
+          "pitch": "default",
+          "text": "",
+          "voice": "basic-female"
+        },
+        "workspace": "Editing",
+        "workspace_dialog": null
+      },
+      "window": [
+        1600.0,
+        980.0
+      ]
+    }
+  },
+  "docking": {
+    "focused": "Timeline",
+    "hitRects": [
+      {
+        "hit": {
+          "Tab": "Source"
+        },
+        "rect": [
+          1.0,
+          39.0,
+          75.46875,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "Tab": "EffectControls"
+        },
+        "rect": [
+          76.46875,
+          39.0,
+          107.40625,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "Tab": "AudioClipMixer"
+        },
+        "rect": [
+          183.875,
+          39.0,
+          113.59375,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "Tab": "Metadata"
+        },
+        "rect": [
+          297.46875,
+          39.0,
+          73.46875,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "DragBar": "Source"
+        },
+        "rect": [
+          370.9375,
+          39.0,
+          175.90252685546875,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "Border": "Source"
+        },
+        "rect": [
+          1.0,
+          39.0,
+          545.8400268554688,
+          4.0
+        ]
+      },
+      {
+        "hit": {
+          "Tab": "Program"
+        },
+        "rect": [
+          576.8400268554688,
+          39.0,
+          89.5625,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "DragBar": "Program"
+        },
+        "rect": [
+          666.4025268554688,
+          39.0,
+          456.27752685546875,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "Border": "Program"
+        },
+        "rect": [
+          576.8400268554688,
+          39.0,
+          545.8400268554688,
+          4.0
+        ]
+      },
+      {
+        "hit": {
+          "Divider": {
+            "Split": [
+              false,
+              false
+            ]
+          }
+        },
+        "rect": [
+          569.8400268554688,
+          39.0,
+          10.0,
+          521.5499877929688
+        ]
+      },
+      {
+        "hit": {
+          "Tab": "Properties"
+        },
+        "rect": [
+          1152.6800537109375,
+          39.0,
+          75.78125,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "Tab": "EssentialGraphics"
+        },
+        "rect": [
+          1228.4613037109375,
+          39.0,
+          128.5625,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "Tab": "Text"
+        },
+        "rect": [
+          1357.0238037109375,
+          39.0,
+          55.15625,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "DragBar": "Properties"
+        },
+        "rect": [
+          1412.1800537109375,
+          39.0,
+          160.8199462890625,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "Border": "Properties"
+        },
+        "rect": [
+          1152.6800537109375,
+          39.0,
+          420.3199462890625,
+          4.0
+        ]
+      },
+      {
+        "hit": {
+          "Divider": {
+            "Split": [
+              false
+            ]
+          }
+        },
+        "rect": [
+          1145.6800537109375,
+          39.0,
+          10.0,
+          521.5499877929688
+        ]
+      },
+      {
+        "hit": {
+          "Tab": "Project"
+        },
+        "rect": [
+          1.0,
+          564.5499877929688,
+          56.60856628417969,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "Tab": "MediaBrowser"
+        },
+        "rect": [
+          57.60856628417969,
+          564.5499877929688,
+          56.60856628417969,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "Tab": "Libraries"
+        },
+        "rect": [
+          114.21713256835938,
+          564.5499877929688,
+          56.60856628417969,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "Tab": "Info"
+        },
+        "rect": [
+          170.82569885253906,
+          564.5499877929688,
+          56.60856628417969,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "Tab": "Effects"
+        },
+        "rect": [
+          227.43426513671875,
+          564.5499877929688,
+          56.60858154296875,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "Tab": "Markers"
+        },
+        "rect": [
+          284.0428466796875,
+          564.5499877929688,
+          56.60858154296875,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "Tab": "History"
+        },
+        "rect": [
+          340.65142822265625,
+          564.5499877929688,
+          56.60858154296875,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "DragBar": "Project"
+        },
+        "rect": [
+          397.260009765625,
+          564.5499877929688,
+          39.999969482421875,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "Border": "Project"
+        },
+        "rect": [
+          1.0,
+          564.5499877929688,
+          436.2599792480469,
+          4.0
+        ]
+      },
+      {
+        "hit": {
+          "DragBar": "Tools"
+        },
+        "rect": [
+          467.2599792480469,
+          564.5499877929688,
+          38.000030517578125,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "Border": "Tools"
+        },
+        "rect": [
+          467.2599792480469,
+          564.5499877929688,
+          38.000030517578125,
+          4.0
+        ]
+      },
+      {
+        "hit": {
+          "Tab": "Timeline"
+        },
+        "rect": [
+          535.260009765625,
+          564.5499877929688,
+          72.0625,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "DragBar": "Timeline"
+        },
+        "rect": [
+          607.322509765625,
+          564.5499877929688,
+          700.521240234375,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "Border": "Timeline"
+        },
+        "rect": [
+          535.260009765625,
+          564.5499877929688,
+          772.583740234375,
+          4.0
+        ]
+      },
+      {
+        "hit": {
+          "Tab": "AudioMeters"
+        },
+        "rect": [
+          1483.0,
+          564.5499877929688,
+          50.0,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "DragBar": "AudioMeters"
+        },
+        "rect": [
+          1533.0,
+          564.5499877929688,
+          40.0,
+          32.0
+        ]
+      },
+      {
+        "hit": {
+          "Border": "AudioMeters"
+        },
+        "rect": [
+          1483.0,
+          564.5499877929688,
+          90.0,
+          4.0
+        ]
+      },
+      {
+        "hit": {
+          "Divider": {
+            "Split": [
+              true,
+              true,
+              true
+            ]
+          }
+        },
+        "rect": [
+          1476.0,
+          564.5499877929688,
+          10.0,
+          393.45001220703125
+        ]
+      },
+      {
+        "hit": {
+          "Divider": {
+            "Split": [
+              true,
+              true
+            ]
+          }
+        },
+        "rect": [
+          528.260009765625,
+          564.5499877929688,
+          10.0,
+          393.45001220703125
+        ]
+      },
+      {
+        "hit": {
+          "Divider": {
+            "Split": [
+              true
+            ]
+          }
+        },
+        "rect": [
+          460.2599792480469,
+          564.5499877929688,
+          10.0,
+          393.45001220703125
+        ]
+      },
+      {
+        "hit": {
+          "Divider": {
+            "Split": []
+          }
+        },
+        "rect": [
+          1.0,
+          557.5499877929688,
+          1598.0,
+          10.0
+        ]
+      },
+      {
+        "hit": {
+          "Divider": {
+            "Intersection": [
+              [],
+              [
+                false,
+                false
+              ]
+            ]
+          }
+        },
+        "rect": [
+          568.8400268554688,
+          556.5499877929688,
+          12.0,
+          12.0
+        ]
+      },
+      {
+        "hit": {
+          "Divider": {
+            "Intersection": [
+              [],
+              [
+                false
+              ]
+            ]
+          }
+        },
+        "rect": [
+          1144.6800537109375,
+          556.5499877929688,
+          12.0,
+          12.0
+        ]
+      },
+      {
+        "hit": {
+          "Divider": {
+            "Intersection": [
+              [],
+              [
+                true,
+                true,
+                true
+              ]
+            ]
+          }
+        },
+        "rect": [
+          1475.0,
+          556.5499877929688,
+          12.0,
+          12.0
+        ]
+      },
+      {
+        "hit": {
+          "Divider": {
+            "Intersection": [
+              [],
+              [
+                true,
+                true
+              ]
+            ]
+          }
+        },
+        "rect": [
+          527.260009765625,
+          556.5499877929688,
+          12.0,
+          12.0
+        ]
+      },
+      {
+        "hit": {
+          "Divider": {
+            "Intersection": [
+              [],
+              [
+                true
+              ]
+            ]
+          }
+        },
+        "rect": [
+          459.2599792480469,
+          556.5499877929688,
+          12.0,
+          12.0
+        ]
+      }
+    ],
+    "layout": {
+      "floating": [],
+      "root": {
+        "Split": {
+          "axis": "Vertical",
+          "first": {
+            "Split": {
+              "axis": "Horizontal",
+              "first": {
+                "Split": {
+                  "axis": "Horizontal",
+                  "first": {
+                    "Tabs": {
+                      "active": 0,
+                      "panels": [
+                        "Source",
+                        "EffectControls",
+                        "AudioClipMixer",
+                        "Metadata"
+                      ]
+                    }
+                  },
+                  "second": {
+                    "Tabs": {
+                      "active": 0,
+                      "panels": [
+                        "Program"
+                      ]
+                    }
+                  },
+                  "size": {
+                    "Ratio": 0.5
+                  }
+                }
+              },
+              "second": {
+                "Tabs": {
+                  "active": 0,
+                  "panels": [
+                    "Properties",
+                    "EssentialGraphics",
+                    "Text"
+                  ]
+                }
+              },
+              "size": {
+                "Ratio": 0.7200000286102295
+              }
+            }
+          },
+          "second": {
+            "Split": {
+              "axis": "Horizontal",
+              "first": {
+                "Tabs": {
+                  "active": 0,
+                  "panels": [
+                    "Project",
+                    "MediaBrowser",
+                    "Libraries",
+                    "Info",
+                    "Effects",
+                    "Markers",
+                    "History"
+                  ]
+                }
+              },
+              "second": {
+                "Split": {
+                  "axis": "Horizontal",
+                  "first": {
+                    "Tabs": {
+                      "active": 0,
+                      "panels": [
+                        "Tools"
+                      ]
+                    }
+                  },
+                  "second": {
+                    "Split": {
+                      "axis": "Horizontal",
+                      "first": {
+                        "Tabs": {
+                          "active": 0,
+                          "panels": [
+                            "Timeline"
+                          ]
+                        }
+                      },
+                      "second": {
+                        "Tabs": {
+                          "active": 0,
+                          "panels": [
+                            "AudioMeters"
+                          ]
+                        }
+                      },
+                      "size": {
+                        "FixedSecond": 116.0
+                      }
+                    }
+                  },
+                  "size": {
+                    "FixedFirst": 64.0
+                  }
+                }
+              },
+              "size": {
+                "Ratio": 0.28999999165534973
+              }
+            }
+          },
+          "size": {
+            "Ratio": 0.5699999928474426
+          }
+        }
+      }
+    },
+    "maximized": null
+  },
+  "summary": {
+    "panels": 28,
+    "with_placeholder": [],
+    "with_no_elements": [
+      "NL Audio"
+    ],
+    "workspace_listed": false
+  }
+}

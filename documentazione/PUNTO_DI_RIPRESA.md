@@ -1,6 +1,59 @@
-# Punto di ripresa — CHIUSO 1.2.0 (24/11/2026)
+# Punto di ripresa — NL Video Suite 2.0.0 (24/11/2026)
+
+## Stato verificato 24/11/2026 — P19/P20/P21
+
+Baseline riprodotta con l'exe precedente (`documentazione/prove/p19-nl-surface/baseline.json`):
+i 28 pannelli NL **erano già instradati** (nessun «coming in a later milestone»), ma il workspace
+«NL Video Suite» **non era nel menu** (`WORKSPACES` aveva 11 voci), NL Home non elencava NL Shot
+Map, NL Audio restava vuoto, il pannello ASR prometteva comandi inesistenti e NL Social leggeva
+`name` invece di `id`. La ricevuta P18 dichiarava il workspace built-in: non era vero.
+
+- **P19 — workspace e routing**: `WORKSPACES` 12 voci con «NL Video Suite» (menu Window ▸
+  Workspaces, pulsante Workspaces, `Alt+Shift+9`); `show_nl_layout()` passa da `set_workspace` e
+  persiste il workspace; `NL_PANELS` (29) è la lista unica usata da layout, Home e test;
+  `nl::body()` + `nl.context` su ogni pannello; `panel.placeholder` è osservabile dagli audit.
+- **P20 — pannelli**: nuovo **NL Transcript**; ASR manager con scansione modelli, provider/device,
+  import SRT/VTT e traduzioni reali; Social con profili e nomi controlli corretti; Clips AI con
+  **focus automatico** e controlli stabilità/reattività/comportamento; Longform con rough cut;
+  Shot Map con stato sequenza; Studio con riepilogo finitura; Services leggibile; tabella
+  `PANEL_COMMANDS` e test che ogni comando esista nel registro.
+- **P21 — reframe**: port della camera path nostra (`camera-cpu-v3`) in
+  `engine/src/nl/reframe_camera.py`; il motore applica i punti come keyframe di
+  `motion.position`. Prova live GTA6 0–6 s: `composed` 2 punti/2 keyframe, `legacy` 63/63, offset
+  −797,33 px, x da −527 a −257 px; corretto il calcolo dell'offset (era scalato sul margine
+  libero invece che sulla picture dipinta). Valutazione dei tre repo in `REFRAME_REPOS.md`:
+  nessun codice copiato; due MIT senza implementazione utilizzabile, `Cliper-AI` senza licenza.
+- **Test completi**: engine 1055 + 17 verdi (3 ignored esistenti); UI 374 lib + 4 + 1 + 818
+  integration + 6 + 3 verdi (8 ignored esistenti); CLI 20 + 23 verdi; clippy engine/UI/CLI
+  `-D warnings` pulito; fmt applicato.
+- **P22 — audit dimostrabile**: `documentazione/prove/p19-nl-audit/audit.py` sull'exe 2.0.0 →
+  29 pannelli, workspace nel menu e attivo, layout completo, 0 senza contesto, 0 placeholder,
+  0 comandi falliti (4 rifiuti attesi: pipeline/cleanup/montage/bridge senza risultato), 28
+  pulsanti Home, 29 screenshot; `audit.json` + `receipt.json`.
+- **P23 — release**: `NL Video Suite.exe` 85.547.008 byte (SHA-256
+  `F37354B14C4576BFB1292448BF110E322150CF50A07052D2BA0C72E3FB2B7DA5`), `NL Video Suite CLI.exe`
+  54.339.072 byte; bundle `distribuzione/NLVideoSuite-2.0.0-windows-x64` + zip 235.060.798 byte;
+  audit del bundle 29/29 verde; reframe del bundle senza `runtime/` → fallback statico dichiarato
+  (`fallback: camera tracker unavailable`, 0 keyframe).
+- **Restano in P23**: commit, push GitHub, verifica GitHub, pulizia con ricevuta.
+
+## P18 — correzione (24/11/2026)
+
+La voce P18 sotto è **superata e incompleta**: il routing era stato corretto, ma il workspace non
+era registrato in `WORKSPACES`, `show_nl_layout` non persisteva e la ricevuta dichiarava un menu
+che non esisteva. P19 chiude quei punti con test e prove; la ricevuta `p18-menu-routing` resta
+come storia, non come stato attuale.
 
 
+
+
+## P18 — NL Video Suite nel menu Workspace e routing definitivo (24/11/2026)
+
+- «NL Video Suite» ora è un **workspace built-in** selezionabile dal menu Workspace, con tutti i
+  28 pannelli NL e i pannelli standard.
+- `PanelKind::is_nl()` + return anticipato in `panels.rs`: Bridge, Titles, Home e ogni altro pannello
+  NL non possono più finire in «coming in a later milestone».
+- Test dedicato: ogni pannello Nl è routed e presente nel layout NL; workspaces_ui aggiornato.
 
 ## P17 — Verifica pannelli e reframe automatico (24/11/2026)
 

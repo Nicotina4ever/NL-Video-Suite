@@ -62,6 +62,7 @@ pub enum PanelKind {
     NlCover,
     NlWorkflows,
     NlLongform,
+    NlTranscript,
     NlSearch,
     NlSpeech,
     NlHome,
@@ -71,8 +72,42 @@ pub enum PanelKind {
     NlServices,
 }
 
+/// Every NL Video Suite panel, in the order the workspace, the dashboard and the audits use.
+/// One list, so a new NL panel cannot be routed without also being in the layout and the menu.
+pub const NL_PANELS: [PanelKind; 29] = [
+    PanelKind::NlHome,
+    PanelKind::NlGenerate,
+    PanelKind::NlMusic,
+    PanelKind::NlBridge,
+    PanelKind::NlStory,
+    PanelKind::NlCover,
+    PanelKind::NlQueue,
+    PanelKind::NlClipping,
+    PanelKind::NlSgrossa,
+    PanelKind::NlMontage,
+    PanelKind::NlLongform,
+    PanelKind::NlTranscript,
+    PanelKind::NlAnalyze,
+    PanelKind::NlSearch,
+    PanelKind::NlShots,
+    PanelKind::NlSocial,
+    PanelKind::NlStudio,
+    PanelKind::NlSubtitles,
+    PanelKind::NlTitles,
+    PanelKind::NlGraphics,
+    PanelKind::NlAudio,
+    PanelKind::NlDelivery,
+    PanelKind::NlAlbum,
+    PanelKind::NlVersions,
+    PanelKind::NlAsr,
+    PanelKind::NlSpeech,
+    PanelKind::NlServices,
+    PanelKind::NlSettings,
+    PanelKind::NlWorkflows,
+];
+
 impl PanelKind {
-    pub const ALL: [PanelKind; 56] = [
+    pub const ALL: [PanelKind; 57] = [
         PanelKind::Project,
         PanelKind::MediaBrowser,
         PanelKind::Libraries,
@@ -122,6 +157,7 @@ impl PanelKind {
         PanelKind::NlCover,
         PanelKind::NlWorkflows,
         PanelKind::NlLongform,
+        PanelKind::NlTranscript,
         PanelKind::NlSearch,
         PanelKind::NlSpeech,
         PanelKind::NlHome,
@@ -181,6 +217,7 @@ impl PanelKind {
             PanelKind::NlCover => "NL Cover",
             PanelKind::NlWorkflows => "NL Workflows",
             PanelKind::NlLongform => "NL Longform",
+            PanelKind::NlTranscript => "NL Transcript",
             PanelKind::NlSearch => "NL Search",
             PanelKind::NlSpeech => "NL Speech",
             PanelKind::NlHome => "NL Home",
@@ -190,6 +227,11 @@ impl PanelKind {
             PanelKind::NlServices => "NL Services",
         }
     }
+    /// Whether this panel is one of the NL Video Suite surfaces: every panel in [`NL_PANELS`].
+    pub fn is_nl(self) -> bool {
+        NL_PANELS.contains(&self)
+    }
+
     pub fn id(self) -> String {
         format!("{self:?}")
     }
@@ -235,8 +277,20 @@ fn vsplit(size: SplitSize, a: Node<PanelKind>, b: Node<PanelKind>) -> Node<Panel
     Node::Split { axis: SplitAxis::Vertical, size, first: Box::new(a), second: Box::new(b) }
 }
 
-pub const WORKSPACES: [&str; 11] =
-    ["Editing", "Quick Edit", "Assembly", "Color", "Effects", "Audio", "Captions and Graphics", "Vertical", "Learning", "Review", "All Panels"];
+pub const WORKSPACES: [&str; 12] = [
+    "Editing",
+    "Quick Edit",
+    "Assembly",
+    "Color",
+    "Effects",
+    "Audio",
+    "Captions and Graphics",
+    "Vertical",
+    "Learning",
+    "Review",
+    "All Panels",
+    "NL Video Suite",
+];
 
 /// The user's workspaces file, beside `preferences.json` in the data directory.
 pub const WORKSPACES_FILE: &str = "workspaces.json";
@@ -648,6 +702,7 @@ fn workspace_root(name: &str) -> Node<PanelKind> {
                 tabs(
                     &[
                         NlLongform,
+                        NlTranscript,
                         NlAnalyze,
                         NlSearch,
                         NlClipping,
@@ -992,6 +1047,42 @@ mod tests {
         // #1822: Program alone on the right of the root split, spanning the window's height
         let Some(Node::Split { axis: SplitAxis::Horizontal, second, .. }) = workspace("Vertical").root else { panic!("a side-by-side root split") };
         assert!(matches!(*second, Node::Tabs { ref panels, .. } if panels == &[PanelKind::Program]), "{second:?}");
+    }
+
+    #[test]
+    fn every_nl_panel_is_routed_and_lives_in_the_nl_layout() {
+        let layout = workspace("NL Video Suite");
+        for panel in PanelKind::ALL {
+            if panel.id().starts_with("Nl") {
+                assert!(panel.is_nl(), "{} is an NL panel but is_nl() says no", panel.title());
+                assert!(layout.contains(&panel), "{} is missing from the NL Video Suite layout", panel.title());
+            }
+        }
+        for panel in NL_PANELS {
+            assert!(layout.contains(&panel), "{} is missing from the NL Video Suite layout", panel.title());
+        }
+    }
+
+    /// The NL workspace is a built-in workspace, so it is listed in Window ▸ Workspaces and in the
+    /// header's workspace menu without a per-workspace action from a panel.
+    #[test]
+    fn nl_workspace_is_a_listed_builtin() {
+        assert!(WORKSPACES.contains(&"NL Video Suite"));
+        assert!(is_builtin("NL Video Suite"));
+        assert!(names(&WorkspacePrefs::default()).contains(&"NL Video Suite".to_string()));
+        assert!(slug("NL Video Suite") == "nlvideosuite");
+    }
+
+    /// NL_PANELS is the single list the layout, NL Home and the audits share: no duplicates, and
+    /// every entry is exactly an `Nl*` panel.
+    #[test]
+    fn nl_panels_are_unique_and_all_nl() {
+        let mut seen = std::collections::HashSet::new();
+        for panel in NL_PANELS {
+            assert!(seen.insert(panel), "{} is listed twice", panel.title());
+            assert!(panel.id().starts_with("Nl"), "{} is not an Nl panel", panel.title());
+        }
+        assert_eq!(NL_PANELS.len(), PanelKind::ALL.iter().filter(|panel| panel.is_nl()).count());
     }
 
     #[test]

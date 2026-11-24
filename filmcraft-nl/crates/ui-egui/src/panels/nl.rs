@@ -13,41 +13,175 @@ use serde_json::{Value, json};
 use crate::FilmcraftApp;
 use crate::dock::PanelKind;
 
+/// One panel body. Returned as a function pointer so [`every_nl_panel_has_a_body`] can prove that
+/// every NL panel in [`crate::dock::NL_PANELS`] has a renderer instead of falling through.
+type Body = fn(&mut FilmcraftApp, &mut egui::Ui);
+
+fn body(panel: PanelKind) -> Option<Body> {
+    match panel {
+        PanelKind::NlGenerate => Some(generate),
+        PanelKind::NlMusic => Some(music),
+        PanelKind::NlAsr => Some(asr),
+        PanelKind::NlClipping => Some(clipping),
+        PanelKind::NlSgrossa => Some(sgrossa),
+        PanelKind::NlStory => Some(story),
+        PanelKind::NlAnalyze => Some(analyze),
+        PanelKind::NlSubtitles => Some(super::nl_studio::subtitles),
+        PanelKind::NlTitles => Some(super::nl_studio::titles),
+        PanelKind::NlGraphics => Some(super::nl_studio::graphics_panel),
+        PanelKind::NlAudio => Some(super::nl_studio::audio_panel),
+        PanelKind::NlDelivery => Some(super::nl_studio::delivery_panel),
+        PanelKind::NlAlbum => Some(super::nl_studio::album_panel),
+        PanelKind::NlVersions => Some(super::nl_studio::versions_panel),
+        PanelKind::NlMontage => Some(super::nl_studio::montage_panel),
+        PanelKind::NlBridge => Some(super::nl_studio::bridge_panel),
+        PanelKind::NlQueue => Some(queue),
+        PanelKind::NlSettings => Some(settings),
+        PanelKind::NlCover => Some(cover),
+        PanelKind::NlLongform => Some(longform),
+        PanelKind::NlTranscript => Some(transcript),
+        PanelKind::NlSearch => Some(search),
+        PanelKind::NlSpeech => Some(speech),
+        PanelKind::NlHome => Some(home),
+        PanelKind::NlShots => Some(shots),
+        PanelKind::NlSocial => Some(social),
+        PanelKind::NlStudio => Some(studio),
+        PanelKind::NlServices => Some(services),
+        PanelKind::NlWorkflows => Some(workflows_panel),
+        _ => None,
+    }
+}
+
+/// The engine commands each NL panel is built on. The test below checks every id against the
+/// engine's registry, so a panel cannot point at a command that no longer exists (the ASR panel's
+/// old `transcript.importSubtitle` promise was exactly that).
+pub const PANEL_COMMANDS: &[(PanelKind, &[&str])] = &[
+    (PanelKind::NlHome, &[]),
+    (
+        PanelKind::NlGenerate,
+        &[
+            "nl.models.workflows",
+            "graphics.generateComfy",
+            "nl.generate.text",
+            "nl.generate.extend",
+            "nl.prompt.enhance",
+            "nl.prompt.h3",
+            "nl.timeline.analyze",
+        ],
+    ),
+    (PanelKind::NlMusic, &["nl.models.workflows", "audio.generateMusic"]),
+    (PanelKind::NlAsr, &["nl.asr.models", "transcript.transcribeNl", "captions.import", "nl.translate.captions", "nl.longform.analyze"]),
+    (PanelKind::NlClipping, &["nl.clipping.propose", "nl.clipping.render", "nl.clipping.sequences", "nl.reframe.sequence", "nl.subtitles.srt"]),
+    (PanelKind::NlSgrossa, &["nl.sgrossa.analyze", "nl.sgrossa.apply", "nl.sgrossa.report"]),
+    (PanelKind::NlAnalyze, &["nl.longform.analyze", "nl.search.index", "nl.search.query", "nl.translate.captions", "nl.assistant.ask"]),
+    (PanelKind::NlTranscript, &["transcript.transcribeNl", "captions.import", "transcript.createCaptions", "nl.translate.captions", "nl.longform.analyze"]),
+    (
+        PanelKind::NlSubtitles,
+        &["captions.list", "captions.setText", "captions.split", "captions.merge", "captions.delete", "captions.import", "captions.export"],
+    ),
+    (PanelKind::NlTitles, &["graphics.template.list", "nl.titles.add"]),
+    (PanelKind::NlGraphics, &["nl.graphics.add"]),
+    (PanelKind::NlAudio, &["essentialSound.inspect", "essentialSound.set", "mixer.inspect"]),
+    (PanelKind::NlDelivery, &["nl.delivery.qa", "nl.delivery.package", "nl.delivery.social", "nl.storage.cleanup", "nl.storage.status"]),
+    (PanelKind::NlAlbum, &["nl.album.list", "nl.album.insert"]),
+    (PanelKind::NlVersions, &["nl.versions.list", "nl.versions.save", "nl.versions.restore", "nl.versions.delete"]),
+    (PanelKind::NlMontage, &["nl.montage.plan", "nl.montage.apply"]),
+    (PanelKind::NlBridge, &["nl.bridge.plan", "nl.bridge.generate", "nl.bridge.place"]),
+    (
+        PanelKind::NlStory,
+        &[
+            "nl.story.get",
+            "nl.story.draft",
+            "nl.story.update",
+            "nl.story.generate",
+            "nl.story.place",
+            "nl.story.placeAll",
+            "nl.story.shotmap",
+            "nl.story.extendAudio",
+            "nl.story.placeAudio",
+        ],
+    ),
+    (PanelKind::NlQueue, &["nl.queue.list", "nl.queue.add", "nl.queue.prepare", "nl.queue.send", "nl.queue.remove", "nl.queue.free"]),
+    (PanelKind::NlSpeech, &["nl.asr.models", "nl.asr.transcribe"]),
+    (PanelKind::NlSettings, &["nl.asr.models", "nl.size.preview"]),
+    (PanelKind::NlCover, &["nl.cover.prompt", "nl.cover.set"]),
+    (
+        PanelKind::NlWorkflows,
+        &[
+            "nl.workflows.list",
+            "nl.workflows.verify",
+            "nl.workflows.diagnose",
+            "nl.workflows.fix",
+            "nl.workflows.parameters",
+            "nl.workflows.import",
+            "nl.workflows.presets",
+        ],
+    ),
+    (PanelKind::NlLongform, &["nl.longform.analyze", "nl.longform.get", "nl.longform.markers", "nl.longform.export", "nl.sgrossa.analyze"]),
+    (PanelKind::NlSearch, &["nl.search.index", "nl.search.query"]),
+    (PanelKind::NlShots, &["clip.sceneEditDetection"]),
+    (PanelKind::NlSocial, &["nl.delivery.social"]),
+    (PanelKind::NlStudio, &[]),
+    (PanelKind::NlServices, &["nl.services.status", "nl.models.llm", "nl.storage.status", "project.inspect"]),
+];
+
 /// Which panel body to draw.
 pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect, panel: PanelKind) {
     let mut child = ui.new_child(egui::UiBuilder::new().max_rect(rect.shrink2(vec2(12.0, 8.0))));
     let ui = &mut child;
-    egui::ScrollArea::vertical().id_salt(("nl-panel", panel.id())).auto_shrink([false, false]).show(ui, |ui| match panel {
-        PanelKind::NlGenerate => generate(app, ui),
-        PanelKind::NlMusic => music(app, ui),
-        PanelKind::NlAsr => asr(app, ui),
-        PanelKind::NlClipping => clipping(app, ui),
-        PanelKind::NlSgrossa => sgrossa(app, ui),
-        PanelKind::NlStory => story(app, ui),
-        PanelKind::NlAnalyze => analyze(app, ui),
-        PanelKind::NlSubtitles => super::nl_studio::subtitles(app, ui),
-        PanelKind::NlTitles => super::nl_studio::titles(app, ui),
-        PanelKind::NlGraphics => super::nl_studio::graphics_panel(app, ui),
-        PanelKind::NlAudio => super::nl_studio::audio_panel(app, ui),
-        PanelKind::NlDelivery => super::nl_studio::delivery_panel(app, ui),
-        PanelKind::NlAlbum => super::nl_studio::album_panel(app, ui),
-        PanelKind::NlVersions => super::nl_studio::versions_panel(app, ui),
-        PanelKind::NlMontage => super::nl_studio::montage_panel(app, ui),
-        PanelKind::NlBridge => super::nl_studio::bridge_panel(app, ui),
-        PanelKind::NlQueue => queue(app, ui),
-        PanelKind::NlSettings => settings(app, ui),
-        PanelKind::NlCover => cover(app, ui),
-        PanelKind::NlLongform => longform(app, ui),
-        PanelKind::NlSearch => search(app, ui),
-        PanelKind::NlSpeech => speech(app, ui),
-        PanelKind::NlHome => home(app, ui),
-        PanelKind::NlShots => shots(app, ui),
-        PanelKind::NlSocial => social(app, ui),
-        PanelKind::NlStudio => studio(app, ui),
-        PanelKind::NlServices => services(app, ui),
-        PanelKind::NlWorkflows => workflows_panel(app, ui),
-        _ => {}
+    context(app, ui);
+    egui::ScrollArea::vertical().id_salt(("nl-panel", panel.id())).auto_shrink([false, false]).show(ui, |ui| {
+        if let Some(body) = body(panel) {
+            body(app, ui);
+        }
     });
+}
+
+/// The one line every NL panel shows before its own controls: the open project, the active
+/// sequence, the playhead and selection, and the current NL parameters. It is registered as
+/// `nl.context`, so the panel audit can prove that each panel is looking at the sequence that is
+/// actually open instead of a placeholder.
+fn context(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    let project = app.session.project.name.clone();
+    let selection = app.session.state.selection.len();
+    let (sequence_line, parameters) = match app.session.active_sequence() {
+        Some(sequence) => {
+            let name = app
+                .session
+                .state
+                .active_sequence
+                .and_then(|id| app.session.project.item(id))
+                .map(|item| item.name.clone())
+                .unwrap_or_else(|| "Sequence".into());
+            let settings = &sequence.settings;
+            let fps = settings.frame_rate.num as f64 / settings.frame_rate.den.max(1) as f64;
+            let duration = sequence.duration().seconds();
+            let playhead = app.session.playhead().seconds();
+            let cues: usize = sequence.caption_tracks.iter().map(|track| track.captions.len()).sum();
+            let words = filmcraft_engine::transcript::sequence_words(&app.session).len();
+            let line = format!(
+                "Progetto: {project} · Sequenza: {name} · {}×{} @ {fps:.2} fps · {playhead:.1}/{duration:.1} s · selezione: {selection}",
+                settings.width, settings.height
+            );
+            let nl = &app.session.prefs.nl;
+            let parameters = format!(
+                "Trascrizione: {words} parole · {cues} cue · ASR: {} / {} · ComfyUI: {}",
+                nl.asr_provider(),
+                if nl.asr_model.trim().is_empty() { "portable" } else { nl.asr_model.as_str() },
+                nl.comfy_url()
+            );
+            (line, parameters)
+        }
+        None => (
+            format!("Progetto: {project} · Nessuna sequenza aperta · selezione: {selection}"),
+            format!("ASR: {} · ComfyUI: {}", app.session.prefs.nl.asr_provider(), app.session.prefs.nl.comfy_url()),
+        ),
+    };
+    let dim = app.tokens.text_dim;
+    let r = ui.label(RichText::new(&sequence_line).size(10.5).color(dim));
+    app.auto.add("nl.context", r.rect, &sequence_line);
+    ui.label(RichText::new(parameters).size(10.0).color(app.tokens.text_faint));
+    ui.separator();
 }
 
 // ---------------------------------------------------------------- shared widgets
@@ -480,8 +614,14 @@ fn music(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
 }
 
 fn asr(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
-    title(app, ui, "NL ASR", "Local speech recognition with word timings. GPU first, one CPU retry, and the result says which one ran.");
+    title(app, ui, "NL ASR", "Speech recognition manager: local models, provider/device, transcription with word timings, subtitle import and translation.");
     error_line(app, ui);
+    if let Some(path) = app.session.nl.results.remove("asr.pick").and_then(|value| value.as_str().map(str::to_string)) {
+        match app.session.execute("captions.import", json!({"path": path})) {
+            Ok(value) => app.ui.status = format!("Sottotitoli importati da {path}: {}", value),
+            Err(e) => app.ui.status = e.to_string(),
+        }
+    }
     #[derive(Clone, Default)]
     struct AsrDraft {
         language: usize,
@@ -511,15 +651,99 @@ fn asr(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         .color(app.tokens.text_dim),
     );
     ui.add_space(6.0);
-    if button(app, ui, "asr.run", "Transcribe selected media") {
+    if button(app, ui, "asr.run", "Trascrivi la selezione/media") {
         run(app, ui, "transcript.transcribeNl", json!({"language": languages[d.language], "device": devices[d.device]}));
     }
     job_line(app, ui, "Transcribe NL");
-    ui.add_space(10.0);
+    ui.add_space(8.0);
     ui.separator();
-    ui.label(RichText::new("Subtitles and translation").size(13.0).strong());
-    ui.label(RichText::new("Importing SRT/VTT and translating the transcript arrive with the next ASR step; the commands are transcript.importSubtitle and transcript.translate.").size(12.0).color(app.tokens.text_dim));
+    asr_model_manager(app, ui, "asr.manager");
+    ui.add_space(8.0);
+    ui.separator();
+    ui.label(RichText::new("Sottotitoli e traduzione").size(13.0).strong());
+    ui.horizontal(|ui| {
+        if button(app, ui, "asr.import", "Importa SRT/VTT…") {
+            app.pick_ui(
+                crate::native_dialogs::FileDialog::OpenFile {
+                    filter: "Sottotitoli".into(),
+                    exts: vec!["srt".into(), "vtt".into(), "scc".into(), "mcc".into()],
+                },
+                |app, paths| {
+                    if let Some(path) = paths.first() {
+                        app.session.nl.results.insert("asr.pick", json!(path));
+                    }
+                },
+            );
+        }
+        if button(app, ui, "asr.translate_en", "Traduci in inglese") {
+            run(app, ui, "nl.translate.captions", json!({"to": "en"}));
+        }
+        if button(app, ui, "asr.translate_es", "Traduci in spagnolo") {
+            run(app, ui, "nl.translate.captions", json!({"to": "es"}));
+        }
+        if button(app, ui, "asr.transcript_panel", "Apri NL Transcript") {
+            app.show_panel(PanelKind::NlTranscript);
+        }
+    });
     save_draft(ui, "nl-asr", d);
+}
+
+/// The local speech models the suite found, with the buttons that select one. Shared by the ASR
+/// manager and the Speech panel so the same discovery result drives both.
+fn asr_model_manager(app: &mut FilmcraftApp, ui: &mut egui::Ui, salt: &str) {
+    let scan_id = egui::Id::unique(("nl-asr-scan", salt));
+    ui.horizontal(|ui| {
+        if button(app, ui, &format!("{salt}.scan"), "Scansiona modelli") {
+            match app.session.execute("nl.asr.models", json!({})) {
+                Ok(value) => {
+                    ui.data_mut(|data| data.insert_temp(scan_id, value));
+                }
+                Err(e) => app.ui.status = e.to_string(),
+            }
+        }
+        ui.label(RichText::new(format!("Provider: {}", app.session.prefs.nl.asr_provider())).size(11.0).color(app.tokens.text_dim));
+    });
+    let Some(scan) = ui.data(|data| data.get_temp::<Value>(scan_id)) else { return };
+    let models = scan["models"].as_array().cloned().unwrap_or_default();
+    let engines = scan["engines"].as_array().cloned().unwrap_or_default();
+    ui.label(RichText::new(format!("{} verificati · {} engine", scan["count"].as_u64().unwrap_or(0), engines.len())).size(11.0).color(app.tokens.text_faint));
+    let qwen_model = models.iter().find(|m| m["kind"] == "qwen-gguf" && m["role"] == "asr").cloned();
+    let qwen_aligner = models.iter().find(|m| m["kind"] == "qwen-gguf" && m["role"] == "aligner").cloned();
+    let qwen_runner = engines.iter().find(|e| e["engine"] == "qwen3-asr").cloned();
+    if let (Some(model), Some(aligner), Some(runner)) = (qwen_model, qwen_aligner, qwen_runner)
+        && button(app, ui, &format!("{salt}.qwen"), "Usa Qwen3-ASR")
+    {
+        for (key, value) in [
+            ("nl.asrProvider", "qwen_gguf"),
+            ("nl.asrRunner", runner["path"].as_str().unwrap_or("")),
+            ("nl.asrQwenModel", model["path"].as_str().unwrap_or("")),
+            ("nl.asrQwenAligner", aligner["path"].as_str().unwrap_or("")),
+        ] {
+            if let Err(e) = app.session.execute("prefs.set", json!({"key": key, "value": value})) {
+                app.ui.status = e.to_string();
+            }
+        }
+        app.ui.status = "Qwen3-ASR selezionato.".into();
+    }
+    if let Some(whisper) = models.iter().find(|m| m["kind"] == "whisper-ct2").cloned()
+        && button(app, ui, &format!("{salt}.whisper"), "Usa Whisper")
+    {
+        let _ = app.session.execute("prefs.set", json!({"key": "nl.asrProvider", "value": "bridge"}));
+        let _ = app.session.execute("prefs.set", json!({"key": "nl.asrModel", "value": whisper["path"].as_str().unwrap_or("")}));
+        app.ui.status = "Whisper bridge selezionato.".into();
+    }
+    for model in models.iter().take(6) {
+        ui.label(
+            RichText::new(format!(
+                "{} · {} · {}",
+                model["kind"].as_str().unwrap_or(""),
+                model["role"].as_str().unwrap_or(""),
+                model["path"].as_str().unwrap_or("")
+            ))
+            .size(10.0)
+            .color(app.tokens.text_faint),
+        );
+    }
 }
 
 /// Selection flags for a list, kept in the panel's own UI state.
@@ -544,20 +768,23 @@ fn time_range(start: f64, end: f64) -> String {
     format!("{} – {}", stamp(start), stamp(end))
 }
 
-/// NL Home: the dashboard with every NL function one click away. It keeps the default workspace
-/// readable instead of squeezing twenty tabs into one strip.
-fn home(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
-    title(
-        app,
-        ui,
-        "NL Video Suite",
-        "Tutte le funzioni NL in un unico posto. Clicca un pulsante per aprire il pannello corrispondente; le impostazioni AI sono in NL Settings.",
-    );
-    error_line(app, ui);
-    if button(app, ui, "home.nl_layout", "Apri layout NL completo") {
-        app.show_nl_layout();
+/// The timeline range of one clip of the active sequence, for the direct reframe action.
+fn clip_range(session: &filmcraft_engine::Session, clip: u64) -> Option<(f64, f64)> {
+    let sequence = session.active_sequence()?;
+    for track in sequence.video_tracks.iter().chain(sequence.audio_tracks.iter()) {
+        for item in &track.items {
+            if item.id.0 == clip {
+                return Some((item.start.seconds(), item.end().seconds()));
+            }
+        }
     }
-    let groups: [(&str, &[PanelKind]); 4] = [
+    None
+}
+
+/// The dashboard groups. One list, so a new NL panel must be added to a group and the test below
+/// fails if it is missing from the dashboard.
+fn home_groups() -> [(&'static str, &'static [PanelKind]); 4] {
+    [
         ("Creazione", &[PanelKind::NlGenerate, PanelKind::NlMusic, PanelKind::NlBridge, PanelKind::NlStory, PanelKind::NlCover, PanelKind::NlQueue]),
         (
             "Montaggio e analisi",
@@ -566,8 +793,10 @@ fn home(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
                 PanelKind::NlSgrossa,
                 PanelKind::NlClipping,
                 PanelKind::NlLongform,
+                PanelKind::NlTranscript,
                 PanelKind::NlAnalyze,
                 PanelKind::NlSearch,
+                PanelKind::NlShots,
                 PanelKind::NlVersions,
                 PanelKind::NlAlbum,
             ],
@@ -585,8 +814,40 @@ fn home(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
             ],
         ),
         ("Voce e configurazione", &[PanelKind::NlAsr, PanelKind::NlSpeech, PanelKind::NlServices, PanelKind::NlSettings, PanelKind::NlWorkflows]),
-    ];
-    for (group, panels) in groups {
+    ]
+}
+
+/// NL Home: the dashboard with every NL function one click away. It keeps the default workspace
+/// readable instead of squeezing twenty tabs into one strip.
+fn home(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(
+        app,
+        ui,
+        "NL Video Suite",
+        "Tutte le funzioni NL in un unico posto. Clicca un pulsante per aprire il pannello corrispondente; le impostazioni AI sono in NL Settings.",
+    );
+    error_line(app, ui);
+    if button(app, ui, "home.nl_layout", "Apri layout NL completo") {
+        app.show_nl_layout();
+    }
+    // A compact state of the session the dashboard acts on: no AI call, no job, just what is open.
+    if let Some(sequence) = app.session.active_sequence() {
+        let settings = &sequence.settings;
+        let fps = settings.frame_rate.num as f64 / settings.frame_rate.den.max(1) as f64;
+        let cues: usize = sequence.caption_tracks.iter().map(|track| track.captions.len()).sum();
+        let words = filmcraft_engine::transcript::sequence_words(&app.session).len();
+        let scenes = app.session.nl.story.as_ref().and_then(|story| story.get("scenes")).and_then(Value::as_array).map_or(0, Vec::len);
+        let running = app.session.jobs.iter().filter(|job| !job.progress.finished.load(std::sync::atomic::Ordering::Relaxed)).count();
+        ui.label(
+            RichText::new(format!(
+                "{}×{} @ {fps:.2} fps · {words} parole · {cues} cue · {scenes} scene storia · {running} job attivi",
+                settings.width, settings.height
+            ))
+            .size(11.0)
+            .color(app.tokens.text_dim),
+        );
+    }
+    for (group, panels) in home_groups() {
         ui.add_space(6.0);
         ui.label(RichText::new(group).size(12.0).strong());
         ui.horizontal_wrapped(|ui| {
@@ -641,7 +902,107 @@ fn longform(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     } else {
         ui.label(RichText::new("Nessuna analisi ancora: serve una trascrizione nel progetto.").size(11.0).color(app.tokens.text_faint));
     }
+    ui.add_space(8.0);
+    ui.separator();
+    ui.label(RichText::new("Rough cut e silenzi").size(12.0).strong());
+    ui.horizontal(|ui| {
+        if button(app, ui, "longform.roughcut", "Analizza rough cut (silenzi)") {
+            run(app, ui, "nl.sgrossa.analyze", json!({"wait": false}));
+        }
+        if button(app, ui, "longform.sgrossa", "Apri NL Sgrossa") {
+            app.show_panel(PanelKind::NlSgrossa);
+        }
+    });
+    if let Some(plan) = app.session.nl.result("cleanup").cloned() {
+        let cuts = plan["cuts"].as_array().map_or(0, Vec::len);
+        let good = plan["good"].as_array().map_or(0, Vec::len);
+        ui.label(RichText::new(format!("{cuts} tagli proposti · {good} pezzi buoni")).size(11.0).color(app.tokens.text_dim));
+        for piece in plan["good"].as_array().into_iter().flatten().take(6) {
+            let start = piece["start"].as_f64().unwrap_or(0.0);
+            let end = piece["end"].as_f64().unwrap_or(start);
+            ui.label(
+                RichText::new(format!("{} · {}", time_range(start, end), piece["reason"].as_str().unwrap_or("keep"))).size(10.0).color(app.tokens.text_faint),
+            );
+        }
+    } else {
+        ui.label(RichText::new("Nessun piano di rough cut: seleziona un video e avvia l'analisi.").size(10.0).color(app.tokens.text_faint));
+    }
     save_draft(ui, "nl-longform", d);
+}
+
+/// NL Transcript: the sequence transcript, ASR, SRT/VTT import, captions, translation and chapters
+/// in one panel. It is the transcription half of the old longform/transcript workspace.
+fn transcript(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(
+        app,
+        ui,
+        "NL Transcript",
+        "Trascrizione della sequenza attiva: ASR locale, import SRT/VTT, creazione sottotitoli, traduzione e capitoli. Nessun download automatico.",
+    );
+    error_line(app, ui);
+    #[derive(Clone, Default)]
+    struct TranscriptDraft {
+        path: String,
+        to: usize,
+    }
+    let mut d: TranscriptDraft = draft(ui, "nl-transcript");
+    if let Some(path) = app.session.nl.results.remove("transcript.pick").and_then(|value| value.as_str().map(str::to_string)) {
+        d.path = path;
+        app.ui.status = format!("File scelto: {}", d.path);
+    }
+    let words = filmcraft_engine::transcript::sequence_words(&app.session).len();
+    let cues = app.session.active_sequence().map_or(0, |sequence| sequence.caption_tracks.iter().map(|track| track.captions.len()).sum());
+    let selection = app.session.state.selection.len();
+    ui.label(RichText::new(format!("{words} parole · {cues} cue nella sequenza attiva · {selection} clip selezionati")).size(11.0).color(app.tokens.text_dim));
+    ui.horizontal(|ui| {
+        if button(app, ui, "transcript.run", "Trascrivi selezione/media") {
+            run(app, ui, "transcript.transcribeNl", json!({}));
+        }
+        if button(app, ui, "transcript.captions", "Crea sottotitoli dal testo") {
+            run(app, ui, "transcript.createCaptions", json!({}));
+        }
+        if button(app, ui, "transcript.text_panel", "Apri pannello Testo") {
+            app.show_panel(PanelKind::Text);
+            app.ui.text_tab = "Transcript".into();
+        }
+    });
+    job_line(app, ui, "Transcribe NL");
+    ui.add_space(6.0);
+    ui.separator();
+    ui.label(RichText::new("Importa SRT/VTT nella sequenza attiva").size(12.0).strong());
+    field(app, ui, "transcript.path", "File SRT/VTT", &mut d.path);
+    ui.horizontal(|ui| {
+        if button(app, ui, "transcript.pick", "Scegli file…") {
+            app.pick_ui(
+                crate::native_dialogs::FileDialog::OpenFile {
+                    filter: "Sottotitoli".into(),
+                    exts: vec!["srt".into(), "vtt".into(), "scc".into(), "mcc".into()],
+                },
+                |app, paths| {
+                    if let Some(path) = paths.first() {
+                        app.session.nl.results.insert("transcript.pick", json!(path));
+                    }
+                },
+            );
+        }
+        if button(app, ui, "transcript.import", "Importa") && !d.path.trim().is_empty() {
+            run(app, ui, "captions.import", json!({"path": d.path.trim()}));
+        }
+    });
+    ui.add_space(6.0);
+    ui.separator();
+    ui.label(RichText::new("Traduzione e capitoli").size(12.0).strong());
+    let options = vec![("en".to_string(), "Inglese".to_string()), ("es".to_string(), "Spagnolo".to_string())];
+    combo(app, ui, "transcript.to", "Lingua di destinazione", &mut d.to, &options);
+    ui.horizontal(|ui| {
+        if button(app, ui, "transcript.translate", "Traduci sottotitoli") {
+            run(app, ui, "nl.translate.captions", json!({"to": options[d.to.min(options.len() - 1)].0}));
+        }
+        if button(app, ui, "transcript.longform", "Analizza capitoli") {
+            run(app, ui, "nl.longform.analyze", json!({"wait": false}));
+        }
+    });
+    save_draft(ui, "nl-transcript", d);
 }
 
 /// NL Search: index and search the project's clips, markers and story.
@@ -817,6 +1178,10 @@ fn shots(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         if button(app, ui, "shots.timeline", "Vai alla Timeline") { app.show_panel(PanelKind::Timeline); }
     });
     job_line(app, ui, "Scene Edit Detection");
+    if let Some(sequence) = app.session.active_sequence() {
+        let clips: usize = sequence.video_tracks.iter().map(|track| track.items.len()).sum();
+        ui.label(RichText::new(format!("Sequenza attiva: {clips} clip video · {} marker", sequence.markers.len())).size(11.0).color(app.tokens.text_dim));
+    }
     ui.label(
         RichText::new("I marker compaiono sul clip e nella timeline; i tagli non vengono applicati finché non li confermi con lo strumento nativo.")
             .size(10.0)
@@ -825,15 +1190,20 @@ fn shots(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     save_draft(ui, "nl-shots", d);
 }
 
-/// NL Social: the platform checks before publishing.
+/// NL Social: the platform checks before publishing, with the profile the checks use.
 fn social(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
-    title(app, ui, "NL Social", "Controlli di consegna per piattaforma: durata, formato, sottotitoli e requisiti del social scelto.");
+    title(app, ui, "NL Social", "Profilo di pubblicazione e controlli di consegna: formato, durata, sottotitoli e audio della sequenza attiva.");
     error_line(app, ui);
-    let platforms = [("youtube", "YouTube"), ("tiktok", "TikTok"), ("reels", "Instagram Reels"), ("instagram", "Instagram")];
+    let platforms = [
+        ("youtube", "YouTube", "16:9 o 9:16", "Shorts fino a 60 s", "consigliati"),
+        ("tiktok", "TikTok", "9:16 verticale", "15–600 s", "richiesti"),
+        ("reels", "Instagram Reels", "9:16 verticale", "fino a 90 s", "consigliati"),
+        ("instagram", "Instagram feed", "4:5 o 1:1", "fino a 60 s", "consigliati"),
+    ];
     let mut platform = ui.data(|d| d.get_temp::<usize>(egui::Id::unique("nl-social-platform"))).unwrap_or(0).min(platforms.len() - 1);
     ui.horizontal(|ui| {
         craft_ui::ComboBox::from_id_salt("nl-social-platform-combo").selected_text(platforms[platform].1).show_ui(ui, |ui| {
-            for (i, (_, label)) in platforms.iter().enumerate() {
+            for (i, (_, label, _, _, _)) in platforms.iter().enumerate() {
                 if ui.selectable_value(&mut platform, i, *label).changed() {
                     ui.data_mut(|d| d.insert_temp(egui::Id::unique("nl-social-platform"), platform));
                 }
@@ -848,16 +1218,42 @@ fn social(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
             }
         }
     });
+    let (_, label, aspect, duration, captions) = platforms[platform];
+    ui.label(RichText::new(format!("{label}: {aspect} · {duration} · sottotitoli {captions}")).size(11.0).color(app.tokens.text_dim));
+    if let Some(sequence) = app.session.active_sequence() {
+        let settings = &sequence.settings;
+        ui.label(
+            RichText::new(format!(
+                "Sequenza attiva: {}×{} · {:.1} s · {} cue",
+                settings.width,
+                settings.height,
+                sequence.duration().seconds(),
+                sequence.caption_tracks.iter().map(|track| track.captions.len()).sum::<usize>()
+            ))
+            .size(10.0)
+            .color(app.tokens.text_faint),
+        );
+    }
     if let Some(result) = ui.data(|d| d.get_temp::<Value>(egui::Id::unique("nl-social-result"))) {
         ui.add_space(6.0);
         let checks = result["checks"].as_array().cloned().unwrap_or_default();
-        ui.label(RichText::new(format!("{} controlli", checks.len())).size(12.0));
+        let ready = result["ready"].as_bool().unwrap_or(false);
+        ui.label(RichText::new(format!("{} controlli · {}", checks.len(), if ready { "pronto" } else { "da rivedere" })).size(12.0).color(if ready {
+            app.tokens.text_dim
+        } else {
+            egui::Color32::from_rgb(233, 180, 120)
+        }));
         for check in checks.iter().take(40) {
             let ok = check["ok"].as_bool().unwrap_or(false);
             ui.label(
-                RichText::new(format!("{} {} — {}", if ok { "OK" } else { "!" }, check["name"].as_str().unwrap_or(""), check["detail"].as_str().unwrap_or("")))
-                    .size(11.0)
-                    .color(if ok { app.tokens.text_dim } else { egui::Color32::from_rgb(233, 180, 120) }),
+                RichText::new(format!(
+                    "{} {} — {}",
+                    if ok { "OK" } else { "!" },
+                    check["id"].as_str().unwrap_or("check"),
+                    check["detail"].as_str().unwrap_or("")
+                ))
+                .size(11.0)
+                .color(if ok { app.tokens.text_dim } else { egui::Color32::from_rgb(233, 180, 120) }),
             );
         }
     }
@@ -868,19 +1264,41 @@ fn social(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         if button(app, ui, "social.open_delivery", "Apri NL Delivery") {
             app.show_panel(PanelKind::NlDelivery);
         }
+        if button(app, ui, "social.open_studio", "Apri NL Studio") {
+            app.show_panel(PanelKind::NlStudio);
+        }
     });
 }
 
-/// NL Studio: the finishing surfaces in one place.
+/// NL Studio: the finishing surfaces in one place, with the state of the sequence they finish.
 fn studio(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
-    title(app, ui, "NL Studio", "Motion graphics, titoli e sottotitoli: le superfici di finitura con un clic.");
+    title(
+        app,
+        ui,
+        "NL Studio",
+        "Motion graphics, titoli, sottotitoli, audio e consegna: le superfici di finitura con un clic e lo stato della sequenza attiva.",
+    );
     error_line(app, ui);
+    if let Some(sequence) = app.session.active_sequence() {
+        let video: usize = sequence.video_tracks.iter().map(|track| track.items.len()).sum();
+        let audio: usize = sequence.audio_tracks.iter().map(|track| track.items.len()).sum();
+        let cues: usize = sequence.caption_tracks.iter().map(|track| track.captions.len()).sum();
+        ui.label(
+            RichText::new(format!("Sequenza attiva: {video} clip video · {audio} clip audio · {cues} cue · {:.1} s", sequence.duration().seconds()))
+                .size(11.0)
+                .color(app.tokens.text_dim),
+        );
+    }
+    ui.add_space(6.0);
     for (label, panel) in [
         ("Titles & Graphics", PanelKind::NlTitles),
         ("Graphics", PanelKind::NlGraphics),
         ("Subtitles", PanelKind::NlSubtitles),
         ("Audio", PanelKind::NlAudio),
         ("Delivery", PanelKind::NlDelivery),
+        ("Social", PanelKind::NlSocial),
+        ("Versions", PanelKind::NlVersions),
+        ("Album", PanelKind::NlAlbum),
     ] {
         if button(app, ui, &format!("studio.{}", panel.id()), label) {
             app.show_panel(panel);
@@ -888,9 +1306,11 @@ fn studio(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     }
     ui.add_space(6.0);
     ui.label(
-        RichText::new("Suggerimento: i sottotitoli automatici delle nuove sequenze Clips AI sono già stilizzati; qui puoi rifinirli o esportarli.")
-            .size(10.0)
-            .color(app.tokens.text_faint),
+        RichText::new(
+            "Suggerimento: i sottotitoli automatici delle nuove sequenze Clips AI sono già stilizzati; qui puoi rifinirli, esportarli o consegnarli.",
+        )
+        .size(10.0)
+        .color(app.tokens.text_faint),
     );
 }
 
@@ -903,6 +1323,13 @@ fn services(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         "Stato di ComfyUI/Ollama, modelli disponibili, spazio dati e informazioni del progetto aperto. Nessun servizio viene avviato.",
     );
     error_line(app, ui);
+    let project = app.session.project.name.clone();
+    let sequence = app
+        .session
+        .active_sequence()
+        .map(|sequence| format!("{}×{} · {:.1} s", sequence.settings.width, sequence.settings.height, sequence.duration().seconds()))
+        .unwrap_or_else(|| "nessuna sequenza".into());
+    ui.label(RichText::new(format!("Progetto: {project} · Sequenza: {sequence}")).size(11.0).color(app.tokens.text_dim));
     ui.horizontal(|ui| {
         if button(app, ui, "services.status", "Stato servizi") {
             match app.session.execute("nl.services.status", json!({})) {
@@ -943,11 +1370,69 @@ fn services(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     for (id, title_text) in
         [("nl-services-status", "Servizi"), ("nl-services-models", "Modelli"), ("nl-services-storage", "Spazio"), ("nl-services-project", "Progetto")]
     {
-        if let Some(value) = ui.data(|d| d.get_temp::<Value>(egui::Id::unique(id))) {
-            ui.add_space(4.0);
-            ui.label(RichText::new(title_text).size(12.0).strong());
-            let text = serde_json::to_string_pretty(&value).unwrap_or_default();
-            ui.label(RichText::new(text).size(10.0).color(app.tokens.text_dim));
+        let Some(value) = ui.data(|d| d.get_temp::<Value>(egui::Id::unique(id))) else { continue };
+        ui.add_space(4.0);
+        ui.label(RichText::new(title_text).size(12.0).strong());
+        match id {
+            "nl-services-status" => {
+                let row = |ui: &mut egui::Ui, name: &str, value: &Value| {
+                    let reachable = value["reachable"].as_bool().unwrap_or(false);
+                    let detail = if reachable {
+                        value["version"]
+                            .as_str()
+                            .map(str::to_string)
+                            .or_else(|| value["system"]["comfyui_version"].as_str().map(str::to_string))
+                            .unwrap_or_else(|| "attivo".into())
+                    } else {
+                        value["error"].as_str().unwrap_or("non raggiungibile").to_string()
+                    };
+                    ui.label(
+                        RichText::new(format!("{name}: {} · {} · {}", if reachable { "OK" } else { "!" }, detail, value["url"].as_str().unwrap_or("")))
+                            .size(10.5)
+                            .color(if reachable { app.tokens.text_dim } else { egui::Color32::from_rgb(233, 180, 120) }),
+                    );
+                };
+                if let Some(comfy) = value.get("comfy") {
+                    row(ui, "ComfyUI", comfy);
+                }
+                if let Some(ollama) = value.get("ollama") {
+                    row(ui, "Ollama", ollama);
+                }
+                if let Some(llm) = value.get("llm") {
+                    ui.label(
+                        RichText::new(format!(
+                            "LLM: {} · {} · {} · {}",
+                            llm["provider"].as_str().unwrap_or(""),
+                            llm["model"].as_str().unwrap_or(""),
+                            llm["url"].as_str().unwrap_or(""),
+                            if llm["reachable"].as_bool().unwrap_or(false) { "OK" } else { "non raggiungibile" }
+                        ))
+                        .size(10.5)
+                        .color(app.tokens.text_dim),
+                    );
+                }
+            }
+            "nl-services-models" => {
+                let models = value["models"].as_array().cloned().unwrap_or_default();
+                ui.label(
+                    RichText::new(format!("{} modelli · provider {}", models.len(), value["provider"].as_str().unwrap_or("")))
+                        .size(10.5)
+                        .color(app.tokens.text_dim),
+                );
+                for model in models.iter().take(8) {
+                    ui.label(RichText::new(format!("· {}", model.as_str().unwrap_or(""))).size(10.0).color(app.tokens.text_faint));
+                }
+            }
+            "nl-services-storage" => {
+                let text = serde_json::to_string(&value).unwrap_or_default();
+                ui.label(RichText::new(text).size(10.0).color(app.tokens.text_dim));
+            }
+            "nl-services-project" => {
+                let name = value["name"].as_str().or_else(|| value["project"]["name"].as_str()).unwrap_or("progetto");
+                let sequence = value["activeSequence"].clone();
+                ui.label(RichText::new(format!("{name} · sequenza attiva {sequence}")).size(10.5).color(app.tokens.text_dim));
+            }
+            _ => {}
         }
     }
 }
@@ -969,6 +1454,10 @@ fn clipping(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         item: Option<u64>,
         target: usize,
         focus: usize,
+        tracking: usize,
+        behavior: usize,
+        stability: String,
+        response: String,
         subtitles: bool,
     }
     let mut d: ClipDraft = draft(ui, "nl-clipping");
@@ -1033,8 +1522,14 @@ fn clipping(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     ui.separator();
     ui.label(RichText::new("Nuove sequenze con reframe e sottotitoli").size(12.0).strong());
     let targets = [("vertical", "Verticale 9:16"), ("horizontal", "Orizzontale 16:9")];
-    let focuses =
-        [("center", "Centro"), ("left", "Soggetto a sinistra"), ("right", "Soggetto a destra"), ("top", "Soggetto in alto"), ("bottom", "Soggetto in basso")];
+    let focuses = [
+        ("auto", "Automatico (volti)"),
+        ("center", "Centro"),
+        ("left", "Soggetto a sinistra"),
+        ("right", "Soggetto a destra"),
+        ("top", "Soggetto in alto"),
+        ("bottom", "Soggetto in basso"),
+    ];
     ui.horizontal(|ui| {
         craft_ui::ComboBox::from_id_salt("clips-target").selected_text(targets[d.target.min(1)].1).show_ui(ui, |ui| {
             for (i, (_, label)) in targets.iter().enumerate() {
@@ -1048,6 +1543,49 @@ fn clipping(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         });
         ui.checkbox(&mut d.subtitles, "Sottotitoli automatici");
     });
+    let selected_focus = focuses[d.focus.min(focuses.len() - 1)].0;
+    if selected_focus == "auto" {
+        let trackings = vec![("smooth".to_string(), "Traiettoria fluida".to_string()), ("static".to_string(), "Inquadratura statica".to_string())];
+        let behaviors = vec![("composed".to_string(), "Camera composta (consigliata)".to_string()), ("legacy".to_string(), "Inseguimento legacy".to_string())];
+        ui.horizontal(|ui| {
+            combo(app, ui, "clipping.tracking", "Reframe", &mut d.tracking, &trackings);
+            combo(app, ui, "clipping.behavior", "Comportamento", &mut d.behavior, &behaviors);
+        });
+        ui.horizontal(|ui| {
+            field(app, ui, "clipping.stability", "Stabilità (0–100)", &mut d.stability);
+            field(app, ui, "clipping.response", "Reattività (0–100)", &mut d.response);
+        });
+        ui.label(
+            RichText::new(
+                "La camera segue i volti con tagli di scena, dead-zone e limiti di velocità; se il crop non è certificato resta un avviso da rivedere.",
+            )
+            .size(10.0)
+            .color(app.tokens.text_faint),
+        );
+    }
+    if button(app, ui, "clipping.reframe", "Reframe automatico della selezione") {
+        let mut params = json!({
+            "target": targets[d.target.min(1)].0,
+            "focus": selected_focus,
+            "subtitles": d.subtitles,
+        });
+        if let Some(item) = d.item {
+            params["item"] = json!(item);
+        }
+        if let Some(clip) = app.session.state.selection.first().map(|clip| clip.0)
+            && let Some((start, end)) = clip_range(&app.session, clip)
+        {
+            params["startSeconds"] = json!(start);
+            params["endSeconds"] = json!(end);
+        }
+        if selected_focus == "auto" {
+            params["tracking"] = json!(if d.tracking == 0 { "smooth" } else { "static" });
+            params["behavior"] = json!(if d.behavior == 0 { "composed" } else { "legacy" });
+            params["stability"] = json!(d.stability.trim().parse::<f64>().unwrap_or(65.0) / 100.0);
+            params["response"] = json!(d.response.trim().parse::<f64>().unwrap_or(65.0) / 100.0);
+        }
+        run(app, ui, "nl.reframe.sequence", params);
+    }
     if button(app, ui, "clipping.analyze", "Find candidates") {
         if d.item.is_none() && app.session.state.project_selection.is_empty() {
             app.ui.status = "Scegli un video con «Scegli video…» oppure seleziona un clip nel pannello Progetto/timeline.".into();
@@ -1103,6 +1641,12 @@ fn clipping(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
                     "focus": focuses[d.focus.min(focuses.len() - 1)].0,
                     "subtitles": d.subtitles,
                 });
+                if focuses[d.focus.min(focuses.len() - 1)].0 == "auto" {
+                    params["tracking"] = json!(if d.tracking == 0 { "smooth" } else { "static" });
+                    params["behavior"] = json!(if d.behavior == 0 { "composed" } else { "legacy" });
+                    params["stability"] = json!(d.stability.trim().parse::<f64>().unwrap_or(65.0) / 100.0);
+                    params["response"] = json!(d.response.trim().parse::<f64>().unwrap_or(65.0) / 100.0);
+                }
                 if let Some(item) = d.item {
                     params["item"] = json!(item);
                 }
@@ -2504,4 +3048,61 @@ fn settings(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
             .size(12.0)
             .color(app.tokens.text_dim),
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+
+    use super::*;
+    use crate::dock::NL_PANELS;
+
+    /// Every NL panel in the layout has a body: a new panel cannot be added to `NL_PANELS` and
+    /// silently render an empty panel.
+    #[test]
+    fn every_nl_panel_has_a_body() {
+        for panel in NL_PANELS {
+            assert!(body(panel).is_some(), "{} has no NL body", panel.title());
+        }
+        assert_eq!(NL_PANELS.len(), 29);
+    }
+
+    /// NL Home is the dashboard with all the functions: every NL panel except Home itself appears
+    /// once, and no panel is listed twice.
+    #[test]
+    fn home_links_every_nl_panel_once() {
+        let mut seen = HashSet::new();
+        for (_, panels) in home_groups() {
+            for panel in panels {
+                assert!(seen.insert(*panel), "{} is listed twice in NL Home", panel.title());
+            }
+        }
+        for panel in NL_PANELS {
+            if panel != PanelKind::NlHome {
+                assert!(seen.contains(&panel), "{} is missing from NL Home", panel.title());
+            }
+        }
+        assert_eq!(seen.len(), NL_PANELS.len() - 1);
+    }
+}
+
+/// Every command a panel says it uses exists in the engine registry, and every NL panel has a
+/// contract entry. This is the static half of "all panels connected to commands".
+#[test]
+fn panel_contract_commands_are_registered() {
+    use std::collections::HashSet;
+
+    use crate::dock::NL_PANELS;
+
+    let ids: HashSet<&str> = filmcraft_engine::commands::command_specs().iter().map(|spec| spec.id).collect();
+    let mut panels = HashSet::new();
+    for (panel, commands) in PANEL_COMMANDS {
+        assert!(panels.insert(*panel), "{} has two contract rows", panel.title());
+        for id in *commands {
+            assert!(ids.contains(id), "{} points at an unknown command `{id}`", panel.title());
+        }
+    }
+    for panel in NL_PANELS {
+        assert!(panels.contains(&panel), "{} has no command contract", panel.title());
+    }
 }
