@@ -98,6 +98,32 @@ endpoint OpenAI-compatibili di Ollama (`http://127.0.0.1:11434/v1`).
 Il pannello **NL Settings** mostra provider, endpoint e modello in uso; **NL Workflows ▸ Diagnostica**
 e `nl.services.status` dicono se l'endpoint risponde (senza avviarlo).
 
+
+
+### NL Clips AI e reframe nelle sequenze
+
+- Apri **NL Clips AI** (pannello o NL Home): scegli un video con «Scegli video…» oppure seleziona un
+  clip nel progetto/timeline; imposta target **Verticale 9:16** o **Orizzontale 16:9**, focus del
+  soggetto e «Sottotitoli automatici».
+- «Trova candidati» produce le proposte; seleziona quelle che vuoi e premi **«Crea sequenze con
+  reframe + sottotitoli»**: ogni candidato diventa una nuova sequenza con clip riempita sul frame,
+  margini di sicurezza e caption track (Inter Bold, bianco su fondo nero).
+- **NL Settings → «Apri layout NL Video Suite»** dispone NL Home, creazione, timeline e finitura in un
+  unico workspace leggibile.
+
+### Parametri avanzati dei workflow (LoRA e preset)
+
+- NL Workflows → scegli workflow → **Show parameters**. Il pannello legge `/object_info` di ComfyUI e
+  mostra i widget reali raggruppati per nodo in **Avanzate** (filtro in alto).
+- Le tendine coprono LoRA, checkpoint/UNET, VAE, CLIP, sampler, scheduler, dtype; numeri e testi hanno
+  i controlli corrispondenti.
+- **Copia overrides JSON** oppure **Usa per la prossima generazione**: NL Generate → *Use workflow
+  overrides* riempie il campo Widget overrides JSON.
+- **Preset**: nome → Salva preset; Aggiorna elenco → scegli → Carica/Elimina. I preset usano
+  classe+campo, quindi si riapplicano a workflow diversi con gli stessi nodi.
+- Da CLI: `nl.workflows.presets` con `action: list|save|load|copy|delete`; gli override si passano a
+  `graphics.generateComfy` nello stesso formato `[{"class":"KSampler","field":"steps","value":12}]`.
+
 ### Analisi timeline con LFM (vision) e audio
 
 - Avvia il server vision locale (esempio, LFM3 su llama.cpp):

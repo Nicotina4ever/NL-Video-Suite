@@ -56,6 +56,15 @@ impl FilmcraftApp {
         }
     }
 
+    /// Open the complete NL surface without registering a new built-in workspace: the Home
+    /// dashboard, creation tools, timeline and finishing panels in one readable dock layout.
+    pub fn show_nl_layout(&mut self) {
+        self.ui.dock = crate::dock::workspace("NL Video Suite");
+        self.ui.workspace = "NL Video Suite".into();
+        self.ui.focused = PanelKind::NlHome;
+        self.ui.status = "Layout NL Video Suite attivato.".into();
+    }
+
     pub fn set_workspace(&mut self, name: &str) {
         self.ui.workspace = name.to_string();
         self.ui.dock = dock::saved_docking(&self.workspaces, name);

@@ -1,0 +1,44 @@
+{
+  "date": "2026-11-24",
+  "phase": "P15 (Clips AI → sequenze reframed con sottotitoli) e P16 (NL Home/layout completo)",
+  "title": "Clips AI finalmente operativo in GUI: scelta video, nuove sequenze 9:16/16:9 con reframe e sottotitoli stilizzati; layout NL completo con Home e tutti i pannelli instradati",
+  "intent": "Chiudere le lacune segnalate dall'operatore: il pannello Clipping non deve solo mostrare un errore, ma prendere un video e produrre sequenze pronte con reframe e sottotitoli; l'intera superficie NL deve essere raggiungibile in un layout comodo e i pannelli non devono più cadere nel placeholder.",
+  "implemented": {
+    "reframe": [
+      "crates/engine/src/nl/reframe.rs: nl.reframe.sequence crea una nuova sequenza 1080×1920 o 1920×1080, inserisce il range del candidato con sourceIn/duration, applica motion scale/position per riempire il frame e accetta focus center/left/right/top/bottom",
+      "nl.clipping.sequences: 1–12 candidati → altrettante sequenze; per ogni candidato genera una caption track stile professionale (Inter Bold, bianco, fondo nero, safe margin, outline) dai word timestamps forniti",
+      "reframe verificato live: sorgente 3840×2160 → sequenza 1080×1920, clip piazzata, 2 cue di sottotitoli, nessuna modifica al progetto originale"
+    ],
+    "clips_ai_gui": [
+      "pannello rinominato NL Clips AI (non più «Clipping», che suggeriva un clipper audio)",
+      "campo percorso + «Scegli video…» che importa il file e usa l'item importato; «Usa selezione corrente» per il video selezionato nel progetto/timeline",
+      "se non c'è nulla di selezionato il pannello spiega cosa fare invece di lanciare il comando e mostrare l'errore",
+      "selettori target Verticale 9:16 / Orizzontale 16:9, focus del soggetto (centro/sinistra/destra/alto/basso) e sottotitoli automatici (attivi di default)",
+      "«Crea sequenze con reframe + sottotitoli» sui candidati selezionati; a fine operazione elenca le sequenze create con dimensioni"
+    ],
+    "nl_layout": [
+      "nuovo pannello NL Home: dashboard con TUTTE le funzioni NL divise in Creazione, Montaggio e analisi, Finitura, Voce e configurazione; ogni pulsante apre il pannello",
+      "layout NL completo (NL Home + pannelli standard + timeline + finitura) applicabile dal pulsante «Apri layout NL Video Suite» in NL Settings",
+      "i pannelli NL che prima mostravano «coming in a later milestone» vengono ora instradati al renderer NL (Analyze, Subtitles, Titles, Graphics, Audio, Delivery, Album, Versions, Montage, Bridge)",
+      "nuovi pannelli NL Longform (capitoli/marker/export), NL Search (indice e ricerca), NL Speech (modelli ASR + trascrizione)",
+      "nomi accessibili aggiunti ai controlli dei pannelli NL; layout NL con meno tab troncati e Home come punto di partenza"
+    ]
+  },
+  "live_evidence": {
+    "reframe": "documentazione/prove/p15-reframe/reframe.jsonl: sequenza 70, target 1080×1920, clip 72, scale 88.89%, 2 cue; sequence.inspect conferma 180 frame a 1080×1920",
+    "tests": "engine 1052+17, UI 368 + 4 + 1 + 815 integrazione, clippy pulito",
+    "gui_smoke": "avvio release da eseguibile in radice e chiusura pulita"
+  },
+  "limits": [
+    "Il reframe usa un fuoco statico scelto dall'operatore (centro/destra/sinistra/alto/basso): non è ancora un tracker di volto/oggetto; il vecchio progetto usava 7 campioni per suggerire un fuoco statico, non un tracker.",
+    "I sottotitoli delle nuove sequenze richiedono i word timestamps (forniti dalla trascrizione/clipping); senza parole il reframe funziona ma la caption track è vuota.",
+    "Il layout NL è un'azione esplicita (NL Settings → Apri layout NL) per non alterare il layout Editing predefinito e i test/automazioni che lo assumono.",
+    "I nomi dei pannelli restano in inglese come il resto della UI upstream."
+  ],
+  "rules_respected": [
+    "Nessun download; nessun servizio avviato per i test",
+    "Nessuna modifica al progetto quando si creano le sequenze (nuove sequenze separate)",
+    "Sorgente K:\\AI\\Prompter_Comfyui e vecchia suite letti in sola lettura",
+    "Niente 'FilmCraft' nei testi visibili"
+  ]
+}

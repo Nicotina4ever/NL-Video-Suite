@@ -22,6 +22,7 @@ pub mod montage;
 pub mod pipeline;
 pub mod prompt;
 pub mod queue;
+pub mod reframe;
 pub mod search;
 pub mod size;
 pub mod state;
@@ -428,6 +429,7 @@ fn workflows_parameters(s: &mut Session, p: &Value) -> Result<Value> {
     })?;
     let limit = p.get("limit").and_then(Value::as_u64).unwrap_or(200).clamp(1, 2000) as usize;
     let mut report = workflows::parameters(&workflow, info, limit);
+    report["workflow"] = json!(file.to_string_lossy());
     report["workflow"] = json!(path);
     Ok(report)
 }
@@ -579,6 +581,12 @@ pub fn commands() -> Vec<CommandSpec> {
         spec("nl.workflows.verify", "NL Verify ComfyUI API", "{}", workflows_verify),
         spec("nl.workflows.diagnose", "NL Workflow Doctor", r#"{"workflow":str?,"all":bool?,"api":bool?}"#, workflows_diagnose),
         spec("nl.workflows.parameters", "NL Workflow Parameters", r#"{"workflow":str,"api":bool?,"limit":int?}"#, workflows_parameters),
+        spec(
+            "nl.workflows.presets",
+            "NL Workflow Presets",
+            r#"{"action":"list|save|load|copy|delete","name":str?,"from":str?,"workflow":str?,"overrides":[any]?}"#,
+            |_s, p| workflows::preset_action(p),
+        ),
         spec("nl.workflows.import", "NL Import Workflow", r#"{"path":str}"#, workflows_import),
         spec("nl.workflows.fix", "NL Fix Workflow Copy", r#"{"workflow":str}"#, workflows_fix),
     ]
@@ -588,6 +596,7 @@ pub fn commands() -> Vec<CommandSpec> {
     .chain(longform::commands())
     .chain(search::commands())
     .chain(queue::commands())
+    .chain(reframe::commands())
     .chain(translate::commands())
     .chain(assistant::commands())
     .chain(titles::commands())

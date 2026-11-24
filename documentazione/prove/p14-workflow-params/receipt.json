@@ -1,0 +1,41 @@
+{
+  "date": "2026-11-24",
+  "phase": "P14 (parametri workflow, LoRA e preset riutilizzabili)",
+  "title": "Editor avanzato dei parametri dei workflow NL: tendine per LoRA/checkpoint/sampler, sezioni «Avanzate», preset salvabili e copiabili su altri workflow",
+  "intent": "Riutilizzare in NL Video Suite il modo di lavorare visto in K:\\AI\\Prompter_Comfyui (sola lettura): leggere i widget reali del workflow, sceglierli da menù a tendina, raggrupparli in Avanzate, salvare l'impostazione e riapplicarla/copiarla su un altro workflow.",
+  "implemented": {
+    "engine": [
+      "la base esisteva già: nl.workflows.parameters legge /object_info di ComfyUI e restituisce node/class/title/field/value/kind/choices/min/max/linked; ora include anche il path del workflow",
+      "graphics.generateComfy.overrides accetta oltre a node/field/value anche class (+ title) e optional: un preset copiato su un altro workflow trova il nodo per classe/field invece che per id",
+      "nl.workflows.presets: list/save/load/copy/delete di set di override in %APPDATA%\\NL Video Suite\\nl\\workflow-presets; validazione field/value/node-o-class; nessuna scrittura sul workflow"
+    ],
+    "gui": [
+      "NL Workflows → Show parameters: pannello interattivo con filtro e sezioni comprimibili «Avanzate · <classe nodo>»",
+      "choice → tendina (LoRA, ckpt/unet, vae, sampler, scheduler, dtype…); int/float → drag con min/max; bool → checkbox; testo → campo",
+      "«Copia overrides JSON» negli appunti; «Usa per la prossima generazione» riempie il campo Widget overrides JSON del pannello NL Generate (nuovo pulsante «Use workflow overrides»)",
+      "preset: nome, Salva preset, Aggiorna elenco, tendina preset con Carica (mappa per node/field o class/field) ed Elimina"
+    ]
+  },
+  "live_evidence": {
+    "parameters": "MiniMax H3 Extend: 104 widget, 2 classi mancanti; choice reali 17 VAE, 20 UNET, 15 CLIP, 38 LoRA, 64 sampler su z-image; LoRA corrente minimax_h3_ref2v_turbo_4step…",
+    "presets": "save/list/load di test-lora-steps con 3 override (LoRA, steps, unet) → ok",
+    "dry_run": "graphics.generateComfy dryRun con workflow z-image e override class KSampler.steps=9 → ok, 10 nodi, overridden=1, submitted=false",
+    "files": ["documentazione/prove/p14-workflow-params/parameters.jsonl", "presets.jsonl", "dryrun.jsonl"]
+  },
+  "checks": [
+    "nl::workflows::preset_tests (round-trip del formato preset)",
+    "comfy::tests overrides (node, class, optional, errori)",
+    "cargo fmt, clippy -D warnings, engine/UI test completi"
+  ],
+  "limits": [
+    "Le scelte dipendono da /object_info di ComfyUI: se ComfyUI è spento il pannello mostra i soli valori salvati nel JSON; i nodi custom con schema non-enum restano campi liberi.",
+    "Il preset salva override di widget esistenti; non aggiunge/rimuove nodi LoRA (la selezione del lora_name è supportata, l'inserimento di un nuovo nodo LoRA non è automatico).",
+    "Il riuso su un altro workflow funziona quando classe+nome campo esistono; gli id dei nodi possono differire.",
+    "Il campo overrides resta JSON anche nel pannello Generate (oltre ai pulsanti); è voluto per scripting e copia-incolla."
+  ],
+  "rules_respected": [
+    "K:\\AI\\Prompter_Comfyui letta in sola lettura; nessuna scrittura sui workflow",
+    "Nessun download",
+    "Nessuna modifica ai progetti utente"
+  ]
+}

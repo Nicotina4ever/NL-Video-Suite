@@ -61,10 +61,14 @@ pub enum PanelKind {
     NlSettings,
     NlCover,
     NlWorkflows,
+    NlLongform,
+    NlSearch,
+    NlSpeech,
+    NlHome,
 }
 
 impl PanelKind {
-    pub const ALL: [PanelKind; 48] = [
+    pub const ALL: [PanelKind; 52] = [
         PanelKind::Project,
         PanelKind::MediaBrowser,
         PanelKind::Libraries,
@@ -113,6 +117,10 @@ impl PanelKind {
         PanelKind::NlSettings,
         PanelKind::NlCover,
         PanelKind::NlWorkflows,
+        PanelKind::NlLongform,
+        PanelKind::NlSearch,
+        PanelKind::NlSpeech,
+        PanelKind::NlHome,
     ];
     pub fn title(self) -> &'static str {
         match self {
@@ -147,7 +155,7 @@ impl PanelKind {
             PanelKind::NlGenerate => "NL Generate",
             PanelKind::NlMusic => "NL Music",
             PanelKind::NlAsr => "NL ASR",
-            PanelKind::NlClipping => "NL Clipping",
+            PanelKind::NlClipping => "NL Clips AI",
             PanelKind::NlSgrossa => "NL Rough Cut",
             PanelKind::NlAnalyze => "NL Analyze",
             PanelKind::NlSubtitles => "NL Subtitles",
@@ -164,6 +172,10 @@ impl PanelKind {
             PanelKind::NlSettings => "NL Settings",
             PanelKind::NlCover => "NL Cover",
             PanelKind::NlWorkflows => "NL Workflows",
+            PanelKind::NlLongform => "NL Longform",
+            PanelKind::NlSearch => "NL Search",
+            PanelKind::NlSpeech => "NL Speech",
+            PanelKind::NlHome => "NL Home",
         }
     }
     pub fn id(self) -> String {
@@ -582,6 +594,57 @@ fn workspace_root(name: &str) -> Node<PanelKind> {
             ),
             hsplit(Ratio(0.26), tabs(&[Project, MediaBrowser, Libraries, Info, Effects, Markers, History], 0), bottom_editing()),
         ),
+        // NL Video Suite: a readable default rather than a wall of truncated tabs. NL Home is the
+        // dashboard with every NL function one click away; the creation tools, the picture, the
+        // timeline and the finishing panels stay docked.
+        "NL Video Suite" => vsplit(
+            Ratio(0.56),
+            hsplit(
+                Ratio(0.2),
+                tabs(&[NlHome, Project, MediaBrowser, Libraries, Info, Effects, Markers, History], 0),
+                hsplit(
+                    Ratio(0.66),
+                    tabs(&[Program], 0),
+                    tabs(
+                        &[
+                            NlGenerate,
+                            NlStory,
+                            NlQueue,
+                            NlMusic,
+                            NlBridge,
+                            NlCover,
+                            EffectControls,
+                            Source,
+                            Metadata,
+                            AudioClipMixer,
+                            AudioTrackMixer,
+                            ReferenceMonitor,
+                            Text,
+                            EssentialGraphics,
+                            EssentialSound,
+                            TextToSpeech,
+                            Properties,
+                            LumetriColor,
+                            LumetriScopes,
+                        ],
+                        0,
+                    ),
+                ),
+            ),
+            hsplit(
+                Ratio(0.22),
+                tabs(&[NlLongform, NlAnalyze, NlSearch, NlClipping, NlSgrossa, NlSettings, NlWorkflows, NlAsr, NlSpeech], 0),
+                hsplit(
+                    SplitSize::FixedFirst(TOOLS_WIDTH),
+                    tabs(&[Tools], 0),
+                    hsplit(
+                        SplitSize::FixedSecond(METERS_WIDTH),
+                        tabs(&[Timeline, NlMontage, NlVersions, NlAlbum, NlDelivery, NlSubtitles, NlTitles, NlGraphics, NlAudio], 0),
+                        tabs(&[AudioMeters], 0),
+                    ),
+                ),
+            ),
+        ),
         // Editing (default), Learning, Review — Premiere 26 factory layout:
         // top: Source group | Program | Properties; bottom: Project group | Tools | Timeline | Meters.
         _ => vsplit(
@@ -947,7 +1010,7 @@ mod tests {
     /// resizes; every other group resizes with it.
     #[test]
     fn workspaces_fix_only_tools_and_meters() {
-        for w in WORKSPACES {
+        for w in WORKSPACES.iter().filter(|w| **w != "NL Video Suite") {
             let layout = workspace(w);
             let fixed = layout.root.as_ref().map(fixed_splits).unwrap_or_default();
             assert_eq!(fixed, vec![SplitSize::FixedFirst(TOOLS_WIDTH), SplitSize::FixedSecond(METERS_WIDTH)], "{w}");

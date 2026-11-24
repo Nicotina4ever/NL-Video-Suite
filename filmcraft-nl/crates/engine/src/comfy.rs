@@ -386,23 +386,53 @@ fn apply_overrides(workflow: &mut Value, overrides: Option<&Value>) -> Result<us
     let Some(nodes) = workflow.as_object_mut() else { return Err(bad("the workflow is not an object")) };
     let mut applied = 0;
     for override_value in list {
-        let node_id = match override_value.get("node") {
-            Some(Value::String(id)) => id.clone(),
-            Some(Value::Number(id)) => id.to_string(),
-            _ => return Err(bad("each override needs `node` (the node id)")),
-        };
+        let optional = override_value.get("optional").and_then(Value::as_bool).unwrap_or(false);
         let Some(field) = override_value.get("field").and_then(Value::as_str).filter(|field| !field.is_empty()) else {
             return Err(bad("each override needs `field`"));
         };
         let Some(value) = override_value.get("value") else {
             return Err(bad("each override needs `value`"));
         };
-        let Some(inputs) = nodes.get_mut(&node_id).and_then(|node| node.get_mut("inputs")).and_then(Value::as_object_mut) else {
-            return Err(bad(format!("override: no node {node_id} with inputs")));
+        // A node id pins one widget; `class` (optionally with `title`) lets the same preset be
+        // copied to another workflow where the node ids differ.
+        let node_id = match override_value.get("node") {
+            Some(Value::String(id)) if !id.is_empty() => Some(id.clone()),
+            Some(Value::Number(id)) => Some(id.to_string()),
+            Some(_) => return Err(bad("`node` must be a node id")),
+            None => None,
         };
-        if !inputs.contains_key(field) {
-            return Err(bad(format!("override: node {node_id} has no `{field}` input")));
+        let class = override_value.get("class").and_then(Value::as_str).filter(|class| !class.is_empty());
+        let title = override_value.get("title").and_then(Value::as_str).filter(|title| !title.is_empty());
+        let candidates: Vec<String> = if let Some(id) = node_id {
+            vec![id]
+        } else if let Some(class) = class {
+            nodes
+                .iter()
+                .filter(|(_, node)| node.get("class_type").and_then(Value::as_str) == Some(class))
+                .filter(|(_, node)| title.is_none_or(|title| node.get("_meta").and_then(|meta| meta.get("title")).and_then(Value::as_str) == Some(title)))
+                .filter(|(_, node)| node.get("inputs").and_then(Value::as_object).is_some_and(|inputs| inputs.contains_key(field)))
+                .map(|(id, _)| id.clone())
+                .collect()
+        } else {
+            return Err(bad("each override needs `node` or `class`"));
+        };
+        let mut target = None;
+        for id in &candidates {
+            if nodes.get(id).and_then(|node| node.get("inputs")).and_then(Value::as_object).is_some_and(|inputs| inputs.contains_key(field)) {
+                target = Some(id.clone());
+                break;
+            }
         }
+        let Some(target) = target else {
+            if optional {
+                continue;
+            }
+            let hint = class.map(|class| format!(" (class {class})")).unwrap_or_default();
+            return Err(bad(format!("override: no node with a `{field}` input{hint}")));
+        };
+        let Some(inputs) = nodes.get_mut(&target).and_then(|node| node.get_mut("inputs")).and_then(Value::as_object_mut) else {
+            return Err(bad(format!("override: no node {target} with inputs")));
+        };
         inputs.insert(field.to_string(), value.clone());
         applied += 1;
     }
@@ -1146,6 +1176,11 @@ mod cover_tests {
         assert_eq!(applied, 1);
         assert_eq!(workflow["1"]["inputs"]["steps"], 8);
         assert!(apply_overrides(&mut workflow, Some(&json!([{"node": "9", "field": "steps", "value": 1}]))).is_err());
+        // A preset can name the class instead of the id, so it is reusable on another workflow.
+        assert!(apply_overrides(&mut workflow, Some(&json!([{"class": "KSampler", "field": "steps", "value": 12}]))).unwrap() == 1);
+        assert_eq!(workflow["1"]["inputs"]["steps"], 12);
+        assert!(apply_overrides(&mut workflow, Some(&json!([{"class": "LoraLoader", "field": "lora_name", "value": "x", "optional": true}]))).unwrap() == 0);
+        assert!(apply_overrides(&mut workflow, Some(&json!([{"class": "LoraLoader", "field": "lora_name", "value": "x"}]))).is_err());
         assert!(apply_overrides(&mut workflow, None).unwrap() == 0);
     }
 

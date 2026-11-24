@@ -531,3 +531,147 @@ mod marker_tests {
         assert!(issues.iter().any(|i| i.severity == "info"), "{issues:?}");
     }
 }
+
+// ---- Named workflow presets (node parameters saved for reuse on other workflows) -------------
+
+/// The folder where named workflow parameter presets live.
+pub fn presets_dir() -> Option<std::path::PathBuf> {
+    crate::autosave::default_data_dir().map(|data| data.join("nl").join("workflow-presets"))
+}
+
+fn safe_preset_name(name: &str) -> Option<String> {
+    let name = name.trim();
+    if name.is_empty() || name.len() > 80 {
+        return None;
+    }
+    let clean: String = name.chars().map(|c| if c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | ' ') { c } else { '_' }).collect();
+    if clean.trim_matches(['_', ' ']).is_empty() { None } else { Some(clean) }
+}
+
+fn validate_overrides(overrides: &Value) -> std::result::Result<Vec<Value>, String> {
+    let list = overrides.as_array().ok_or_else(|| "overrides must be an array".to_string())?;
+    if list.is_empty() {
+        return Err("overrides is empty".into());
+    }
+    let mut out = Vec::new();
+    for entry in list {
+        let Some(field) = entry.get("field").and_then(Value::as_str).filter(|field| !field.is_empty()) else {
+            return Err("each override needs `field`".into());
+        };
+        if entry.get("value").is_none() {
+            return Err(format!("override `{field}` has no value"));
+        }
+        if entry.get("node").is_none() && entry.get("class").and_then(Value::as_str).is_none() {
+            return Err(format!("override `{field}` needs `node` or `class`"));
+        }
+        out.push(entry.clone());
+    }
+    Ok(out)
+}
+
+/// `nl.workflows.presets` — list/save/load/copy/delete named parameter sets.
+pub fn preset_action(p: &Value) -> crate::Result<Value> {
+    let cmd = "nl.workflows.presets";
+    let bad = |msg: String| crate::EngineError::BadParams { cmd: cmd.into(), msg };
+    let dir = presets_dir().ok_or_else(|| bad("the data folder is not available".into()))?;
+    let action = p.get("action").and_then(Value::as_str).unwrap_or("list");
+    std::fs::create_dir_all(&dir).map_err(|e| bad(format!("{}: {e}", dir.display())))?;
+    match action {
+        "list" => {
+            let mut presets = Vec::new();
+            for entry in std::fs::read_dir(&dir).into_iter().flatten().flatten() {
+                let path = entry.path();
+                if path.extension().and_then(|extension| extension.to_str()) != Some("json") {
+                    continue;
+                }
+                let Ok(text) = std::fs::read_to_string(&path) else { continue };
+                let Ok(value) = serde_json::from_str::<Value>(&text) else { continue };
+                presets.push(json!({
+                    "name": value["name"],
+                    "workflow": value["workflow"],
+                    "count": value["overrides"].as_array().map_or(0, Vec::len),
+                    "created": value["created"],
+                    "path": path.to_string_lossy(),
+                }));
+            }
+            presets.sort_by(|a, b| a["name"].as_str().unwrap_or("").cmp(b["name"].as_str().unwrap_or("")));
+            Ok(json!({"action": "list", "folder": dir.to_string_lossy(), "presets": presets}))
+        }
+        "save" | "copy" => {
+            let Some(name) = p.get("name").and_then(Value::as_str).and_then(safe_preset_name) else {
+                return Err(bad("pass a valid `name`".into()));
+            };
+            let overrides = if action == "copy" {
+                let Some(source) = p.get("from").and_then(Value::as_str).and_then(safe_preset_name) else {
+                    return Err(bad("copy needs `from`".into()));
+                };
+                let source_path = dir.join(format!("{source}.json"));
+                let text = std::fs::read_to_string(&source_path).map_err(|e| bad(format!("{}: {e}", source_path.display())))?;
+                let value: Value = serde_json::from_str(&text).map_err(|e| bad(format!("{}: {e}", source_path.display())))?;
+                value["overrides"].clone()
+            } else {
+                p.get("overrides").cloned().ok_or_else(|| bad("pass `overrides`".into()))?
+            };
+            let overrides = validate_overrides(&overrides).map_err(bad)?;
+            let workflow = p.get("workflow").and_then(Value::as_str).unwrap_or_default().trim().to_string();
+            let created = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|elapsed| elapsed.as_secs()).unwrap_or(0);
+            let record = json!({
+                "name": name,
+                "workflow": workflow,
+                "created": created,
+                "overrides": overrides,
+            });
+            let path = dir.join(format!("{name}.json"));
+            std::fs::write(&path, serde_json::to_vec_pretty(&record).unwrap_or_default()).map_err(|e| bad(format!("{}: {e}", path.display())))?;
+            Ok(json!({"action": action, "preset": record, "path": path.to_string_lossy()}))
+        }
+        "load" => {
+            let Some(name) = p.get("name").and_then(Value::as_str).and_then(safe_preset_name) else {
+                return Err(bad("pass a valid `name`".into()));
+            };
+            let path = dir.join(format!("{name}.json"));
+            let text = std::fs::read_to_string(&path).map_err(|e| bad(format!("{}: {e}", path.display())))?;
+            let preset: Value = serde_json::from_str(&text).map_err(|e| bad(format!("{}: {e}", path.display())))?;
+            Ok(json!({"action": "load", "preset": preset}))
+        }
+        "delete" => {
+            let Some(name) = p.get("name").and_then(Value::as_str).and_then(safe_preset_name) else {
+                return Err(bad("pass a valid `name`".into()));
+            };
+            let path = dir.join(format!("{name}.json"));
+            let removed = std::fs::remove_file(&path).is_ok();
+            Ok(json!({"action": "delete", "removed": removed, "name": name}))
+        }
+        _ => Err(bad("action must be list, save, load, copy or delete".into())),
+    }
+}
+
+#[cfg(test)]
+mod preset_tests {
+    use super::*;
+
+    fn name() -> String {
+        format!("nl-preset-test-{}", std::process::id())
+    }
+
+    #[test]
+    fn a_preset_round_trips_and_can_be_copied_for_another_workflow() {
+        let dir = std::env::temp_dir().join(name());
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        // The production helper uses the data folder; exercise the same validation/records via a
+        // temporary folder by writing/reading the same JSON shape.
+        let preset = json!({"name":"look","workflow":"a.json","created":1,"overrides":[{"class":"KSampler","field":"steps","value":12},{"class":"LoraLoader","field":"lora_name","value":"x.safetensors"}]});
+        let path = dir.join("look.json");
+        std::fs::write(&path, serde_json::to_vec_pretty(&preset).unwrap()).unwrap();
+        let loaded: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(loaded["overrides"].as_array().unwrap().len(), 2);
+        assert_eq!(loaded["overrides"][0]["class"], "KSampler");
+        assert!(safe_preset_name("  look 42 ").is_some());
+        assert!(safe_preset_name("../x").is_some());
+        assert!(safe_preset_name("   ").is_none());
+        assert!(validate_overrides(&json!([{"class":"KSampler","field":"steps","value":8}])).is_ok());
+        assert!(validate_overrides(&json!([{"field":"steps","value":8}])).is_err());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}

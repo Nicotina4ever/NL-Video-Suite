@@ -1,4 +1,24 @@
 # Punto di ripresa — CHIUSO 1.2.0 (24/11/2026)
+
+
+## P15/P16 — Clips AI sequenze reframe, Home e layout NL (24/11/2026)
+
+- NL Clips AI: scelta video dal disco o selezione, target 9:16/16:9, focus, sottotitoli automatici;
+  «Crea sequenze» produce nuove sequenze reframed con caption track stilizzata (prova live 1080×1920,
+  2 cue).
+- NL Home: dashboard con tutte le funzioni NL; layout NL completo applicabile da NL Settings.
+- Instradati al renderer NL i pannelli che mostravano il placeholder; aggiunti NL Longform, NL Search,
+  NL Speech; nomi accessibili sui controlli.
+- Evidenze P15 in `prove/p15-reframe/`; test engine 1052+17, UI 368+4+1+815, clippy pulito.
+
+## P14 — Parametri workflow e preset (24/11/2026)
+
+- Editor in NL Workflows: tendine per LoRA/UNET/VAE/CLIP/sampler, numeri/testi, filtro e sezioni
+  «Avanzate»; «Usa per la prossima generazione» porta gli override in NL Generate.
+- Preset nominati (`nl.workflows.presets`) salvati in `%APPDATA%\NL Video Suite\nl\workflow-presets`,
+  con riuso per classe+campo su altri workflow; dry run verificato (overridden=1).
+- Evidenze: `documentazione/prove/p14-workflow-params/`.
+
 ## CONSEGNA GITHUB — 24/11/2026
 
 - Push riuscito su https://github.com/Nicotina4ever/NL-Video-Suite.git (main, commit ef4ead6):

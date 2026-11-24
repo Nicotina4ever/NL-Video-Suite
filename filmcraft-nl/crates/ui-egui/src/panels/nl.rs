@@ -37,6 +37,10 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect, panel: PanelK
         PanelKind::NlQueue => queue(app, ui),
         PanelKind::NlSettings => settings(app, ui),
         PanelKind::NlCover => cover(app, ui),
+        PanelKind::NlLongform => longform(app, ui),
+        PanelKind::NlSearch => search(app, ui),
+        PanelKind::NlSpeech => speech(app, ui),
+        PanelKind::NlHome => home(app, ui),
         PanelKind::NlWorkflows => workflows_panel(app, ui),
         _ => {}
     });
@@ -71,7 +75,7 @@ pub(super) fn run(app: &mut FilmcraftApp, ui: &egui::Ui, id: &str, params: Value
 /// A labelled single-line field with its automation id.
 pub(super) fn field(app: &mut FilmcraftApp, ui: &mut egui::Ui, key: &str, label: &str, text: &mut String) -> egui::Response {
     ui.label(RichText::new(label).size(12.0).color(app.tokens.text_dim));
-    let r = ui.add(egui::TextEdit::singleline(text).desired_width(f32::INFINITY).id_salt(key));
+    let r = crate::widgets::accessible_name(ui.add(egui::TextEdit::singleline(text).desired_width(f32::INFINITY).id_salt(key)), label);
     app.auto.add(&format!("nl.{key}"), r.rect, label);
     r
 }
@@ -91,6 +95,7 @@ fn combo(app: &mut FilmcraftApp, ui: &mut egui::Ui, key: &str, label: &str, valu
         }
     });
     app.auto.add(&format!("nl.{key}"), r.response.rect, label);
+    crate::widgets::accessible_name(r.response, label);
 }
 
 /// The last job whose label starts with `prefix`, with its status line.
@@ -206,11 +211,12 @@ fn generate(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     let mut d: GenerateDraft = draft(ui, "nl-generate");
     let kinds = [("image", "Image"), ("video", "Video")];
     let mut kind_label = kinds[d.kind.min(kinds.len() - 1)].1.to_string();
-    craft_ui::ComboBox::from_id_salt("nl-generate-kind").selected_text(&kind_label).show_ui(ui, |ui| {
+    let kind_combo = craft_ui::ComboBox::from_id_salt("nl-generate-kind").selected_text(&kind_label).show_ui(ui, |ui| {
         for (i, (_, label)) in kinds.iter().enumerate() {
             ui.selectable_value(&mut d.kind, i, *label);
         }
     });
+    crate::widgets::accessible_name(kind_combo.response, "Generation kind");
     kind_label = kinds[d.kind.min(kinds.len() - 1)].1.to_string();
     let _ = &kind_label;
     let kind = kinds[d.kind.min(kinds.len() - 1)].0;
@@ -222,7 +228,10 @@ fn generate(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     ui.add_space(4.0);
     let mut prompt = d.prompt.clone();
     ui.label(RichText::new("Prompt").size(12.0).color(app.tokens.text_dim));
-    let r = ui.add(egui::TextEdit::multiline(&mut prompt).desired_rows(4).desired_width(f32::INFINITY).id_salt("nl-generate-prompt"));
+    let r = crate::widgets::accessible_name(
+        ui.add(egui::TextEdit::multiline(&mut prompt).desired_rows(4).desired_width(f32::INFINITY).id_salt("nl-generate-prompt")),
+        "Prompt",
+    );
     app.auto.add("nl.generate.prompt", r.rect, "Prompt");
     d.prompt = prompt;
     // Prompt AI: the local model writes a prompt from the brief; the operator applies it.
@@ -313,6 +322,17 @@ fn generate(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     let mut overrides = d.overrides.clone();
     field(app, ui, "generate.overrides", "Widget overrides JSON (from Show parameters)", &mut overrides);
     d.overrides = overrides;
+    ui.horizontal(|ui| {
+        if button(app, ui, "generate.use_workflow_overrides", "Use workflow overrides") {
+            if let Some(value) = ui.data(|data| data.get_temp::<Value>(egui::Id::unique("nl-workflow-overrides"))) {
+                d.overrides = serde_json::to_string_pretty(&value).unwrap_or_else(|_| "[]".into());
+                app.ui.status = "Override dal pannello NL Workflows applicati alla generazione.".into();
+            } else {
+                app.ui.status = "Nessun override: NL Workflows → Show parameters → modifica → «Usa per la prossima generazione».".into();
+            }
+        }
+        ui.label(RichText::new("(NL Workflows → Show parameters → Avanzate)").size(10.0).color(app.tokens.text_faint));
+    });
     let scale = if kind == "video" {
         let options = [("2/3", "Two thirds (a third smaller)"), ("1/2", "Half")];
         let mut i = if app.session.prefs.nl.video_scale == "1/2" { 1 } else { 0 };
@@ -520,17 +540,300 @@ fn time_range(start: f64, end: f64) -> String {
     format!("{} – {}", stamp(start), stamp(end))
 }
 
+/// NL Home: the dashboard with every NL function one click away. It keeps the default workspace
+/// readable instead of squeezing twenty tabs into one strip.
+fn home(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(
+        app,
+        ui,
+        "NL Video Suite",
+        "Tutte le funzioni NL in un unico posto. Clicca un pulsante per aprire il pannello corrispondente; le impostazioni AI sono in NL Settings.",
+    );
+    error_line(app, ui);
+    let groups: [(&str, &[PanelKind]); 4] = [
+        ("Creazione", &[PanelKind::NlGenerate, PanelKind::NlMusic, PanelKind::NlBridge, PanelKind::NlStory, PanelKind::NlCover, PanelKind::NlQueue]),
+        (
+            "Montaggio e analisi",
+            &[
+                PanelKind::NlMontage,
+                PanelKind::NlSgrossa,
+                PanelKind::NlClipping,
+                PanelKind::NlLongform,
+                PanelKind::NlAnalyze,
+                PanelKind::NlSearch,
+                PanelKind::NlVersions,
+                PanelKind::NlAlbum,
+            ],
+        ),
+        ("Finitura", &[PanelKind::NlSubtitles, PanelKind::NlTitles, PanelKind::NlGraphics, PanelKind::NlAudio, PanelKind::NlDelivery]),
+        ("Voce e configurazione", &[PanelKind::NlAsr, PanelKind::NlSpeech, PanelKind::NlSettings, PanelKind::NlWorkflows]),
+    ];
+    for (group, panels) in groups {
+        ui.add_space(6.0);
+        ui.label(RichText::new(group).size(12.0).strong());
+        ui.horizontal_wrapped(|ui| {
+            for panel in panels {
+                let id = format!("nlhome.{}", panel.id());
+                if button(app, ui, &id, panel.title()) {
+                    app.show_panel(*panel);
+                }
+            }
+        });
+    }
+    ui.add_space(10.0);
+    ui.separator();
+    ui.label(
+        RichText::new("Suggerimento: NL Clips AI accetta un video scelto dal disco o la selezione corrente; NL Generate usa ComfyUI locale.")
+            .size(11.0)
+            .color(app.tokens.text_dim),
+    );
+}
+
+/// NL Longform: chapters over a transcription.
+fn longform(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(app, ui, "NL Longform", "Capitoli e struttura del parlato: analisi con il modello locale, marker e export.");
+    error_line(app, ui);
+    #[derive(Clone, Default)]
+    struct LongformDraft {
+        path: String,
+    }
+    let mut d: LongformDraft = draft(ui, "nl-longform");
+    field(app, ui, "longform.path", "Export file (.md, .srt, .json)", &mut d.path);
+    ui.horizontal(|ui| {
+        if button(app, ui, "longform.analyze", "Analizza capitoli") {
+            run(app, ui, "nl.longform.analyze", json!({"wait": false}));
+        }
+        if button(app, ui, "longform.markers", "Metti i marker") {
+            run(app, ui, "nl.longform.markers", json!({}));
+        }
+        if button(app, ui, "longform.export", "Esporta") && !d.path.trim().is_empty() {
+            run(app, ui, "nl.longform.export", json!({"path": d.path.trim()}));
+        }
+    });
+    if let Some(longform) = app.session.nl.longform.clone() {
+        let chapters = longform["chapters"].as_array().cloned().unwrap_or_default();
+        ui.add_space(6.0);
+        ui.label(RichText::new(format!("{} capitoli", chapters.len())).size(12.0));
+        egui::ScrollArea::vertical().id_salt("nl-longform-list").max_height(220.0).show(ui, |ui| {
+            for chapter in chapters {
+                let start = chapter["start"].as_f64().unwrap_or(0.0);
+                ui.label(RichText::new(format!("{:.1}s · {}", start, chapter["title"].as_str().unwrap_or("Capitolo"))).size(11.0).color(app.tokens.text_dim));
+            }
+        });
+    } else {
+        ui.label(RichText::new("Nessuna analisi ancora: serve una trascrizione nel progetto.").size(11.0).color(app.tokens.text_faint));
+    }
+    save_draft(ui, "nl-longform", d);
+}
+
+/// NL Search: index and search the project's clips, markers and story.
+fn search(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(app, ui, "NL Search", "Cerca in clip, marker, scene e storia del progetto.");
+    error_line(app, ui);
+    #[derive(Clone, Default)]
+    struct SearchDraft {
+        query: String,
+        limit: String,
+    }
+    let mut d: SearchDraft = draft(ui, "nl-search");
+    field(app, ui, "search.query", "Cerca", &mut d.query);
+    field(app, ui, "search.limit", "Risultati max", &mut d.limit);
+    ui.horizontal(|ui| {
+        if button(app, ui, "search.index", "Ricostruisci indice") {
+            match app.session.execute("nl.search.index", json!({})) {
+                Ok(value) => app.ui.status = format!("Indice: {} documenti.", value["documents"].as_u64().or_else(|| value["count"].as_u64()).unwrap_or(0)),
+                Err(e) => app.ui.status = e.to_string(),
+            }
+        }
+        if button(app, ui, "search.query", "Cerca") {
+            let limit = d.limit.trim().parse::<u64>().unwrap_or(20);
+            match app.session.execute("nl.search.query", json!({"query": d.query.trim(), "limit": limit})) {
+                Ok(value) => {
+                    ui.data_mut(|data| data.insert_temp(egui::Id::unique("nl-search-result"), value));
+                }
+                Err(e) => app.ui.status = e.to_string(),
+            }
+        }
+    });
+    if let Some(result) = ui.data(|data| data.get_temp::<Value>(egui::Id::unique("nl-search-result"))) {
+        let hits = result["hits"].as_array().cloned().unwrap_or_default();
+        ui.add_space(6.0);
+        ui.label(RichText::new(format!("{} risultati", hits.len())).size(12.0));
+        egui::ScrollArea::vertical().id_salt("nl-search-hits").max_height(240.0).show(ui, |ui| {
+            for hit in hits {
+                ui.label(
+                    RichText::new(format!(
+                        "[{}] {} — {}",
+                        hit["source"].as_str().unwrap_or(""),
+                        hit["title"].as_str().unwrap_or(""),
+                        hit["text"].as_str().unwrap_or("")
+                    ))
+                    .size(11.0)
+                    .color(app.tokens.text_dim),
+                );
+            }
+        });
+    }
+    save_draft(ui, "nl-search", d);
+}
+
+/// NL Speech: discover/select speech models and run a transcription on a file.
+fn speech(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(app, ui, "NL Speech", "Modelli ASR locali (Whisper, Qwen3-ASR) e trascrizione di un file.");
+    error_line(app, ui);
+    #[derive(Clone, Default)]
+    struct SpeechDraft {
+        path: String,
+    }
+    let mut d: SpeechDraft = draft(ui, "nl-speech");
+    let scan_id = egui::Id::unique("nl-speech-scan");
+    ui.horizontal(|ui| {
+        if button(app, ui, "speech.scan", "Scansiona modelli") {
+            match app.session.execute("nl.asr.models", json!({})) {
+                Ok(value) => {
+                    ui.data_mut(|data| data.insert_temp(scan_id, value));
+                }
+                Err(e) => app.ui.status = e.to_string(),
+            }
+        }
+        ui.label(RichText::new(format!("Provider: {}", app.session.prefs.nl.asr_provider())).size(11.0).color(app.tokens.text_dim));
+    });
+    if let Some(scan) = ui.data(|data| data.get_temp::<Value>(scan_id)) {
+        let models = scan["models"].as_array().cloned().unwrap_or_default();
+        let engines = scan["engines"].as_array().cloned().unwrap_or_default();
+        let qwen_model = models.iter().find(|m| m["kind"] == "qwen-gguf" && m["role"] == "asr").cloned();
+        let qwen_aligner = models.iter().find(|m| m["kind"] == "qwen-gguf" && m["role"] == "aligner").cloned();
+        let qwen_runner = engines.iter().find(|e| e["engine"] == "qwen3-asr").cloned();
+        ui.label(RichText::new(format!("{} verificati · {} engine", scan["count"].as_u64().unwrap_or(0), engines.len())).size(11.0));
+        if let (Some(model), Some(aligner), Some(runner)) = (qwen_model, qwen_aligner, qwen_runner)
+            && button(app, ui, "speech.use_qwen", "Usa Qwen3-ASR")
+        {
+            for (key, value) in [
+                ("nl.asrProvider", "qwen_gguf"),
+                ("nl.asrRunner", runner["path"].as_str().unwrap_or("")),
+                ("nl.asrQwenModel", model["path"].as_str().unwrap_or("")),
+                ("nl.asrQwenAligner", aligner["path"].as_str().unwrap_or("")),
+            ] {
+                if let Err(e) = app.session.execute("prefs.set", json!({"key": key, "value": value})) {
+                    app.ui.status = e.to_string();
+                }
+            }
+            app.ui.status = "Qwen3-ASR selezionato.".into();
+        }
+        if let Some(whisper) = models.iter().find(|m| m["kind"] == "whisper-ct2").cloned()
+            && button(app, ui, "speech.use_whisper", "Usa Whisper")
+        {
+            if let Err(e) = app.session.execute("prefs.set", json!({"key": "nl.asrProvider", "value": "bridge"})) {
+                app.ui.status = e.to_string();
+            }
+            if let Err(e) = app.session.execute("prefs.set", json!({"key": "nl.asrModel", "value": whisper["path"].as_str().unwrap_or("")})) {
+                app.ui.status = e.to_string();
+            }
+            app.ui.status = "Whisper bridge selezionato.".into();
+        }
+        for model in models.iter().take(6) {
+            ui.label(
+                RichText::new(format!(
+                    "{} · {} · {}",
+                    model["kind"].as_str().unwrap_or(""),
+                    model["role"].as_str().unwrap_or(""),
+                    model["path"].as_str().unwrap_or("")
+                ))
+                .size(10.0)
+                .color(app.tokens.text_faint),
+            );
+        }
+    }
+    field(app, ui, "speech.path", "File audio/video da trascrivere", &mut d.path);
+    ui.horizontal(|ui| {
+        if button(app, ui, "speech.pick", "Scegli file…") {
+            app.pick_ui(
+                crate::native_dialogs::FileDialog::OpenFile {
+                    filter: "Audio or video".into(),
+                    exts: vec!["wav".into(), "mp3".into(), "mp4".into(), "m4a".into(), "mov".into(), "mkv".into()],
+                },
+                |app, paths| {
+                    if let Some(path) = paths.first() {
+                        app.ui.status = format!("File scelto: {path}");
+                    }
+                },
+            );
+        }
+        if button(app, ui, "speech.transcribe", "Trascrivi") && !d.path.trim().is_empty() {
+            run(app, ui, "nl.asr.transcribe", json!({"path": d.path.trim(), "backend": app.session.prefs.nl.asr_provider()}));
+        }
+    });
+    save_draft(ui, "nl-speech", d);
+}
 /// NL Clipping: candidates from the bridge, selection, render and subtitles.
 fn clipping(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
-    title(app, ui, "NL Clipping", "Editorial candidates from a long video (score, title, dedupe), rendered with 16:9 and optional 9:16 copies plus subtitles.");
+    title(
+        app,
+        ui,
+        "NL Clips AI",
+        "Clip editoriali da un video lungo: scegli un file dal disco o seleziona un video nel progetto/timeline, poi «Trova candidati». Render 16:9 e copia 9:16 con sottotitoli.",
+    );
     error_line(app, ui);
     #[derive(Clone, Default)]
     struct ClipDraft {
         mode: usize,
         vertical: bool,
         hormozi: bool,
+        source: String,
+        item: Option<u64>,
+        target: usize,
+        focus: usize,
+        subtitles: bool,
     }
     let mut d: ClipDraft = draft(ui, "nl-clipping");
+    // Source: the user can pick a file (imported into the project) or leave the project selection.
+    let picked_id = egui::Id::unique("nl-clips-picked");
+    // The file picker callback only remembers the path; importing here keeps the async callback
+    // free of UI/session work.
+    if let Some(path) = app.session.nl.result("clips.pick").and_then(Value::as_str).map(str::to_string) {
+        app.session.nl.results.remove("clips.pick");
+        match app.session.execute("mediaBrowser.import", json!({"paths": [path]})) {
+            Ok(value) => {
+                ui.data_mut(|data| data.insert_temp(picked_id, value));
+                app.ui.status = format!("Video importato: {path}. Premi «Trova candidati».");
+            }
+            Err(e) => app.ui.status = e.to_string(),
+        }
+    }
+    if let Some(picked) = ui.data(|data| data.get_temp::<Value>(picked_id)) {
+        let id = picked["items"][0]["id"].as_u64().or_else(|| picked["items"][0]["item"].as_u64());
+        if let Some(id) = id {
+            d.item = Some(id);
+            if let Some(path) = picked["items"][0]["path"].as_str() {
+                d.source = path.to_string();
+            }
+        }
+    }
+    field(app, ui, "clipping.source", "Video sul disco (opzionale)", &mut d.source);
+    ui.horizontal(|ui| {
+        if button(app, ui, "clipping.pick", "Scegli video…") {
+            app.pick_ui(
+                crate::native_dialogs::FileDialog::OpenFile {
+                    filter: "Video".into(),
+                    exts: vec!["mp4".into(), "mov".into(), "mkv".into(), "avi".into(), "webm".into(), "m4v".into()],
+                },
+                |app, paths| {
+                    if let Some(path) = paths.first() {
+                        app.session.nl.results.insert("clips.pick", json!(path));
+                    }
+                },
+            );
+        }
+        if button(app, ui, "clipping.use_selection", "Usa selezione corrente") {
+            d.item = None;
+            d.source.clear();
+            ui.data_mut(|data| data.remove::<Value>(picked_id));
+            app.ui.status = "Userò il video selezionato nel progetto o sulla timeline.".into();
+        }
+        if d.item.is_some() {
+            ui.label(RichText::new("video importato pronto").size(10.0).color(app.tokens.text_faint));
+        }
+    });
     let modes = [("1", "Stories (≤25 s)"), ("2", "Reels (30–75 s)"), ("3", "Narrative reel (multi-segment)")];
     let mut mode_label = modes[d.mode.min(modes.len() - 1)].1.to_string();
     craft_ui::ComboBox::from_id_salt("nl-clipping-mode").selected_text(&mode_label).show_ui(ui, |ui| {
@@ -541,8 +844,34 @@ fn clipping(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     mode_label = modes[d.mode.min(modes.len() - 1)].1.to_string();
     let _ = &mode_label;
     ui.checkbox(&mut d.vertical, "Render a vertical 9:16 copy too");
+    ui.separator();
+    ui.label(RichText::new("Nuove sequenze con reframe e sottotitoli").size(12.0).strong());
+    let targets = [("vertical", "Verticale 9:16"), ("horizontal", "Orizzontale 16:9")];
+    let focuses =
+        [("center", "Centro"), ("left", "Soggetto a sinistra"), ("right", "Soggetto a destra"), ("top", "Soggetto in alto"), ("bottom", "Soggetto in basso")];
+    ui.horizontal(|ui| {
+        craft_ui::ComboBox::from_id_salt("clips-target").selected_text(targets[d.target.min(1)].1).show_ui(ui, |ui| {
+            for (i, (_, label)) in targets.iter().enumerate() {
+                ui.selectable_value(&mut d.target, i, *label);
+            }
+        });
+        craft_ui::ComboBox::from_id_salt("clips-focus").selected_text(focuses[d.focus.min(focuses.len() - 1)].1).show_ui(ui, |ui| {
+            for (i, (_, label)) in focuses.iter().enumerate() {
+                ui.selectable_value(&mut d.focus, i, *label);
+            }
+        });
+        ui.checkbox(&mut d.subtitles, "Sottotitoli automatici");
+    });
     if button(app, ui, "clipping.analyze", "Find candidates") {
-        run(app, ui, "nl.clipping.propose", json!({"mode": modes[d.mode.min(modes.len() - 1)].0}));
+        if d.item.is_none() && app.session.state.project_selection.is_empty() {
+            app.ui.status = "Scegli un video con «Scegli video…» oppure seleziona un clip nel pannello Progetto/timeline.".into();
+        } else {
+            let mut params = json!({"mode": modes[d.mode.min(modes.len() - 1)].0});
+            if let Some(item) = d.item {
+                params["item"] = json!(item);
+            }
+            run(app, ui, "nl.clipping.propose", params);
+        }
     }
     job_line(app, ui, "NL clipping");
     let clips = app.session.nl.result("clips").cloned();
@@ -580,6 +909,21 @@ fn clipping(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             if button(app, ui, "clipping.render", "Render selected") && !selected.is_empty() {
                 actions.push(("nl.clipping.render", json!({"items": selected, "vertical": d.vertical})));
+            }
+            if button(app, ui, "clipping.sequences", "Crea sequenze con reframe + sottotitoli") && !selected.is_empty() {
+                let mut params = json!({
+                    "items": selected.clone(),
+                    "target": targets[d.target.min(1)].0,
+                    "focus": focuses[d.focus.min(focuses.len() - 1)].0,
+                    "subtitles": d.subtitles,
+                });
+                if let Some(item) = d.item {
+                    params["item"] = json!(item);
+                }
+                if let Some(words) = result["_transcript"]["words"].as_array().cloned().or_else(|| result["words"].as_array().cloned()) {
+                    params["words"] = json!(words);
+                }
+                actions.push(("nl.clipping.sequences", params));
             }
             if button(app, ui, "clipping.srt", "Write SRT") && !selected.is_empty() {
                 for clip in &selected {
@@ -776,6 +1120,231 @@ fn cover(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
 }
 
 /// NL Workflows: the library, the API check and the doctor in one place.
+fn workflow_parameters_editor(app: &mut FilmcraftApp, ui: &mut egui::Ui, value: &Value) {
+    let total = value["total"].as_u64().unwrap_or(0);
+    let missing = value["missingClasses"].as_array().map_or(0, Vec::len);
+    ui.label(
+        RichText::new(format!(
+            "Parameters: {total} widget(s){}{}",
+            if missing > 0 { format!(", {missing} class(es) missing") } else { String::new() },
+            if value["truncated"] == true { " (showing the first ones)".to_string() } else { String::new() }
+        ))
+        .size(12.0),
+    );
+    let edit_id = egui::Id::unique("nl-workflow-param-edits");
+    let filter_id = egui::Id::unique("nl-workflow-param-filter");
+    let mut edits = ui.data(|d| d.get_temp::<Value>(edit_id)).unwrap_or_else(|| json!({}));
+    let mut filter = ui.data(|d| d.get_temp::<String>(filter_id)).unwrap_or_default();
+    ui.horizontal(|ui| {
+        ui.label(RichText::new("Filtra").size(11.0));
+        if ui.text_edit_singleline(&mut filter).changed() {
+            ui.data_mut(|d| d.insert_temp(filter_id, filter.clone()));
+        }
+    });
+    let rows: Vec<Value> = value["parameters"].as_array().cloned().unwrap_or_default();
+    let mut groups: Vec<(String, Vec<Value>)> = Vec::new();
+    for row in rows {
+        let class = row["class"].as_str().unwrap_or("node").to_string();
+        if !filter.trim().is_empty() {
+            let hay = format!("{} {} {}", class, row["field"].as_str().unwrap_or(""), row["title"].as_str().unwrap_or("")).to_lowercase();
+            if !hay.contains(&filter.trim().to_lowercase()) {
+                continue;
+            }
+        }
+        match groups.iter_mut().find(|(name, _)| name == &class) {
+            Some((_, list)) => list.push(row),
+            None => groups.push((class, vec![row])),
+        }
+    }
+    groups.sort_by(|a, b| a.0.cmp(&b.0));
+    let workflow_path = value["workflow"].as_str().unwrap_or("").to_string();
+    let mut edits_changed = false;
+    for (class, list) in &groups {
+        egui::CollapsingHeader::new(format!("Avanzate · {class} ({} parametri)", list.len())).default_open(false).show(ui, |ui| {
+            for row in list {
+                if row["linked"] == true {
+                    continue;
+                }
+                let node = row["node"].as_str().unwrap_or("");
+                let field = row["field"].as_str().unwrap_or("");
+                let key = format!("{node}:{field}");
+                let base = row["value"].clone();
+                let mut current = edits.get(&key).cloned().unwrap_or_else(|| base.clone());
+                ui.horizontal(|ui| {
+                    ui.label(RichText::new(format!("{node} · {field}")).size(11.0).color(app.tokens.text_dim));
+                    match row["kind"].as_str().unwrap_or("input") {
+                        "choice" => {
+                            let choices = row["choices"].as_array().cloned().unwrap_or_default();
+                            let selected = current.as_str().unwrap_or("").to_string();
+                            craft_ui::ComboBox::from_id_salt(("wf-param", node, field)).selected_text(selected.clone()).width(260.0).show_ui(ui, |ui| {
+                                for choice in choices {
+                                    let label = choice.as_str().map(str::to_string).unwrap_or_else(|| choice.to_string());
+                                    if ui.selectable_label(selected == label, label.clone()).clicked() {
+                                        current = choice.clone();
+                                    }
+                                }
+                            });
+                        }
+                        "bool" => {
+                            let mut v = current.as_bool().unwrap_or(false);
+                            if ui.checkbox(&mut v, "").changed() {
+                                current = json!(v);
+                            }
+                        }
+                        "int" => {
+                            let mut v = current.as_f64().unwrap_or(0.0);
+                            let mut dv = egui::DragValue::new(&mut v).speed(1.0);
+                            if let Some(min) = row["min"].as_f64() {
+                                dv = dv.range(min..=row["max"].as_f64().unwrap_or(f64::MAX));
+                            }
+                            if ui.add(dv).changed() {
+                                current = json!(v.round() as i64);
+                            }
+                        }
+                        "float" => {
+                            let mut v = current.as_f64().unwrap_or(0.0);
+                            let mut dv = egui::DragValue::new(&mut v).speed(0.1);
+                            if let Some(min) = row["min"].as_f64() {
+                                dv = dv.range(min..=row["max"].as_f64().unwrap_or(f64::MAX));
+                            }
+                            if ui.add(dv).changed() {
+                                current = json!(v);
+                            }
+                        }
+                        _ => {
+                            let mut text = current.as_str().unwrap_or("").to_string();
+                            if ui.text_edit_singleline(&mut text).changed() {
+                                current = json!(text);
+                            }
+                        }
+                    }
+                });
+                if current != base {
+                    edits[key] = current;
+                    edits_changed = true;
+                }
+            }
+        });
+    }
+    if edits_changed {
+        ui.data_mut(|d| d.insert_temp(edit_id, edits.clone()));
+    }
+    let overrides: Vec<Value> = groups
+        .iter()
+        .flat_map(|(class, list)| {
+            let mut out = Vec::new();
+            for row in list {
+                let node = row["node"].as_str().unwrap_or("");
+                let field = row["field"].as_str().unwrap_or("");
+                if let Some(value) = edits.get(format!("{node}:{field}")) {
+                    out.push(json!({
+                        "node": node, "class": class, "title": row["title"],
+                        "field": field, "value": value,
+                    }));
+                }
+            }
+            Some(out)
+        })
+        .flatten()
+        .collect();
+    ui.horizontal(|ui| {
+        if ui.button("Copia overrides JSON").clicked() {
+            let text = serde_json::to_string_pretty(&overrides).unwrap_or_else(|_| "[]".into());
+            ui.ctx().copy_text(text);
+            app.ui.status = format!("{} override(s) copiati: incollali nel campo Widget overrides o usali qui.", overrides.len());
+        }
+        if ui.button("Usa per la prossima generazione").clicked() {
+            ui.data_mut(|d| d.insert_temp(egui::Id::unique("nl-workflow-overrides"), json!(overrides)));
+            app.ui.status = format!("{} override(s) pronti: NL Generate → Widget overrides JSON.", overrides.len());
+        }
+    });
+    ui.add_space(6.0);
+    ui.separator();
+    ui.label(RichText::new("Preset parametri (riutilizzabili su altri workflow)").size(12.0));
+    let presets_id = egui::Id::unique("nl-workflow-presets");
+    let name_id = egui::Id::unique("nl-workflow-preset-name");
+    let mut preset_name = ui.data(|d| d.get_temp::<String>(name_id)).unwrap_or_default();
+    ui.horizontal(|ui| {
+        if ui.button("Aggiorna elenco").clicked() {
+            match app.session.execute("nl.workflows.presets", json!({"action": "list"})) {
+                Ok(value) => {
+                    ui.data_mut(|d| d.insert_temp(presets_id, value));
+                }
+                Err(e) => app.ui.status = e.to_string(),
+            }
+        }
+        ui.label(RichText::new("Nome").size(11.0));
+        if ui.text_edit_singleline(&mut preset_name).changed() {
+            ui.data_mut(|d| d.insert_temp(name_id, preset_name.clone()));
+        }
+        if ui.button("Salva preset").clicked() {
+            if preset_name.trim().is_empty() {
+                app.ui.status = "Dai un nome al preset.".into();
+            } else {
+                match app
+                    .session
+                    .execute("nl.workflows.presets", json!({"action": "save", "name": preset_name.trim(), "workflow": workflow_path, "overrides": overrides}))
+                {
+                    Ok(_) => app.ui.status = format!("Preset «{}» salvato.", preset_name.trim()),
+                    Err(e) => app.ui.status = e.to_string(),
+                }
+            }
+        }
+    });
+    if let Some(list) = ui.data(|d| d.get_temp::<Value>(presets_id)) {
+        let names: Vec<String> = list["presets"].as_array().into_iter().flatten().filter_map(|p| p["name"].as_str().map(str::to_string)).collect();
+        let selected_id = egui::Id::unique("nl-workflow-preset-selected");
+        let mut selected = ui.data(|d| d.get_temp::<String>(selected_id)).unwrap_or_default();
+        ui.horizontal(|ui| {
+            craft_ui::ComboBox::from_id_salt("wf-preset-select")
+                .selected_text(if selected.is_empty() { "scegli preset".to_string() } else { selected.clone() })
+                .width(220.0)
+                .show_ui(ui, |ui| {
+                    for name in &names {
+                        if ui.selectable_label(selected == *name, name).clicked() {
+                            selected = name.clone();
+                            ui.data_mut(|d| d.insert_temp(selected_id, selected.clone()));
+                        }
+                    }
+                });
+            if ui.button("Carica").clicked() && !selected.is_empty() {
+                match app.session.execute("nl.workflows.presets", json!({"action": "load", "name": selected})) {
+                    Ok(value) => {
+                        if let Some(list) = value["preset"]["overrides"].as_array() {
+                            let mut loaded = ui.data(|d| d.get_temp::<Value>(edit_id)).unwrap_or_else(|| json!({}));
+                            for override_value in list {
+                                let node = override_value["node"].as_str().unwrap_or("");
+                                let field = override_value["field"].as_str().unwrap_or("");
+                                let class = override_value["class"].as_str().unwrap_or("");
+                                let mut key = format!("{node}:{field}");
+                                if edits.get(&key).is_none() {
+                                    // A preset copied from another workflow may only match by class.
+                                    for (_, list) in &groups {
+                                        for row in list {
+                                            if row["field"] == field && (node.is_empty() || row["class"] == class) {
+                                                key = format!("{}:{}", row["node"].as_str().unwrap_or(""), field);
+                                            }
+                                        }
+                                    }
+                                }
+                                loaded[key] = override_value["value"].clone();
+                            }
+                            ui.data_mut(|d| d.insert_temp(edit_id, loaded));
+                            app.ui.status = format!("Preset «{selected}» caricato: valori applicati al pannello.");
+                        }
+                    }
+                    Err(e) => app.ui.status = e.to_string(),
+                }
+            }
+            if ui.button("Elimina").clicked() && !selected.is_empty() {
+                match app.session.execute("nl.workflows.presets", json!({"action": "delete", "name": selected})) {
+                    Ok(_) => app.ui.status = format!("Preset «{selected}» eliminato."),
+                    Err(e) => app.ui.status = e.to_string(),
+                }
+            }
+        });
+    }
+}
 fn workflows_panel(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     title(
         app,
@@ -920,35 +1489,7 @@ fn workflows_panel(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         ui.add_space(8.0);
         ui.separator();
         if key == "nl.workflows.parameters" {
-            let total = value["total"].as_u64().unwrap_or(0);
-            let missing = value["missingClasses"].as_array().map_or(0, Vec::len);
-            ui.label(
-                RichText::new(format!(
-                    "Parameters: {total} widget(s){}{}",
-                    if missing > 0 { format!(", {missing} class(es) missing") } else { String::new() },
-                    if value["truncated"] == true { " (showing the first ones)" } else { "" }
-                ))
-                .size(12.0),
-            );
-            for row in value["parameters"].as_array().into_iter().flatten().take(80) {
-                let text = if row["linked"] == true {
-                    format!(
-                        "node {} [{}] {}: linked",
-                        row["node"].as_str().unwrap_or(""),
-                        row["class"].as_str().unwrap_or(""),
-                        row["field"].as_str().unwrap_or("")
-                    )
-                } else {
-                    format!(
-                        "node {} [{}] {} = {}",
-                        row["node"].as_str().unwrap_or(""),
-                        row["class"].as_str().unwrap_or(""),
-                        row["field"].as_str().unwrap_or(""),
-                        row["value"].as_str().map(str::to_string).unwrap_or_else(|| row["value"].to_string())
-                    )
-                };
-                ui.label(RichText::new(text).size(11.0).color(app.tokens.text_dim));
-            }
+            workflow_parameters_editor(app, ui, &value);
         } else if key == "nl.workflows.verify" {
             let classes = value["classes"].as_u64().unwrap_or(0);
             let missing = value["missingWorkflows"].as_u64().unwrap_or(0);
