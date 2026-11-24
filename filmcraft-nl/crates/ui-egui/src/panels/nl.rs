@@ -58,7 +58,20 @@ fn body(panel: PanelKind) -> Option<Body> {
 /// old `transcript.importSubtitle` promise was exactly that).
 pub const PANEL_COMMANDS: &[(PanelKind, &[&str])] = &[
     (PanelKind::NlHome, &[]),
-    (PanelKind::NlAgent, &["nl.agent.plan", "nl.agent.sketch", "nl.agent.add", "nl.agent.prompts", "nl.agent.generate", "nl.agent.collect"]),
+    (
+        PanelKind::NlAgent,
+        &[
+            "nl.agent.plan",
+            "nl.agent.sketch",
+            "nl.agent.add",
+            "nl.agent.prompts",
+            "nl.agent.generate",
+            "nl.agent.collect",
+            "nl.agent.chat",
+            "nl.agent.workflows",
+            "nl.agent.place",
+        ],
+    ),
     (
         PanelKind::NlGenerate,
         &[
@@ -878,7 +891,7 @@ fn agent(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         app,
         ui,
         "NL Agent",
-        "Da un soggetto a una timeline bozza: l'agente scrive i prompt, crea gli oggetti sulla timeline, li fa generare con ComfyUI e sostituisce i placeholder nella posizione originale.",
+        "Assistente di produzione: da una richiesta a una storia, una serie o oggetti; l'agente scrive i prompt, sceglie il workflow per la qualità richiesta, crea i placeholder e li sostituisce con i media generati.",
     );
     error_line(app, ui);
     #[derive(Clone, Default)]
@@ -886,8 +899,79 @@ fn agent(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         subject: String,
         style: String,
         scenes: String,
+        message: String,
+        mode: usize,
+        media: usize,
+        quality: usize,
     }
     let mut d: AgentDraft = draft(ui, "nl-agent");
+    let modes = [("story", "Storia"), ("series", "Serie"), ("objects", "Oggetti")];
+    let medias = [("image", "Immagini"), ("video", "Video")];
+    let qualities = [("bozza", "Bozza"), ("standard", "Standard"), ("alta", "Alta"), ("massima", "Massima")];
+    let mode_options: Vec<(String, String)> = modes.iter().map(|(v, l)| (v.to_string(), l.to_string())).collect();
+    let media_options: Vec<(String, String)> = medias.iter().map(|(v, l)| (v.to_string(), l.to_string())).collect();
+    let quality_options: Vec<(String, String)> = qualities.iter().map(|(v, l)| (v.to_string(), l.to_string())).collect();
+    combo(app, ui, "agent.mode", "Modalità", &mut d.mode, &mode_options);
+    ui.horizontal_wrapped(|ui| {
+        combo(app, ui, "agent.media", "Media", &mut d.media, &media_options);
+        combo(app, ui, "agent.quality", "Qualità", &mut d.quality, &quality_options);
+    });
+    let quality = qualities[d.quality.min(qualities.len() - 1)].0;
+    let media = medias[d.media.min(medias.len() - 1)].0;
+    let mode = modes[d.mode.min(modes.len() - 1)].0;
+    ui.add_space(4.0);
+    ui.label(RichText::new("Chiedi all'agente").size(12.0).strong());
+    let response = ui.add(egui::TextEdit::multiline(&mut d.message).desired_rows(3).desired_width(f32::INFINITY).id_salt("nl-agent-message"));
+    app.auto.add("nl.agent.message", response.rect, "Messaggio all'agente");
+    ui.horizontal_wrapped(|ui| {
+        if button(app, ui, "agent.chat", "Invia e crea piano") && !d.message.trim().is_empty() {
+            let scenes = d.scenes.trim().parse::<u64>().unwrap_or(6);
+            run(
+                app,
+                ui,
+                "nl.agent.chat",
+                json!({
+                    "message": d.message.trim(),
+                    "mode": mode,
+                    "media": media,
+                    "quality": quality,
+                    "scenes": scenes,
+                    "place": true,
+                    "startSeconds": app.session.playhead().seconds(),
+                }),
+            );
+        }
+        if button(app, ui, "agent.workflows", "Workflow consigliati") {
+            run(app, ui, "nl.agent.workflows", json!({"kind": media, "quality": quality}));
+        }
+        if button(app, ui, "agent.place", "Metti il piano in timeline") {
+            run(app, ui, "nl.agent.place", json!({"startSeconds": app.session.playhead().seconds()}));
+        }
+    });
+    if let Some(reply) = app.session.nl.result("agent.reply").cloned() {
+        let text = reply["reply"].as_str().unwrap_or("");
+        if !text.is_empty() {
+            ui.add_space(4.0);
+            ui.label(RichText::new(text).size(11.0).color(app.tokens.text_dim));
+        }
+    }
+    if let Some(recommendation) = app.session.nl.result("agent.workflows").cloned()
+        && let Some(chosen) = recommendation.get("chosen")
+    {
+        ui.label(
+            RichText::new(format!(
+                "Workflow {} · {} · {}",
+                chosen["name"].as_str().unwrap_or(""),
+                chosen["quality"].as_str().unwrap_or(""),
+                chosen["reason"].as_str().unwrap_or("")
+            ))
+            .size(10.0)
+            .color(app.tokens.text_faint),
+        );
+    }
+    ui.add_space(6.0);
+    ui.separator();
+    ui.label(RichText::new("Sketch rapida di oggetti").size(12.0).strong());
     field(app, ui, "agent.subject", "Soggetto / brief", &mut d.subject);
     field(app, ui, "agent.style", "Stile (opzionale)", &mut d.style);
     field(app, ui, "agent.scenes", "Numero di oggetti", &mut d.scenes);
@@ -898,11 +982,18 @@ fn agent(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
                 app,
                 ui,
                 "nl.agent.sketch",
-                json!({"subject": d.subject.trim(), "style": d.style.trim(), "scenes": scenes, "startSeconds": app.session.playhead().seconds()}),
+                json!({
+                    "subject": d.subject.trim(),
+                    "style": d.style.trim(),
+                    "scenes": scenes,
+                    "quality": quality,
+                    "mode": "objects",
+                    "startSeconds": app.session.playhead().seconds(),
+                }),
             );
         }
         if button(app, ui, "agent.add", "Aggiungi oggetto qui") {
-            run(app, ui, "nl.agent.add", json!({"seconds": 4, "startSeconds": app.session.playhead().seconds()}));
+            run(app, ui, "nl.agent.add", json!({"seconds": 4, "quality": quality, "startSeconds": app.session.playhead().seconds()}));
         }
         if button(app, ui, "agent.prompts", "Compila prompt con AI") {
             run(app, ui, "nl.agent.prompts", json!({}));
@@ -927,19 +1018,26 @@ fn agent(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         let entries = plan["entries"].as_array().cloned().unwrap_or_default();
         let generated = entries.iter().filter(|entry| entry["status"] == "generated").count();
         ui.label(
-            RichText::new(format!("{} oggetti · {generated} generati · soggetto: {}", entries.len(), plan["subject"].as_str().unwrap_or("—")))
-                .size(11.0)
-                .color(app.tokens.text_dim),
+            RichText::new(format!(
+                "{} oggetti · {generated} generati · {} · qualità {}",
+                entries.len(),
+                plan["subject"].as_str().unwrap_or("—"),
+                plan["quality"].as_str().unwrap_or("standard")
+            ))
+            .size(11.0)
+            .color(app.tokens.text_dim),
         );
         if let Some(error) = plan["llmError"].as_str() {
             ui.label(RichText::new(format!("Agente: {error}")).size(10.0).color(egui::Color32::from_rgb(233, 180, 120)));
         }
-        egui::ScrollArea::vertical().id_salt("nl-agent-plan").max_height(280.0).show(ui, |ui| {
+        egui::ScrollArea::vertical().id_salt("nl-agent-plan").max_height(300.0).show(ui, |ui| {
             for entry in entries {
                 let title = entry["title"].as_str().unwrap_or("Oggetto");
                 let status = entry["status"].as_str().unwrap_or("draft");
                 let seconds = entry["seconds"].as_f64().unwrap_or(4.0);
+                let workflow = entry["workflow"].as_str().and_then(|path| path.rsplit('/').next()).unwrap_or("workflow da scegliere");
                 ui.label(RichText::new(format!("{title} · {status} · {seconds:.0}s")).size(11.0).strong());
+                ui.label(RichText::new(format!("{workflow} · {}", entry["workflowQuality"].as_str().unwrap_or(""))).size(9.5).color(app.tokens.text_faint));
                 let prompt = entry["prompt"].as_str().unwrap_or("");
                 ui.label(
                     RichText::new(if prompt.is_empty() { "Prompt vuoto: usa «Compila prompt con AI» o scrivilo nel piano." } else { prompt })
@@ -949,7 +1047,7 @@ fn agent(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
             }
         });
     } else {
-        ui.label(RichText::new("Nessun piano: scrivi un soggetto e premi «Crea timeline bozza».").size(11.0).color(app.tokens.text_faint));
+        ui.label(RichText::new("Nessun piano: scrivi una richiesta all'assistente e premi «Invia e crea piano».").size(11.0).color(app.tokens.text_faint));
     }
     save_draft(ui, "nl-agent", d);
 }

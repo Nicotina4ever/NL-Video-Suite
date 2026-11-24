@@ -1,0 +1,26 @@
+{
+  "date": "2026-11-24",
+  "phase": "P26 cleanup",
+  "root": "da_eliminare/2026-11-24-ottimizzazione",
+  "free_now_gb": 74.84,
+  "da_eliminare_mb": 21664.5,
+  "free_after_empty_gb_estimate": 96.5,
+  "items": [
+    {"name": "filmcraft-nl_target_p26", "mb": 21558.0, "why": "cache build/test P26 (debug + release + incremental), rigenerabile; exe e bundle sono in radice/distribuzione"},
+    {"name": "sviluppo_web-app_node_modules", "mb": 56.86, "why": "dipendenze npm della vecchia shell web"},
+    {"name": "app_stabile-backup", "mb": 36.5, "why": "backup della vecchia app classica"},
+    {"name": "sviluppo_tests_node_modules", "mb": 11.55, "why": "dipendenze npm dei vecchi test"},
+    {"name": "prove_p19_audit_stale_screenshots", "mb": 1.41, "why": "screenshot duplicati con il vecchio nome"},
+    {"name": "sviluppo_web-dist", "mb": 0.15, "why": "build statica vecchia"},
+    {"name": "sviluppo_maintenance-test-fixtures", "mb": 0.0, "why": "fixture vecchi test"},
+    {"name": "sviluppo_playback-test-fixtures", "mb": 0.0, "why": "fixture vecchi test"}
+  ],
+  "kept": [
+    "NL Video Suite.exe / CLI (release P26)",
+    "distribuzione/NLVideoSuite-2.0.0-windows-x64 + zip",
+    "runtime, models, data/projects, ZMateriale, app/tools, sviluppo/bridge, engines/clipsai",
+    "documentazione/prove (P25/P26 incluse)",
+    "progetti utente"
+  ],
+  "note": "Spostamento sullo stesso disco: i 21,7 GB si liberano svuotando da_eliminare. Con target spostato la prossima build parte da zero."
+}

@@ -18,6 +18,7 @@ use crate::{EngineError, Result, Session};
 
 const MAX_ENTRIES: usize = 24;
 const MAX_TITLE: usize = 160;
+const MAX_TEXT: usize = 4000;
 const MAX_PROMPT: usize = 1500;
 const DEFAULT_SECONDS: f64 = 4.0;
 const MAX_SECONDS: f64 = 30.0;
@@ -75,7 +76,148 @@ fn project_dir(s: &Session) -> Result<PathBuf> {
     Path::new(project).parent().map(Path::to_path_buf).ok_or_else(|| bad_cmd("nl.agent.sketch", "the project has no folder"))
 }
 
-/// Keep only sane values from a model/user plan and number the objects.
+/// The four quality tiers the operator picks. They select a workflow whose own quality estimate is
+/// closest, preferring text-to-image/text-to-video workflows over special-purpose ones.
+const QUALITY_TIERS: [&str; 4] = ["bozza", "standard", "alta", "massima"];
+
+fn quality_index(quality: &str) -> usize {
+    let q = quality.trim().to_ascii_lowercase();
+    QUALITY_TIERS.iter().position(|tier| *tier == q).unwrap_or(1)
+}
+
+/// A workflow's own quality estimate from its name: turbo/lightning is a draft, plain z-image/krea2
+/// is standard, flux2/ideogram/qwen/klein are high, and the rest stay standard.
+fn workflow_quality(name: &str) -> usize {
+    let n = name.to_ascii_lowercase();
+    if n.contains("turbo") || n.contains("lightning") || n.contains("_fast") || n.contains("1bg") {
+        return 0;
+    }
+    if n.contains("flux2")
+        || n.contains("flux.2")
+        || n.contains("ideogram")
+        || n.contains("qwen")
+        || n.contains("klein")
+        || n.contains("refiner")
+        || n.contains("hd")
+    {
+        return 3;
+    }
+    if n.contains("krea2") || n.contains("z-image") || n.contains("wan2.2") {
+        return 2;
+    }
+    1
+}
+
+/// Special-purpose workflows that need references, an edit input or a previous clip: useful, but
+/// not the default for a text-only story/series placeholder.
+fn is_special_workflow(name: &str) -> bool {
+    let n = name.to_ascii_lowercase();
+    ["edit", "sheet", "extend", "v2v", "r2v", "reference", "character", "analisi", "old", "music", "audio"].iter().any(|word| n.contains(word))
+}
+
+fn workflow_score(name: &str, kind: &str, target: usize) -> i32 {
+    let quality = workflow_quality(name);
+    let mut score = 100 - (quality as i32 - target as i32).abs() * 25;
+    let n = name.to_ascii_lowercase();
+    if n.contains("text_to_image") || n.contains("t2i") || n.contains("text_to_video") || n.contains("t2v") || n.contains("t2i") {
+        score += 15;
+    }
+    if kind == "image" && n.contains("image") {
+        score += 5;
+    }
+    if kind == "video" && n.contains("video") {
+        score += 5;
+    }
+    if is_special_workflow(name) {
+        score -= 70;
+    }
+    // At high/max quality a turbo workflow is a worse match than a plain one.
+    if quality == 0 && target >= 2 {
+        score -= 15;
+    }
+    score
+}
+
+/// Pick the workflow for one kind and quality from the suite's own library.
+pub(crate) fn choose_workflow(s: &Session, kind: &str, quality: &str) -> Option<Value> {
+    let target = quality_index(quality);
+    let list = super::models::workflows(s, kind).ok()?;
+    let mut best: Option<(i32, Value)> = None;
+    for workflow in list {
+        let name = workflow["name"].as_str().unwrap_or("");
+        let path = workflow["path"].as_str().unwrap_or("");
+        if name.is_empty() || path.is_empty() || workflow.get("error").is_some() {
+            continue;
+        }
+        let score = workflow_score(name, kind, target);
+        let candidate = json!({
+            "path": path,
+            "name": name,
+            "kind": kind,
+            "quality": QUALITY_TIERS[workflow_quality(name)],
+            "score": score,
+            "reason": format!("{name}: qualità {}, {} per {}", QUALITY_TIERS[workflow_quality(name)], if is_special_workflow(name) { "specialistico" } else { "generico" }, QUALITY_TIERS[target]),
+        });
+        if best.as_ref().is_none_or(|(best_score, _)| score > *best_score) {
+            best = Some((score, candidate));
+        }
+    }
+    best.map(|(_, candidate)| candidate)
+}
+
+/// Fill every plan entry that has no workflow yet.
+fn assign_workflows(s: &Session, plan: &mut Value, quality: &str) {
+    let entries = plan["entries"].as_array().cloned().unwrap_or_default();
+    for (index, entry) in entries.iter().enumerate() {
+        if entry.get("workflow").and_then(Value::as_str).is_some_and(|w| !w.trim().is_empty()) {
+            continue;
+        }
+        let kind = entry["kind"].as_str().unwrap_or("image");
+        if let Some(workflow) = choose_workflow(s, kind, quality) {
+            plan["entries"][index]["workflow"] = workflow["path"].clone();
+            plan["entries"][index]["workflowQuality"] = workflow["quality"].clone();
+            plan["entries"][index]["workflowReason"] = workflow["reason"].clone();
+        }
+    }
+    plan["quality"] = json!(QUALITY_TIERS[quality_index(quality)]);
+}
+
+/// `nl.agent.workflows` — what the suite would use for a kind and quality, with the alternatives.
+fn workflows_recommend(s: &mut Session, p: &Value) -> Result<Value> {
+    let kind = p.get("kind").and_then(Value::as_str).unwrap_or("image");
+    if !matches!(kind, "image" | "video") {
+        return Err(bad_cmd("nl.agent.workflows", "`kind` must be image or video"));
+    }
+    let quality = p.get("quality").and_then(Value::as_str).unwrap_or("standard");
+    let target = quality_index(quality);
+    let list = super::models::workflows(s, kind).map_err(|e| bad_cmd("nl.agent.workflows", e))?;
+    let mut candidates: Vec<Value> = list
+        .into_iter()
+        .filter(|workflow| workflow.get("error").is_none())
+        .map(|workflow| {
+            let name = workflow["name"].as_str().unwrap_or("");
+            let score = workflow_score(name, kind, target);
+            json!({
+                "path": workflow["path"],
+                "name": name,
+                "kind": kind,
+                "quality": QUALITY_TIERS[workflow_quality(name)],
+                "score": score,
+                "special": is_special_workflow(name),
+            })
+        })
+        .collect();
+    candidates.sort_by(|a, b| b["score"].as_i64().cmp(&a["score"].as_i64()));
+    let chosen = choose_workflow(s, kind, quality);
+    let result = json!({
+        "kind": kind,
+        "quality": QUALITY_TIERS[target],
+        "chosen": chosen,
+        "candidates": candidates.into_iter().take(12).collect::<Vec<_>>(),
+    });
+    s.nl.results.insert("agent.workflows", result.clone());
+    Ok(result)
+}
 pub fn sanitize_plan(value: &Value) -> Value {
     let object = value.as_object();
     let subject = text(object.and_then(|o| o.get("subject")), MAX_TITLE);
@@ -121,12 +263,30 @@ pub fn sanitize_plan(value: &Value) -> Value {
         if let Some(asset) = get("asset").and_then(Value::as_str).filter(|a| !a.trim().is_empty()) {
             row["asset"] = json!(asset);
         }
+        if let Some(workflow) = get("workflow").and_then(Value::as_str).filter(|w| !w.trim().is_empty()) {
+            row["workflow"] = json!(workflow);
+        }
+        if let Some(quality) = get("workflowQuality").and_then(Value::as_str).filter(|q| !q.is_empty()) {
+            row["workflowQuality"] = json!(quality);
+            row["workflowReason"] = get("workflowReason").cloned().unwrap_or(Value::Null);
+        }
+        if let Some(scene) = opt_id(get("scene")) {
+            row["scene"] = json!(scene);
+        }
+        if let Some(shot) = opt_id(get("shot")) {
+            row["shot"] = json!(shot);
+        }
         entries.push(row);
     }
     json!({
         "subject": subject,
         "style": style,
         "source": text(object.and_then(|o| o.get("source")), 40),
+        "mode": text(object.and_then(|o| o.get("mode")), 20),
+        "quality": text(object.and_then(|o| o.get("quality")), 20),
+        "title": text(object.and_then(|o| o.get("title")), MAX_TITLE),
+        "synopsis": text(object.and_then(|o| o.get("synopsis")), MAX_TEXT),
+        "reply": text(object.and_then(|o| o.get("reply")), MAX_TEXT),
         "entries": entries,
     })
 }
@@ -182,6 +342,8 @@ fn sketch(s: &mut Session, p: &Value) -> Result<Value> {
         return Err(bad_cmd("nl.agent.sketch", "serve `subject` o `entries`"));
     }
     let count = p.get("scenes").and_then(Value::as_u64).unwrap_or(6).clamp(1, MAX_ENTRIES as u64) as usize;
+    let quality = p.get("quality").and_then(Value::as_str).unwrap_or("standard");
+    let mode = p.get("mode").and_then(Value::as_str).unwrap_or("objects");
     let (raw_entries, llm_error) = match p.get("entries").and_then(Value::as_array) {
         Some(entries) => (entries.clone(), None),
         None => model_entries(s, &subject, &style, count),
@@ -189,9 +351,12 @@ fn sketch(s: &mut Session, p: &Value) -> Result<Value> {
     let mut plan = sanitize_plan(&json!({
         "subject": subject,
         "style": style,
+        "mode": mode,
+        "quality": quality,
         "source": if p.get("entries").is_some() { "given" } else if llm_error.is_some() { "subject-fallback" } else { "model" },
         "entries": raw_entries,
     }));
+    assign_workflows(s, &mut plan, quality);
     if let Some(error) = llm_error {
         plan["llmError"] = json!(error);
     }
@@ -222,6 +387,14 @@ fn add(s: &mut Session, p: &Value) -> Result<Value> {
     });
     plan["entries"].as_array_mut().ok_or_else(|| bad_cmd("nl.agent.add", "plan has no entries"))?.push(entry);
     plan = sanitize_plan(&plan);
+    let quality = p
+        .get("quality")
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .or_else(|| plan["quality"].as_str().map(str::to_string))
+        .unwrap_or_else(|| "standard".into());
+    plan["quality"] = json!(QUALITY_TIERS[quality_index(&quality)]);
+    assign_workflows(s, &mut plan, &quality);
     let start = p.get("startSeconds").and_then(Value::as_f64).map(Tick::from_seconds_f64).unwrap_or_else(|| s.playhead());
     let placed = place_plan(s, &mut plan, start)?;
     save(s, &plan)?;
@@ -396,6 +569,8 @@ fn generate(s: &mut Session, p: &Value) -> Result<Value> {
     let only = p.get("id").and_then(Value::as_u64);
     let all = p.get("all").and_then(Value::as_bool).unwrap_or(true);
     let workflow = p.get("workflow").and_then(Value::as_str).map(str::to_string);
+    let quality = plan["quality"].as_str().unwrap_or("standard").to_string();
+    assign_workflows(s, &mut plan, &quality);
     let generated_dir = project_dir(s)?.join("generated");
     let entries = plan["entries"].as_array().cloned().unwrap_or_default();
     let selected: Vec<usize> = entries
@@ -427,7 +602,7 @@ fn generate(s: &mut Session, p: &Value) -> Result<Value> {
             continue;
         }
         let mut params = json!({"prompt": prompt, "wait": true});
-        if let Some(workflow) = &workflow {
+        if let Some(workflow) = workflow.as_deref().or_else(|| entry["workflow"].as_str()) {
             params["workflow"] = json!(workflow);
         }
         if let Some(seconds) = entry["seconds"].as_f64() {
@@ -566,6 +741,185 @@ fn collect(s: &mut Session, p: &Value) -> Result<Value> {
     Ok(json!({"moved": moved, "dryRun": dry_run, "plan": plan}))
 }
 
+/// The entries a story becomes on the placeholder track: one per scene, or one per shot when the
+/// operator asked for video and the model returned shots.
+fn story_entries(story: &Value, media: &str) -> Vec<Value> {
+    let video = media == "video";
+    let mut entries = Vec::new();
+    for (index, scene) in story["scenes"].as_array().into_iter().flatten().enumerate() {
+        let heading = scene["heading"].as_str().filter(|h| !h.is_empty()).map(str::to_string).unwrap_or_else(|| format!("Scena {}", index + 1));
+        let shots = scene["shots"].as_array().cloned().unwrap_or_default();
+        if video && !shots.is_empty() {
+            for shot in shots {
+                let prompt = shot["imagePrompt"]
+                    .as_str()
+                    .filter(|p| !p.is_empty())
+                    .or_else(|| scene["motionPrompt"].as_str().filter(|p| !p.is_empty()))
+                    .or_else(|| scene["action"].as_str())
+                    .unwrap_or("")
+                    .to_string();
+                entries.push(json!({
+                    "title": format!("{heading} · inquadratura {}", shot["id"].as_u64().unwrap_or(1)),
+                    "prompt": prompt,
+                    "seconds": shot["durationSec"].as_f64().unwrap_or(3.0),
+                    "kind": "video",
+                    "scene": index as u64 + 1,
+                    "shot": shot["id"].as_u64().unwrap_or(1),
+                }));
+            }
+        } else {
+            let prompt = scene["imagePrompt"].as_str().filter(|p| !p.is_empty()).or_else(|| scene["action"].as_str()).unwrap_or("").to_string();
+            entries.push(json!({
+                "title": heading,
+                "prompt": prompt,
+                "seconds": scene["durationSec"].as_f64().unwrap_or(DEFAULT_SECONDS),
+                "kind": if video { "video" } else { "image" },
+                "scene": index as u64 + 1,
+            }));
+        }
+    }
+    entries
+}
+
+fn series_entries(answer: &Value, media: &str) -> Vec<Value> {
+    answer["episodes"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .enumerate()
+        .map(|(index, episode)| {
+            json!({
+                "title": episode["title"].as_str().filter(|t| !t.is_empty()).map(str::to_string).unwrap_or_else(|| format!("Episodio {}", index + 1)),
+                "prompt": episode["prompt"].as_str().or_else(|| episode["logline"].as_str()).unwrap_or(""),
+                "seconds": episode["seconds"].as_f64().unwrap_or(6.0),
+                "kind": episode["kind"].as_str().unwrap_or(if media == "image" { "image" } else { "video" }),
+            })
+        })
+        .collect()
+}
+
+fn quality_brief(quality: &str) -> &'static str {
+    match quality_index(quality) {
+        0 => "Bozza: pochi oggetti, prompt brevi, nessuna inquadratura secondaria.",
+        1 => "Standard: 5-6 oggetti, prompt chiari con soggetto, luce e ambiente.",
+        2 => "Alta: 7-8 oggetti, inquadrature curate, luce e composizione descritte.",
+        _ => "Massima: fino a 12 oggetti, più inquadrature per scena, continuità e dettagli visivi.",
+    }
+}
+
+/// `nl.agent.chat` — the production assistant: a message becomes a story, a series or a list of
+/// objects; prompts and workflows are filled, and the result can be placed on the timeline.
+fn chat(s: &mut Session, p: &Value) -> Result<Value> {
+    let message = text(p.get("message").or_else(|| p.get("subject")), MAX_TEXT);
+    if message.is_empty() {
+        return Err(bad_cmd("nl.agent.chat", "serve un messaggio o un soggetto"));
+    }
+    let mode = p.get("mode").and_then(Value::as_str).unwrap_or("story");
+    if !matches!(mode, "story" | "series" | "objects") {
+        return Err(bad_cmd("nl.agent.chat", "`mode` deve essere story, series o objects"));
+    }
+    let media = p.get("media").and_then(Value::as_str).unwrap_or(if mode == "series" { "video" } else { "image" });
+    let quality = p.get("quality").and_then(Value::as_str).unwrap_or("standard");
+    let count = p.get("scenes").and_then(Value::as_u64).unwrap_or(6).clamp(1, MAX_ENTRIES as u64);
+    let place = p.get("place").and_then(Value::as_bool).unwrap_or(false);
+    let system = match mode {
+        "series" => {
+            "Sei un agente di produzione video. Trasforma la richiesta in una serie di episodi/clip. \
+             Rispondi SOLO con JSON valido: {\"reply\":\"...\",\"title\":\"...\",\"style\":\"...\",\"episodes\":[{\"title\":\"...\",\"logline\":\"...\",\"prompt\":\"...\",\"seconds\":6,\"kind\":\"video\"}]}. \
+             Ogni prompt deve essere autonomo, visivo e pronto per un generatore."
+        }
+        "objects" => {
+            "Sei un agente di produzione video. Trasforma la richiesta in oggetti da generare. \
+             Rispondi SOLO con JSON valido: {\"reply\":\"...\",\"title\":\"...\",\"style\":\"...\",\"entries\":[{\"title\":\"...\",\"prompt\":\"...\",\"seconds\":4,\"kind\":\"image\"}]}."
+        }
+        _ => {
+            "Sei un agente di produzione video. Aiuta l'operatore a costruire una storia. \
+             Rispondi SOLO con JSON valido: {\"reply\":\"...\",\"title\":\"...\",\"synopsis\":\"...\",\"style\":\"...\",\
+             \"beats\":[\"...\"],\"characters\":[{\"name\":\"...\",\"description\":\"...\"}],\
+             \"locations\":[{\"name\":\"...\",\"description\":\"...\"}],\
+             \"scenes\":[{\"heading\":\"...\",\"action\":\"...\",\"dialogue\":\"...\",\"durationSec\":5,\
+             \"imagePrompt\":\"...\",\"motionPrompt\":\"...\",\"shots\":[{\"camera\":\"...\",\"description\":\"...\",\"imagePrompt\":\"...\",\"durationSec\":3}]}]}."
+        }
+    };
+    let prompt = format!(
+        "Richiesta dell'operatore: {message}\nModalità: {mode}\nQualità: {quality}\n{}\n\
+         Numero massimo di scene/oggetti: {count}\nScrivi in italiano.",
+        quality_brief(quality)
+    );
+    let config = super::llm::LlmConfig::for_session(s, None);
+    let answer =
+        config.auto_json(system, &prompt, Duration::from_secs(180), Some("0")).map_err(|e| bad_cmd("nl.agent.chat", format!("LLM non disponibile: {e}")))?;
+    let reply = text(answer.get("reply"), MAX_TEXT);
+    let title = text(answer.get("title"), MAX_TITLE);
+    let synopsis = text(answer.get("synopsis"), MAX_TEXT);
+    let style = text(answer.get("style"), MAX_TITLE);
+    let mut story = Value::Null;
+    let entries = match mode {
+        "series" => series_entries(&answer, media),
+        "objects" => answer["entries"].as_array().cloned().unwrap_or_default(),
+        _ => {
+            story = json!({
+                "title": title,
+                "synopsis": synopsis,
+                "style": style,
+                "beats": answer.get("beats").cloned().unwrap_or(json!([])),
+                "characters": answer.get("characters").cloned().unwrap_or(json!([])),
+                "locations": answer.get("locations").cloned().unwrap_or(json!([])),
+                "scenes": answer.get("scenes").cloned().unwrap_or(json!([])),
+            });
+            if let Err(error) = s.execute("nl.story.set", json!({"story": story})) {
+                return Err(bad_cmd("nl.agent.chat", format!("storia non salvata: {error}")));
+            }
+            story_entries(&story, media)
+        }
+    };
+    if entries.is_empty() {
+        return Err(bad_cmd("nl.agent.chat", "il modello non ha restituito scene o oggetti"));
+    }
+    let mut plan = sanitize_plan(&json!({
+        "subject": message,
+        "style": style,
+        "mode": mode,
+        "quality": quality,
+        "title": title,
+        "synopsis": synopsis,
+        "reply": reply,
+        "source": "assistant",
+        "entries": entries,
+    }));
+    assign_workflows(s, &mut plan, quality);
+    let mut placed = 0;
+    if place {
+        let start = p.get("startSeconds").and_then(Value::as_f64).map(Tick::from_seconds_f64).unwrap_or_else(|| s.playhead());
+        placed = place_plan(s, &mut plan, start)?;
+    }
+    save(s, &plan)?;
+    s.nl.results.insert("agent.plan", plan.clone());
+    s.nl.results.insert("agent.reply", json!({"reply": reply, "title": title, "synopsis": synopsis}));
+    Ok(json!({
+        "reply": reply,
+        "title": title,
+        "synopsis": synopsis,
+        "mode": mode,
+        "quality": QUALITY_TIERS[quality_index(quality)],
+        "entries": plan["entries"].as_array().map_or(0, Vec::len),
+        "placed": placed,
+        "story": story,
+        "plan": plan,
+    }))
+}
+
+/// `nl.agent.place` — put the current plan's missing objects on the timeline.
+fn place(s: &mut Session, p: &Value) -> Result<Value> {
+    let mut plan = load(s);
+    let quality = plan["quality"].as_str().unwrap_or("standard").to_string();
+    assign_workflows(s, &mut plan, &quality);
+    let start = p.get("startSeconds").and_then(Value::as_f64).map(Tick::from_seconds_f64).unwrap_or_else(|| s.playhead());
+    let placed = place_plan(s, &mut plan, start)?;
+    save(s, &plan)?;
+    Ok(json!({"placed": placed, "plan": plan}))
+}
+
 pub(crate) fn commands() -> Vec<CommandSpec> {
     let spec = |id: &'static str, label: &'static str, params: &'static str, run: fn(&mut Session, &Value) -> Result<Value>| CommandSpec {
         id,
@@ -583,9 +937,17 @@ pub(crate) fn commands() -> Vec<CommandSpec> {
         spec(
             "nl.agent.sketch",
             "NL Sketch Timeline from Subject",
-            r#"{"subject":str?,"style":str?,"scenes":int?,"entries":[obj]?,"startSeconds":f?,"dryRun":bool?}"#,
+            r#"{"subject":str?,"style":str?,"mode":"objects|story|series"?,"quality":"bozza|standard|alta|massima"?,"scenes":int?,"entries":[obj]?,"startSeconds":f?,"dryRun":bool?}"#,
             sketch,
         ),
+        spec(
+            "nl.agent.chat",
+            "NL Production Assistant",
+            r#"{"message":str?,"subject":str?,"mode":"story|series|objects"?,"media":"image|video"?,"quality":"bozza|standard|alta|massima"?,"scenes":int?,"place":bool?,"startSeconds":f?}"#,
+            chat,
+        ),
+        spec("nl.agent.workflows", "NL Workflow Recommendation", r#"{"kind":"image|video","quality":"bozza|standard|alta|massima"?}"#, workflows_recommend),
+        spec("nl.agent.place", "NL Place Agent Plan", r#"{"startSeconds":f?}"#, place),
         spec("nl.agent.add", "NL Add Generation Object", r#"{"title":str?,"prompt":str?,"seconds":f?,"kind":"image|video"?,"startSeconds":f?}"#, add),
         spec("nl.agent.prompts", "NL Fill Object Prompts", r#"{"force":bool?}"#, prompts),
         spec("nl.agent.generate", "NL Generate Timeline Objects", r#"{"all":bool?,"id":int?,"workflow":str?,"dryRun":bool?}"#, generate),
@@ -670,4 +1032,42 @@ fn an_asset_is_moved_into_the_project_folder() {
     assert!(moved.file_name().unwrap().to_string_lossy().starts_with("nl-07-"));
     assert!(!source.exists(), "the original download is moved, not copied");
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn quality_selects_a_workflow_family_not_just_the_first_file() {
+    assert_eq!(workflow_quality("z-image-turbo"), 0);
+    assert_eq!(workflow_quality("image_flux2_text_to_image_9b"), 3);
+    assert_eq!(workflow_quality("image_ideogram4_t2i_fixed"), 3);
+    assert!(workflow_score("image_flux2_text_to_image_9b", "image", 3) > workflow_score("z-image-turbo", "image", 3));
+    assert!(workflow_score("z-image-turbo", "image", 0) > workflow_score("image_flux2_text_to_image_9b", "image", 0));
+    assert!(is_special_workflow("MiniMax-H3-Turbo-R2V-Extend-2Refs1Vid_API"));
+    assert_eq!(quality_index("massima"), 3);
+    assert_eq!(quality_index("unknown"), 1);
+}
+
+#[test]
+fn a_story_becomes_scene_or_shot_placeholders() {
+    let story = json!({"scenes": [
+        {"heading": "Apertura", "action": "strada bagnata", "imagePrompt": "neon", "durationSec": 4,
+         "shots": [{"id": 1, "imagePrompt": "wide", "durationSec": 2}, {"id": 2, "imagePrompt": "close", "durationSec": 3}]},
+        {"heading": "Finale", "action": "skyline", "durationSec": 5}
+    ]});
+    let images = story_entries(&story, "image");
+    assert_eq!(images.len(), 2);
+    assert_eq!(images[0]["kind"], "image");
+    assert_eq!(images[0]["prompt"], "neon");
+    let videos = story_entries(&story, "video");
+    assert_eq!(videos.len(), 3, "two shots for the first scene and one for the second");
+    assert_eq!(videos[1]["kind"], "video");
+    assert_eq!(videos[1]["shot"], 2);
+}
+
+#[test]
+fn a_series_becomes_episode_entries() {
+    let answer = json!({"episodes": [{"title": "Ep 1", "logline": "inizio", "seconds": 8}, {"title": "Ep 2", "logline": "fine"}]});
+    let entries = series_entries(&answer, "video");
+    assert_eq!(entries.len(), 2);
+    assert_eq!(entries[0]["kind"], "video");
+    assert_eq!(entries[1]["title"], "Ep 2");
 }

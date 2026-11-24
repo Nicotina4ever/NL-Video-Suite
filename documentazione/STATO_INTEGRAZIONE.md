@@ -22,6 +22,18 @@ Avvio: doppio clic, oppure `NL Video Suite.exe --control 9876` per l’automazio
   comandi, clippy engine+UI pulito. Dettagli in `NL_PANELS.md`, `REFRAME_REPOS.md`,
   `NL_PARITA_2026-11-24.md`, `prove/p19-nl-surface/`, `prove/p19-nl-audit/`.
 
+## P26 — Agente di produzione stile Calliope (24/11/2026)
+
+- NL Agent diventa un assistente di produzione: modalità **Storia / Serie / Oggetti**, media
+  **Immagini / Video**, qualità **bozza / standard / alta / massima**.
+- `nl.agent.chat` genera storia (scene e shot) o serie di clip, salva la storia in `nl.story.set`
+  e crea i placeholder; `nl.agent.workflows` sceglie il workflow NL per qualità e tipo.
+- Prova live: storia qualità alta → 3 scene, workflow `Krea2_t2i_20260818_API.json`; serie qualità
+  standard → 3 episodi video, workflow `video_minimax_h3_t2v.json`.
+- Nessun codice/prompt copiato da Calliope: mapping in `CALLIOPE_AGENTE.md`.
+- Limiti: un solo agente, niente parser dei ruoli dei nodi, niente preview/edit del prompt,
+  qualità euristica.
+
 ## P25 — Montaggio base, menu NL e agente timeline (24/11/2026)
 
 - Il workspace **Editing** è la base: `Proprietà / Grafica essenziale / Testo / NL Home / NL Agent`

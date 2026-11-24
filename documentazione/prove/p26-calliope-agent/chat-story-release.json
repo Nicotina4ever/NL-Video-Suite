@@ -1,0 +1,132 @@
+{
+  "entries": 2,
+  "mode": "story",
+  "placed": 2,
+  "plan": {
+    "entries": [
+      {
+        "clip": 70,
+        "id": 1,
+        "kind": "image",
+        "placeholderItem": 69,
+        "prompt": "Un vecchio registratore analogico immerso nella nebbia, luoghi di alberi antichi e silenziosi",
+        "scene": 1,
+        "seconds": 5.0,
+        "source": "",
+        "status": "draft",
+        "title": "Introduzione",
+        "workflow": "regista/image/image_z_image.json",
+        "workflowQuality": "standard",
+        "workflowReason": "image_z_image: qualità standard, generico per standard"
+      },
+      {
+        "clip": 72,
+        "id": 2,
+        "kind": "image",
+        "placeholderItem": 71,
+        "prompt": "Un giovane uomo con cuffie, seduto su un tronco di albero, mentre il suono si propaga tra gli alberi",
+        "scene": 2,
+        "seconds": 5.0,
+        "source": "",
+        "status": "draft",
+        "title": "Scoperta",
+        "workflow": "regista/image/image_z_image.json",
+        "workflowQuality": "standard",
+        "workflowReason": "image_z_image: qualità standard, generico per standard"
+      }
+    ],
+    "mode": "story",
+    "quality": "standard",
+    "reply": "Storie per il tuo fonico: una breve narrazione su un suono perduto, ambientata in un bosco nebbioso con atmosfera misteriosa.",
+    "source": "assistant",
+    "style": "Atmosferico, onirico, con elementi di fantasy leggero",
+    "subject": "Una storia breve su un fonico che ritrova un suono perduto",
+    "synopsis": "Un giovane musicista scopre un vecchio registratore analogico nel cuore di un bosco avvolto nella nebbia. Attraverso una serie di scene, esplora il suono misterioso che sembra custodito da antichi alberi e creature silenziose.",
+    "title": "Il Suono del Bosco Perduto"
+  },
+  "quality": "standard",
+  "reply": "Storie per il tuo fonico: una breve narrazione su un suono perduto, ambientata in un bosco nebbioso con atmosfera misteriosa.",
+  "story": {
+    "beats": [
+      {
+        "action": "Il suono viene scoperto in una radura fumata da foglie morte.",
+        "durationSec": 5,
+        "heading": "Introduzione",
+        "imagePrompt": "Un vecchio registratore analogico immerso nella nebbia, luoggi di alberi antichi e silenziosi",
+        "motionPrompt": "Camera lenta che si muove tra le radure nebbiose",
+        "shots": [
+          {
+            "camera": "Droning",
+            "description": "Vista aerea che mostra la fitta nebbia e il suono nascosto",
+            "durationSec": 3,
+            "imagePrompt": "Registratore analogico al centro di una radura avvolta in nebbia fitta"
+          }
+        ]
+      },
+      {
+        "action": "Il musicista attiva il dispositivo e sente un suono etereo che sembra provenire da luoghi inesistenti.",
+        "durationSec": 5,
+        "heading": "Scoperta",
+        "imagePrompt": "Un giovane uomo con cuffie, seduto su un tronco di albero, mentre il suono si propaga tra gli alberi",
+        "motionPrompt": "Close-up sul volto concentrato e sull'eco sonora visualizzata come onde luminose",
+        "shots": [
+          {
+            "camera": "Close-up",
+            "description": "Volto del musicista con occhi chiusi, ascoltando un suono invisibile",
+            "durationSec": 5,
+            "imagePrompt": "Volto di un uomo con cuffie, occhi chiusi, mentre onde luminose danzano nell'aria"
+          }
+        ]
+      }
+    ],
+    "characters": [
+      {
+        "description": "Un giovane esecutore di strumenti che cerca il suono perduto come chiave per comprendere il mondo naturale.",
+        "name": "Il musicista"
+      }
+    ],
+    "locations": [
+      {
+        "description": "Un bosco antico avvolto nella nebbia, con alberi antichi e creature silenziose che custodiscono segreti.",
+        "name": "La radura nebbiata"
+      }
+    ],
+    "scenes": [
+      {
+        "action": "Il suono viene scoperto in una radura fumata da foglie morte.",
+        "durationSec": 5,
+        "heading": "Introduzione",
+        "imagePrompt": "Un vecchio registratore analogico immerso nella nebbia, luoghi di alberi antichi e silenziosi",
+        "motionPrompt": "Camera lenta che si muove tra le radure nebbiose",
+        "shots": [
+          {
+            "camera": "Droning",
+            "description": "Vista aerea che mostra la fitta nebbia e il suono nascosto",
+            "durationSec": 3,
+            "imagePrompt": "Registratore analogico al centro di una radura avvolta in nebbia fitta"
+          }
+        ]
+      },
+      {
+        "action": "Il musicista attiva il dispositivo e sente un suono etereo che sembra provenire da luoghi inesistenti.",
+        "durationSec": 5,
+        "heading": "Scoperta",
+        "imagePrompt": "Un giovane uomo con cuffie, seduto su un tronco di albero, mentre il suono si propaga tra gli alberi",
+        "motionPrompt": "Close-up sul volto concentrato e sull'eco sonora visualizzata come onde luminose",
+        "shots": [
+          {
+            "camera": "Close-up",
+            "description": "Volto del musicista con occhi chiusi, ascoltando un suono invisibile",
+            "durationSec": 5,
+            "imagePrompt": "Volto di un uomo con cuffie, occhi chiusi, mentre onde luminose danzano nell'aria"
+          }
+        ]
+      }
+    ],
+    "style": "Atmosferico, onirico, con elementi di fantasy leggero",
+    "synopsis": "Un giovane musicista scopre un vecchio registratore analogico nel cuore di un bosco avvolto nella nebbia. Attraverso una serie di scene, esplora il suono misterioso che sembra custodito da antichi alberi e creature silenziose.",
+    "title": "Il Suono del Bosco Perduto"
+  },
+  "synopsis": "Un giovane musicista scopre un vecchio registratore analogico nel cuore di un bosco avvolto nella nebbia. Attraverso una serie di scene, esplora il suono misterioso che sembra custodito da antichi alberi e creature silenziose.",
+  "title": "Il Suono del Bosco Perduto"
+}

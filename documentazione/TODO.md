@@ -28,6 +28,11 @@ un modello piccolo (`lfm2.5:latest` o `granite4.2:3b`), poi scaricarlo prima di 
   (0 action), pulizia bundle 1.4.1/1.5.0 + target/debug, K: 77,53 → 93,95 GB liberi (+16,42 GB),
   ricevute in `documentazione/prove/p23-release/`.
 
+- [x] **P26 agente Calliope-style**: NL Agent con modalità Storia/Serie/Oggetti, media
+  immagini/video, quattro qualità, chat con l'agente, workflow scelto per qualità (bozza→turbo,
+  massima→flux2), storia salvata con `nl.story.set` e placeholder sulla traccia NL; prove in
+  `documentazione/prove/p26-calliope-agent/`, mapping in `documentazione/CALLIOPE_AGENTE.md`.
+  Pulizia: target P26 (21.558 MB) in `da_eliminare`; K 74,84 GB, ~96,5 GB dopo lo svuotamento.
 - [x] **P25 redesign**: workspace Montaggio con NL Home/NL Agent in alto a destra, menu di primo
   livello «NL Video Suite», menu contestuale timeline, agente timeline (`nl.agent.*`), generazione
   ComfyUI reale con asset in `<progetto>/generated/` e sostituzione in place; prove in

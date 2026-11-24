@@ -1,5 +1,43 @@
 # Punto di ripresa — NL Video Suite 2.0.0 (24/11/2026)
 
+## P26 — Agente di produzione stile Calliope (24/11/2026)
+
+- Studiato `K:\AI\Calliope` (agente chat, planner story→script→assets→video, workflow per ruolo,
+  qualità): comportamento e architettura sono stati **reimplementati**, nessun codice o prompt
+  copiato. Dettagli e mapping in `CALLIOPE_AGENTE.md`.
+- **NL Agent** ora è un assistente di produzione: modalità **Storia / Serie / Oggetti**, media
+  **Immagini / Video**, quattro **qualità** (bozza, standard, alta, massima), chat con l'agente e
+  pulsanti «Invia e crea piano», «Workflow consigliati», «Metti il piano in timeline».
+- **Scelta workflow per qualità**: `nl.agent.workflows` stima la qualità dal nome del workflow NL
+  (`turbo`→bozza, `z-image`/`krea2`/`wan2.2`→standard/alta, `flux2`/`ideogram`/`qwen`/`klein`→
+  massima), penalizza i workflow specialistici (edit/sheet/extend/v2v/r2v/reference/character) e
+  sceglie quello più vicino alla qualità richiesta. Prova sulla libreria:
+  bozza → `image_krea2_turbo_t2i.json`; standard → `image_z_image.json`;
+  alta → `Krea2_t2i_20260818_API.json`; massima → `flux2-text2image-Var.json`.
+- **Storia**: `nl.agent.chat` con `mode: story` produce titolo, sinossi, battute, personaggi,
+  luoghi, scene e shot; salva la storia con `nl.story.set` e crea i placeholder sulla traccia NL.
+  Prova live: 3 scene, qualità alta, workflow `Krea2_t2i_20260818_API.json` per ogni oggetto,
+  `story.json` e `timeline-plan.json` accanto al progetto.
+- **Serie**: `mode: series` produce episodi/clip con prompt; prova live: 3 episodi video, qualità
+  standard, workflow `video_minimax_h3_t2v.json`, 3 placeholder.
+- **Generazione**: `nl.agent.generate` usa il workflow salvato sull'oggetto (o lo assegna dalla
+  qualità) e mantiene il flusso P25: generazione ComfyUI, asset in `<progetto>/generated/`,
+  sostituzione del clip nella posizione originale.
+- UI: pannello NL Agent con chat, modalità, media, qualità, workflow consigliato e stato del piano
+  (screenshot in `prove/p26-calliope-agent/`).
+- **Release P26**: `NL Video Suite.exe` 86.152.192 byte, SHA-256
+  `ED394C70…F86CEBE05D7`; bundle/zip aggiornati; audit 30 pannelli/29 Home/0 placeholder; prova
+  release: storia qualità standard → 2 placeholder, workflow `regista/image/image_z_image.json`.
+- **Test**: engine 1063 + 17; UI 374+4+1+818+6+3; CLI 20+23. (Una prima esecuzione engine ha
+  avuto un test hardware-decoding flaky, passato isolato e nella riesecuzione completa.)
+- **Limiti**: un solo agente (non la squadra di sub-agenti di Calliope); niente parser dei ruoli
+  dei nodi; niente preview/edit del prompt prima del job; qualità euristica sul nome del workflow;
+  generazione sincrona.
+- **Pulizia P26**: `filmcraft-nl/target` (21.558,0 MB) spostato in
+  `da_eliminare/2026-11-24-ottimizzazione/filmcraft-nl_target_p26`; `da_eliminare` contiene
+  21.664,5 MB. Spazio K: **74,84 GB liberi**; svuotando `da_eliminare` si torna a circa
+  **96,5 GB**. Prossima build da zero (~7 min release).
+
 ## P25 — Montaggio base, menu NL e agente timeline (24/11/2026)
 
 - **Niente più muro di 29 tab**: il workspace **Editing (Montaggio)** ha nel gruppo in alto a

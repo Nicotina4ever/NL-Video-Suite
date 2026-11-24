@@ -1,6 +1,13 @@
 {
   "workspace": "Editing",
   "agent_elements": [
+    "nl.agent.mode",
+    "nl.agent.media",
+    "nl.agent.quality",
+    "nl.agent.message",
+    "nl.agent.chat",
+    "nl.agent.workflows",
+    "nl.agent.place",
     "nl.agent.subject",
     "nl.agent.style",
     "nl.agent.scenes",

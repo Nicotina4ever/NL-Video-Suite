@@ -1,0 +1,139 @@
+{
+  "entries": 3,
+  "mode": "story",
+  "placed": 3,
+  "plan": {
+    "entries": [
+      {
+        "clip": 70,
+        "id": 1,
+        "kind": "image",
+        "placeholderItem": 69,
+        "prompt": "Un uomo in giacca sobria cammina su un viale desertico illuminato da luci neon blu e rosa, con droni in volo tra le torri futuristiche.",
+        "scene": 1,
+        "seconds": 5.0,
+        "source": "",
+        "status": "draft",
+        "title": "1. L'Arrivo nella Città Neon",
+        "workflow": "calliope/Krea2_t2i_20260818_API.json",
+        "workflowQuality": "alta",
+        "workflowReason": "Krea2_t2i_20260818_API: qualità alta, generico per alta"
+      },
+      {
+        "clip": 72,
+        "id": 2,
+        "kind": "image",
+        "placeholderItem": 71,
+        "prompt": "Un vecchio contenitore arrugginito nel mezzo di un vicolo, con un microfono vintage che emette un bagliore dorato.",
+        "scene": 2,
+        "seconds": 4.0,
+        "source": "",
+        "status": "draft",
+        "title": "2. La Scoperta",
+        "workflow": "calliope/Krea2_t2i_20260818_API.json",
+        "workflowQuality": "alta",
+        "workflowReason": "Krea2_t2i_20260818_API: qualità alta, generico per alta"
+      },
+      {
+        "clip": 74,
+        "id": 3,
+        "kind": "image",
+        "placeholderItem": 73,
+        "prompt": "Il doppiatore in piedi su un grande schermo gigante che mostra le sue voci come onde d'audio nel cielo, mentre la città sembra reagire.",
+        "scene": 3,
+        "seconds": 6.0,
+        "source": "",
+        "status": "draft",
+        "title": "3. La Rivelazione",
+        "workflow": "calliope/Krea2_t2i_20260818_API.json",
+        "workflowQuality": "alta",
+        "workflowReason": "Krea2_t2i_20260818_API: qualità alta, generico per alta"
+      }
+    ],
+    "mode": "story",
+    "quality": "alta",
+    "reply": "Ecco la proposta per il cortometraggio richiesto.",
+    "source": "assistant",
+    "style": "Cinematografia atmosferica con colori saturi, luci neon e contrasti neri, inquadrature ampie per enfatizzare l'isolamento individuale in ambienti caotici.",
+    "subject": "Un cortometraggio su un doppiatore che scopre la sua voce perduta in una città neon",
+    "synopsis": "Un doppiatore di voci si smarrisce nelle strade di una metropoli futuristica avvezza di luce e rumori elettronici. Durante la sua esplorazione, scopre una connessione misteriosa tra le sue tracce vocali e il cuore pulsante della città, rivelando un segreto che potrebbe cambiare tutto.",
+    "title": "Voce Perduta nella Città Neon"
+  },
+  "quality": "alta",
+  "reply": "Ecco la proposta per il cortometraggio richiesto.",
+  "story": {
+    "beats": [
+      "Introduzione: il doppiatore entra nella città, immerso nel rumore elettronico.",
+      "Scoperta: trova un vecchio dispositivo audio nascosto in un vicolo.",
+      "Rivelazione: le sue tracce vocali si fondono con l'energia della città, trovando una nuova identità."
+    ],
+    "characters": [
+      {
+        "description": "Un uomo con una voce professionale ma interni tormentati, alla ricerca di un senso di autenticità in un mondo meccanico.",
+        "name": "Il Doppiatore"
+      }
+    ],
+    "locations": [
+      {
+        "description": "Città futuristica illuminata da luci a raggi e strade piene di hologrammi e traffico aereo.",
+        "name": "Distretto Neon"
+      },
+      {
+        "description": "Un vicolo buio con graffiti luminosi, dove il doppiatore trova il dispositivo audio.",
+        "name": "Vie del Silenzio"
+      }
+    ],
+    "scenes": [
+      {
+        "action": "Il doppiatore camminando sotto un cielo pieno di droni, la voce perduta risuona improvvisa.",
+        "durationSec": 5,
+        "heading": "1. L'Arrivo nella Città Neon",
+        "imagePrompt": "Un uomo in giacca sobria cammina su un viale desertico illuminato da luci neon blu e rosa, con droni in volo tra le torri futuristiche.",
+        "motionPrompt": "Camera a mano tremante, primi piani sul volto stanco, sfondo caotico.",
+        "shots": [
+          {
+            "camera": "Dolly",
+            "description": "Inquadratura larga che mostra l'isolamento dell'individuo nel mezzo della folla elettronica.",
+            "durationSec": 3,
+            "imagePrompt": "Persona centrale circondata da ombre digitali, luce stroboscopica su onde d'arco."
+          }
+        ]
+      },
+      {
+        "action": "Il doppiatore trova il dispositivo audio nascosto in un vecchio contenitore.",
+        "durationSec": 4,
+        "heading": "2. La Scoperta",
+        "imagePrompt": "Un vecchio contenitore arrugginito nel mezzo di un vicolo, con un microfono vintage che emette un bagliore dorato.",
+        "motionPrompt": "Macchina a zoom lento su un oggetto che si apre, luce riflessa sul pavimento bagnato di nebbia.",
+        "shots": [
+          {
+            "camera": "Close-up",
+            "description": "Il doppiatore tocca il dispositivo, le sue dita tremanti, con sfondo di graffiti luminosi e rumore elettronico.",
+            "durationSec": 3,
+            "imagePrompt": "Prima inquadratura: mano con guancia bagnate, poi si sposta sull'oggetto, luce polarizzata su un riflesso intenso."
+          }
+        ]
+      },
+      {
+        "action": "Le sue tracce vocali si fondono con l'energia della città, trovando una nuova identità.",
+        "durationSec": 6,
+        "heading": "3. La Rivelazione",
+        "imagePrompt": "Il doppiatore in piedi su un grande schermo gigante che mostra le sue voci come onde d'audio nel cielo, mentre la città sembra reagire.",
+        "motionPrompt": "Camera aerea che si sposta lentamente sul corpo, luci sincronizzate con il ritmo vocale.",
+        "shots": [
+          {
+            "camera": "Aerial",
+            "description": "Vista panoramica della città neon, con il doppiatore al centro, le sue voci materializzate come onde luminose.",
+            "durationSec": 5,
+            "imagePrompt": "Città illuminata da un cielo colorato, con il personaggio che sembra un artista vivente dentro del flusso di dati."
+          }
+        ]
+      }
+    ],
+    "style": "Cinematografia atmosferica con colori saturi, luci neon e contrasti neri, inquadrature ampie per enfatizzare l'isolamento individuale in ambienti caotici.",
+    "synopsis": "Un doppiatore di voci si smarrisce nelle strade di una metropoli futuristica avvezza di luce e rumori elettronici. Durante la sua esplorazione, scopre una connessione misteriosa tra le sue tracce vocali e il cuore pulsante della città, rivelando un segreto che potrebbe cambiare tutto.",
+    "title": "Voce Perduta nella Città Neon"
+  },
+  "synopsis": "Un doppiatore di voci si smarrisce nelle strade di una metropoli futuristica avvezza di luce e rumori elettronici. Durante la sua esplorazione, scopre una connessione misteriosa tra le sue tracce vocali e il cuore pulsante della città, rivelando un segreto che potrebbe cambiare tutto.",
+  "title": "Voce Perduta nella Città Neon"
+}
