@@ -23,11 +23,14 @@
     "zip_bytes": 235060798
   },
   "git": {
-    "commit": "b4bf1cc67032937f83ad2d07c7c22affef2c1c98",
+    "commits": [
+      "b4bf1cc67032937f83ad2d07c7c22affef2c1c98 (P19-P22)",
+      "53e43394f82568fa31cac64ae63584aab25b955f (P23)"
+    ],
     "branch": "main",
     "remote": "https://github.com/Nicotina4ever/NL-Video-Suite.git",
     "pushed": true,
-    "github_head": "b4bf1cc su main",
+    "github_head": "53e4339 su main",
     "actions": "0 workflow run",
     "verification": "commit unsigned (normale per push HTTPS), nessun errore di permessi"
   },

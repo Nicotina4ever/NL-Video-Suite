@@ -24,9 +24,9 @@ un modello piccolo (`lfm2.5:latest` o `granite4.2:3b`), poi scaricarlo prima di 
   CLI 20+23.
 - [x] **P23 release**: `NL Video Suite.exe` 2.0.0 (SHA-256 F37354B1…), CLI, bundle
   `distribuzione/NLVideoSuite-2.0.0-windows-x64` + zip, smoke audit bundle e fallback reframe.
-- [x] **P23 push/pulizia**: commit `b4bf1cc` su main, push GitHub verificato (0 action), pulizia
-  bundle 1.4.1/1.5.0 + target/debug, K: 77,53 → 93,95 GB liberi (+16,42 GB), ricevute in
-  `documentazione/prove/p23-release/`.
+- [x] **P23 push/pulizia**: commit `b4bf1cc` + `53e4339` su main, push GitHub verificato
+  (0 action), pulizia bundle 1.4.1/1.5.0 + target/debug, K: 77,53 → 93,95 GB liberi (+16,42 GB),
+  ricevute in `documentazione/prove/p23-release/`.
 
 ## Punto di ripresa (leggere prima di tutto)
 
