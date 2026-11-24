@@ -550,6 +550,9 @@ fn home(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         "Tutte le funzioni NL in un unico posto. Clicca un pulsante per aprire il pannello corrispondente; le impostazioni AI sono in NL Settings.",
     );
     error_line(app, ui);
+    if button(app, ui, "home.nl_layout", "Apri layout NL completo") {
+        app.show_nl_layout();
+    }
     let groups: [(&str, &[PanelKind]); 4] = [
         ("Creazione", &[PanelKind::NlGenerate, PanelKind::NlMusic, PanelKind::NlBridge, PanelKind::NlStory, PanelKind::NlCover, PanelKind::NlQueue]),
         (

@@ -654,7 +654,7 @@ fn workspace_root(name: &str) -> Node<PanelKind> {
                 hsplit(Ratio(0.5), tabs(&[Source, EffectControls, AudioClipMixer, Metadata], 0), tabs(&[Program], 0)),
                 tabs(&[Properties, EssentialGraphics, Text], 0),
             ),
-            hsplit(Ratio(0.29), tabs(&[Project, MediaBrowser, Libraries, Info, Effects, Markers, History], 0), bottom_editing()),
+            hsplit(Ratio(0.29), tabs(&[Project, MediaBrowser, Libraries, Info, Effects, Markers, History, NlHome], 0), bottom_editing()),
         ),
     }
 }
