@@ -733,6 +733,31 @@ fn generate_body(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     );
     app.auto.add("nl.generate.prompt", r.rect, "Prompt");
     d.prompt = prompt;
+    let top_params = generate_params(&d, kind, &options);
+    ui.horizontal_wrapped(|ui| {
+        if button(app, ui, "generate.run", "Generate") {
+            if d.prompt.trim().is_empty() {
+                app.ui.status = "Write a prompt first.".into();
+            } else {
+                run(app, ui, "graphics.generateComfy", top_params.clone());
+            }
+        }
+        if button(app, ui, "generate.dry_run", "Dry run (no send)") {
+            if d.prompt.trim().is_empty() {
+                app.ui.status = "Write a prompt first.".into();
+            } else {
+                let mut dry = top_params.clone();
+                dry["dryRun"] = json!(true);
+                let ctx = ui.ctx().clone();
+                match crate::menus::invoke(app, &ctx, "graphics.generateComfy", dry) {
+                    Ok(value) => {
+                        ui.data_mut(|data| data.insert_temp(egui::Id::unique("nl-generate-dry"), value));
+                    }
+                    Err(e) => app.ui.status = e,
+                }
+            }
+        }
+    });
     // Prompt AI: the local model writes a prompt from the brief; the operator applies it.
     ui.horizontal(|ui| {
         if button(app, ui, "generate.enhance", "Enhance prompt with AI") {
@@ -780,39 +805,6 @@ fn generate_body(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
             }
         });
     }
-    let top_params = generate_params(&d, kind, &options);
-    ui.horizontal_wrapped(|ui| {
-        if button(app, ui, "generate.run", "Generate") {
-            if d.prompt.trim().is_empty() {
-                app.ui.status = "Write a prompt first.".into();
-            } else {
-                run(app, ui, "graphics.generateComfy", top_params.clone());
-            }
-        }
-        if button(app, ui, "generate.dry_run", "Dry run (no send)") {
-            if d.prompt.trim().is_empty() {
-                app.ui.status = "Write a prompt first.".into();
-            } else {
-                let mut dry = top_params.clone();
-                dry["dryRun"] = json!(true);
-                let ctx = ui.ctx().clone();
-                match crate::menus::invoke(app, &ctx, "graphics.generateComfy", dry) {
-                    Ok(value) => {
-                        ui.data_mut(|data| data.insert_temp(egui::Id::unique("nl-generate-dry"), value));
-                    }
-                    Err(e) => app.ui.status = e,
-                }
-            }
-        }
-        if kind == "video" && button(app, ui, "generate.t2v", "Text → Video (no reference)") {
-            let prompt = d.prompt.trim().to_string();
-            if prompt.is_empty() {
-                app.ui.status = "Write a prompt first.".into();
-            } else {
-                run(app, ui, "nl.generate.text", json!({"prompt": prompt, "seconds": 4, "wait": false}));
-            }
-        }
-    });
     if let Some((path, _)) = options.get(d.workflow).cloned() {
         reference_section(app, ui, &path, &mut d);
     }
