@@ -1,6 +1,19 @@
 # Punto di ripresa — CHIUSO 1.2.0 (24/11/2026)
 
 
+
+## P17 — Verifica pannelli e reframe automatico (24/11/2026)
+
+- Nuovi pannelli **NL Shot Map** (scene detection sulla sequenza attiva), **NL Social** (controlli
+  piattaforma), **NL Studio** (hub finitura), **NL Services/Project** (servizi, modelli, storage,
+  progetto); tutti collegati a comandi verificati con progetto/sequenza aperti.
+- Corretto il pannello **NL Search** (leggeva `hits` invece di `results`): indice 133 documenti e
+  query funzionanti.
+- **Reframe automatico**: 7 frame + rilevatore volti OpenCV del runtime suite, media dei centri,
+  fallback centro; prova GTA6 0–6 s: faceCentre [0.530,0.429], offset −70 px, sequenza 1080×1920.
+- Valutati i repo indicati: due MIT (YOLO/MediaPipe + EMA), uno senza licenza non riutilizzabile;
+  nessun codice copiato, implementazione propria con OpenCV.
+
 ## P15/P16 — Clips AI sequenze reframe, Home e layout NL (24/11/2026)
 
 - NL Clips AI: scelta video dal disco o selezione, target 9:16/16:9, focus, sottotitoli automatici;

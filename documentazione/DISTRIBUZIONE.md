@@ -100,6 +100,17 @@ e `nl.services.status` dicono se l'endpoint risponde (senza avviarlo).
 
 
 
+
+### Reframe automatico con volti (OpenCV) e nuovi pannelli
+
+- **NL Shot Map**: seleziona un clip o apri una sequenza e premi «Rileva cambi scena»; usa il motore
+  scene della timeline e mette marker sui tagli (puoi aprire Marker).
+- **NL Social**: controlli di consegna per YouTube/TikTok/Reels/Instagram sulla sequenza attiva.
+- **NL Services**: stato ComfyUI/Ollama, modelli LLM, spazio dati e progetto aperto.
+- **NL Studio**: hub verso Titles, Graphics, Subtitles, Audio, Delivery.
+- **Clips AI → focus «Automatico (volti)»**: 7 frame analizzati con OpenCV (runtime suite), media dei
+  centri e crop del reframe; se non trova volti usa il centro.
+
 ### NL Clips AI e reframe nelle sequenze
 
 - Apri **NL Clips AI** (pannello o NL Home): scegli un video con «Scegli video…» oppure seleziona un

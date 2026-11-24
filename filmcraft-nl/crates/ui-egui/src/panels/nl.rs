@@ -41,6 +41,10 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect, panel: PanelK
         PanelKind::NlSearch => search(app, ui),
         PanelKind::NlSpeech => speech(app, ui),
         PanelKind::NlHome => home(app, ui),
+        PanelKind::NlShots => shots(app, ui),
+        PanelKind::NlSocial => social(app, ui),
+        PanelKind::NlStudio => studio(app, ui),
+        PanelKind::NlServices => services(app, ui),
         PanelKind::NlWorkflows => workflows_panel(app, ui),
         _ => {}
     });
@@ -568,8 +572,19 @@ fn home(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
                 PanelKind::NlAlbum,
             ],
         ),
-        ("Finitura", &[PanelKind::NlSubtitles, PanelKind::NlTitles, PanelKind::NlGraphics, PanelKind::NlAudio, PanelKind::NlDelivery]),
-        ("Voce e configurazione", &[PanelKind::NlAsr, PanelKind::NlSpeech, PanelKind::NlSettings, PanelKind::NlWorkflows]),
+        (
+            "Finitura",
+            &[
+                PanelKind::NlStudio,
+                PanelKind::NlSubtitles,
+                PanelKind::NlTitles,
+                PanelKind::NlGraphics,
+                PanelKind::NlAudio,
+                PanelKind::NlDelivery,
+                PanelKind::NlSocial,
+            ],
+        ),
+        ("Voce e configurazione", &[PanelKind::NlAsr, PanelKind::NlSpeech, PanelKind::NlServices, PanelKind::NlSettings, PanelKind::NlWorkflows]),
     ];
     for (group, panels) in groups {
         ui.add_space(6.0);
@@ -767,6 +782,174 @@ fn speech(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         }
     });
     save_draft(ui, "nl-speech", d);
+}
+/// NL Shot Map: scene cuts through the NLE's own scene detector, with markers.
+fn shots(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(
+        app,
+        ui,
+        "NL Shot Map",
+        "Rileva i cambi scena dei clip selezionati e mette un marker su ogni taglio. Usa il motore scene della timeline, non un servizio esterno.",
+    );
+    error_line(app, ui);
+    #[derive(Clone)]
+    struct ShotsDraft {
+        sensitivity: String,
+        min_frames: String,
+        markers: bool,
+    }
+    impl Default for ShotsDraft {
+        fn default() -> Self {
+            Self { sensitivity: "50".into(), min_frames: "6".into(), markers: true }
+        }
+    }
+    let mut d: ShotsDraft = draft(ui, "nl-shots");
+    field(app, ui, "shots.sensitivity", "Sensibilità (0–100)", &mut d.sensitivity);
+    field(app, ui, "shots.min_frames", "Durata minima inquadratura (frame)", &mut d.min_frames);
+    crate::widgets::accessible_name(ui.checkbox(&mut d.markers, "Marker sui tagli"), "Marker sui tagli");
+    ui.horizontal(|ui| {
+        if button(app, ui, "shots.detect", "Rileva cambi scena") {
+            let sensitivity = d.sensitivity.trim().parse::<f64>().unwrap_or(50.0);
+            let min_frames = d.min_frames.trim().parse::<u64>().unwrap_or(6);
+            run(app, ui, "clip.sceneEditDetection", json!({"sensitivity": sensitivity, "minShotFrames": min_frames, "applyCuts": false, "createSubclips": false, "generateMarkers": d.markers, "wait": false}));
+        }
+        if button(app, ui, "shots.markers_panel", "Apri Marker") { app.show_panel(PanelKind::Markers); }
+        if button(app, ui, "shots.timeline", "Vai alla Timeline") { app.show_panel(PanelKind::Timeline); }
+    });
+    job_line(app, ui, "Scene Edit Detection");
+    ui.label(
+        RichText::new("I marker compaiono sul clip e nella timeline; i tagli non vengono applicati finché non li confermi con lo strumento nativo.")
+            .size(10.0)
+            .color(app.tokens.text_faint),
+    );
+    save_draft(ui, "nl-shots", d);
+}
+
+/// NL Social: the platform checks before publishing.
+fn social(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(app, ui, "NL Social", "Controlli di consegna per piattaforma: durata, formato, sottotitoli e requisiti del social scelto.");
+    error_line(app, ui);
+    let platforms = [("youtube", "YouTube"), ("tiktok", "TikTok"), ("reels", "Instagram Reels"), ("instagram", "Instagram")];
+    let mut platform = ui.data(|d| d.get_temp::<usize>(egui::Id::unique("nl-social-platform"))).unwrap_or(0).min(platforms.len() - 1);
+    ui.horizontal(|ui| {
+        craft_ui::ComboBox::from_id_salt("nl-social-platform-combo").selected_text(platforms[platform].1).show_ui(ui, |ui| {
+            for (i, (_, label)) in platforms.iter().enumerate() {
+                if ui.selectable_value(&mut platform, i, *label).changed() {
+                    ui.data_mut(|d| d.insert_temp(egui::Id::unique("nl-social-platform"), platform));
+                }
+            }
+        });
+        if button(app, ui, "social.check", "Controlla la consegna") {
+            match app.session.execute("nl.delivery.social", json!({"platform": platforms[platform].0})) {
+                Ok(value) => {
+                    ui.data_mut(|d| d.insert_temp(egui::Id::unique("nl-social-result"), value));
+                }
+                Err(e) => app.ui.status = e.to_string(),
+            }
+        }
+    });
+    if let Some(result) = ui.data(|d| d.get_temp::<Value>(egui::Id::unique("nl-social-result"))) {
+        ui.add_space(6.0);
+        let checks = result["checks"].as_array().cloned().unwrap_or_default();
+        ui.label(RichText::new(format!("{} controlli", checks.len())).size(12.0));
+        for check in checks.iter().take(40) {
+            let ok = check["ok"].as_bool().unwrap_or(false);
+            ui.label(
+                RichText::new(format!("{} {} — {}", if ok { "OK" } else { "!" }, check["name"].as_str().unwrap_or(""), check["detail"].as_str().unwrap_or("")))
+                    .size(11.0)
+                    .color(if ok { app.tokens.text_dim } else { egui::Color32::from_rgb(233, 180, 120) }),
+            );
+        }
+    }
+    ui.horizontal(|ui| {
+        if button(app, ui, "social.open_clips", "Apri NL Clips AI") {
+            app.show_panel(PanelKind::NlClipping);
+        }
+        if button(app, ui, "social.open_delivery", "Apri NL Delivery") {
+            app.show_panel(PanelKind::NlDelivery);
+        }
+    });
+}
+
+/// NL Studio: the finishing surfaces in one place.
+fn studio(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(app, ui, "NL Studio", "Motion graphics, titoli e sottotitoli: le superfici di finitura con un clic.");
+    error_line(app, ui);
+    for (label, panel) in [
+        ("Titles & Graphics", PanelKind::NlTitles),
+        ("Graphics", PanelKind::NlGraphics),
+        ("Subtitles", PanelKind::NlSubtitles),
+        ("Audio", PanelKind::NlAudio),
+        ("Delivery", PanelKind::NlDelivery),
+    ] {
+        if button(app, ui, &format!("studio.{}", panel.id()), label) {
+            app.show_panel(panel);
+        }
+    }
+    ui.add_space(6.0);
+    ui.label(
+        RichText::new("Suggerimento: i sottotitoli automatici delle nuove sequenze Clips AI sono già stilizzati; qui puoi rifinirli o esportarli.")
+            .size(10.0)
+            .color(app.tokens.text_faint),
+    );
+}
+
+/// NL Services/Project: services, models, storage and project facts.
+fn services(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(
+        app,
+        ui,
+        "NL Services",
+        "Stato di ComfyUI/Ollama, modelli disponibili, spazio dati e informazioni del progetto aperto. Nessun servizio viene avviato.",
+    );
+    error_line(app, ui);
+    ui.horizontal(|ui| {
+        if button(app, ui, "services.status", "Stato servizi") {
+            match app.session.execute("nl.services.status", json!({})) {
+                Ok(value) => {
+                    ui.data_mut(|d| d.insert_temp(egui::Id::unique("nl-services-status"), value));
+                }
+                Err(e) => app.ui.status = e.to_string(),
+            }
+        }
+        if button(app, ui, "services.models", "Modelli LLM") {
+            match app.session.execute("nl.models.llm", json!({})) {
+                Ok(value) => {
+                    ui.data_mut(|d| d.insert_temp(egui::Id::unique("nl-services-models"), value));
+                }
+                Err(e) => app.ui.status = e.to_string(),
+            }
+        }
+        if button(app, ui, "services.storage", "Spazio") {
+            match app.session.execute("nl.storage.status", json!({})) {
+                Ok(value) => {
+                    ui.data_mut(|d| d.insert_temp(egui::Id::unique("nl-services-storage"), value));
+                }
+                Err(e) => app.ui.status = e.to_string(),
+            }
+        }
+        if button(app, ui, "services.project", "Progetto") {
+            match app.session.execute("project.inspect", json!({})) {
+                Ok(value) => {
+                    ui.data_mut(|d| d.insert_temp(egui::Id::unique("nl-services-project"), value));
+                }
+                Err(e) => app.ui.status = e.to_string(),
+            }
+        }
+        if button(app, ui, "services.open_settings", "Impostazioni NL") {
+            app.show_panel(PanelKind::NlSettings);
+        }
+    });
+    for (id, title_text) in
+        [("nl-services-status", "Servizi"), ("nl-services-models", "Modelli"), ("nl-services-storage", "Spazio"), ("nl-services-project", "Progetto")]
+    {
+        if let Some(value) = ui.data(|d| d.get_temp::<Value>(egui::Id::unique(id))) {
+            ui.add_space(4.0);
+            ui.label(RichText::new(title_text).size(12.0).strong());
+            let text = serde_json::to_string_pretty(&value).unwrap_or_default();
+            ui.label(RichText::new(text).size(10.0).color(app.tokens.text_dim));
+        }
+    }
 }
 /// NL Clipping: candidates from the bridge, selection, render and subtitles.
 fn clipping(app: &mut FilmcraftApp, ui: &mut egui::Ui) {

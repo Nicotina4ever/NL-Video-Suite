@@ -65,10 +65,14 @@ pub enum PanelKind {
     NlSearch,
     NlSpeech,
     NlHome,
+    NlShots,
+    NlSocial,
+    NlStudio,
+    NlServices,
 }
 
 impl PanelKind {
-    pub const ALL: [PanelKind; 52] = [
+    pub const ALL: [PanelKind; 56] = [
         PanelKind::Project,
         PanelKind::MediaBrowser,
         PanelKind::Libraries,
@@ -121,6 +125,10 @@ impl PanelKind {
         PanelKind::NlSearch,
         PanelKind::NlSpeech,
         PanelKind::NlHome,
+        PanelKind::NlShots,
+        PanelKind::NlSocial,
+        PanelKind::NlStudio,
+        PanelKind::NlServices,
     ];
     pub fn title(self) -> &'static str {
         match self {
@@ -176,6 +184,10 @@ impl PanelKind {
             PanelKind::NlSearch => "NL Search",
             PanelKind::NlSpeech => "NL Speech",
             PanelKind::NlHome => "NL Home",
+            PanelKind::NlShots => "NL Shot Map",
+            PanelKind::NlSocial => "NL Social",
+            PanelKind::NlStudio => "NL Studio",
+            PanelKind::NlServices => "NL Services",
         }
     }
     pub fn id(self) -> String {
@@ -633,7 +645,24 @@ fn workspace_root(name: &str) -> Node<PanelKind> {
             ),
             hsplit(
                 Ratio(0.22),
-                tabs(&[NlLongform, NlAnalyze, NlSearch, NlClipping, NlSgrossa, NlSettings, NlWorkflows, NlAsr, NlSpeech], 0),
+                tabs(
+                    &[
+                        NlLongform,
+                        NlAnalyze,
+                        NlSearch,
+                        NlClipping,
+                        NlShots,
+                        NlSgrossa,
+                        NlStudio,
+                        NlSocial,
+                        NlServices,
+                        NlSettings,
+                        NlWorkflows,
+                        NlAsr,
+                        NlSpeech,
+                    ],
+                    0,
+                ),
                 hsplit(
                     SplitSize::FixedFirst(TOOLS_WIDTH),
                     tabs(&[Tools], 0),
@@ -654,7 +683,7 @@ fn workspace_root(name: &str) -> Node<PanelKind> {
                 hsplit(Ratio(0.5), tabs(&[Source, EffectControls, AudioClipMixer, Metadata], 0), tabs(&[Program], 0)),
                 tabs(&[Properties, EssentialGraphics, Text], 0),
             ),
-            hsplit(Ratio(0.29), tabs(&[Project, MediaBrowser, Libraries, Info, Effects, Markers, History, NlHome], 0), bottom_editing()),
+            hsplit(Ratio(0.29), tabs(&[Project, MediaBrowser, Libraries, Info, Effects, Markers, History], 0), bottom_editing()),
         ),
     }
 }

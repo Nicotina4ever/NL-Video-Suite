@@ -3,6 +3,9 @@
 //! supplied, a styled caption track is generated. This is the missing step between Clips AI proposals
 //! and a ready-to-edit vertical sequence.
 
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
 use filmcraft_project::ItemKind;
 use filmcraft_time::Tick;
 use serde_json::{Value, json};
@@ -23,6 +26,73 @@ fn video_size(s: &Session, media: filmcraft_project::ItemId) -> (u32, u32, f64) 
         return (1920, 1080, 30.0);
     };
     (video.width, video.height, video.frame_rate.as_f64())
+}
+
+/// The media file of an item, when it is file-backed.
+fn media_path(s: &Session, media: filmcraft_project::ItemId) -> Option<PathBuf> {
+    let item = s.project.item(media)?;
+    let ItemKind::Media(clip) = &item.kind else { return None };
+    match &clip.media {
+        filmcraft_project::MediaRef::File { path } => Some(PathBuf::from(path)),
+        _ => None,
+    }
+}
+
+/// Ask the suite's OpenCV runtime where the main face is across a few frames. This is our own
+/// detector (Haar cascade shipped with OpenCV): no model download and no tracking dependency.
+fn auto_focus(s: &Session, source: &Path, start: f64, end: f64) -> Option<(f64, f64)> {
+    let root = crate::nl::suite_root()?;
+    let python = root.join("runtime").join("python").join(if cfg!(windows) { "python.exe" } else { "python" });
+    let ffmpeg = root.join("app").join("tools").join(if cfg!(windows) { "ffmpeg.exe" } else { "ffmpeg" });
+    if !python.is_file() || !ffmpeg.is_file() {
+        return None;
+    }
+    let dir = crate::nl::media_work_dir(s, &source.to_string_lossy(), "autofocus");
+    std::fs::create_dir_all(&dir).ok()?;
+    let mut frames = Vec::new();
+    for index in 0..7 {
+        let at = start + (end - start) * (index as f64 + 0.5) / 7.0;
+        let png = dir.join(format!("focus-{index}.png"));
+        let output = Command::new(&ffmpeg)
+            .args(["-hide_banner", "-loglevel", "error", "-y", "-ss", &format!("{at:.3}"), "-i"])
+            .arg(source)
+            .args(["-frames:v", "1"])
+            .arg(&png)
+            .output()
+            .ok()?;
+        if output.status.success() && png.is_file() {
+            frames.push(png);
+        }
+    }
+    if frames.is_empty() {
+        return None;
+    }
+    let script = dir.join("auto-focus.py");
+    let code = r#"
+import cv2, sys
+cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+centres = []
+for path in sys.argv[1:]:
+    image = cv2.imread(path)
+    if image is None:
+        continue
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    faces = cascade.detectMultiScale(gray, 1.1, 5, minSize=(24, 24))
+    for x, y, w, h in faces:
+        centres.append(((x + w / 2) / image.shape[1], (y + h / 2) / image.shape[0]))
+if centres:
+    print(sum(c[0] for c in centres) / len(centres), sum(c[1] for c in centres) / len(centres))
+"#;
+    std::fs::write(&script, code).ok()?;
+    let output = Command::new(python).arg(&script).args(&frames).output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&output.stdout);
+    let mut parts = text.split_whitespace();
+    let cx: f64 = parts.next()?.parse().ok()?;
+    let cy: f64 = parts.next()?.parse().ok()?;
+    (0.0..=1.0).contains(&cx).then_some((cx, cy))
 }
 
 fn focus_offset(focus: &str, free_x: f64, free_y: f64) -> (f64, f64) {
@@ -140,7 +210,19 @@ pub(crate) fn create_sequence(s: &mut Session, spec: &ReframeSpec<'_>) -> Result
     let painted_h = sh as f64 * scale / 100.0;
     let free_x = (painted_w - tw as f64).max(0.0);
     let free_y = (painted_h - th as f64).max(0.0);
-    let (dx, dy) = focus_offset(focus, free_x, free_y);
+    let mut auto_centre = None;
+    let (dx, dy) = if focus == "auto" {
+        if let Some(source) = media_path(s, media).and_then(|path| auto_focus(s, &path, start, end)) {
+            auto_centre = Some(source);
+            let dx = ((0.5 - source.0) * free_x).clamp(-free_x / 2.0, free_x / 2.0);
+            let dy = ((0.5 - source.1) * free_y).clamp(-free_y / 2.0, free_y / 2.0);
+            (dx, dy)
+        } else {
+            (0.0, 0.0)
+        }
+    } else {
+        focus_offset(focus, free_x, free_y)
+    };
     s.execute("effects.setParam", json!({"clip": clip, "effect": "motion", "param": "scale", "value": scale}))?;
     s.execute("effects.setParam", json!({"clip": clip, "effect": "motion", "param": "position", "value": [tw as f64 / 2.0 + dx, th as f64 / 2.0 + dy]}))?;
     let captions = if subtitles { add_captions(s, words, start, end)? } else { json!({"count": 0, "skipped": true}) };
@@ -150,7 +232,7 @@ pub(crate) fn create_sequence(s: &mut Session, spec: &ReframeSpec<'_>) -> Result
         "clip": clip,
         "source": {"width": sw, "height": sh},
         "target": {"width": tw, "height": th},
-        "reframe": {"scale": scale, "focus": focus, "offset": [dx, dy]},
+        "reframe": {"scale": scale, "focus": focus, "offset": [dx, dy], "faceCentre": auto_centre},
         "startSeconds": start,
         "endSeconds": end,
         "subtitles": captions,
@@ -221,13 +303,13 @@ pub(crate) fn commands() -> Vec<crate::CommandSpec> {
         spec(
             "nl.reframe.sequence",
             "NL Reframe Candidate",
-            r#"{"item":id?,"startSeconds":f,"endSeconds":f,"title":str?,"target":"vertical|horizontal"?,"focus":"center|left|right|top|bottom"?,"subtitles":bool?,"words":[obj]?}"#,
+            r#"{"item":id?,"startSeconds":f,"endSeconds":f,"title":str?,"target":"vertical|horizontal"?,"focus":"auto|center|left|right|top|bottom"?,"subtitles":bool?,"words":[obj]?}"#,
             reframe_sequence,
         ),
         spec(
             "nl.clipping.sequences",
             "NL Clips AI → Sequences",
-            r#"{"items":[obj],"item":id?,"target":"vertical|horizontal"?,"focus":"center|left|right|top|bottom"?,"subtitles":bool?,"words":[obj]?}"#,
+            r#"{"items":[obj],"item":id?,"target":"vertical|horizontal"?,"focus":"auto|center|left|right|top|bottom"?,"subtitles":bool?,"words":[obj]?}"#,
             clipping_sequences,
         ),
     ]
