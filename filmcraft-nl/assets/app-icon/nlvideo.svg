@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- NL Video Suite app icon: neon studio microphone with a voice waveform.
+       Palette taken from the owner's mark: violet #7531FE, magenta #C42B86,
+       neon cyan #8FF0FF on a near-black plum field. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1B0F2E"/>
+      <stop offset="0.55" stop-color="#120A20"/>
+      <stop offset="1" stop-color="#08050D"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.42" r="0.55">
+      <stop offset="0" stop-color="#7531FE" stop-opacity="0.42"/>
+      <stop offset="0.65" stop-color="#7531FE" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#7531FE" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tube" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#A46BFF"/>
+      <stop offset="0.45" stop-color="#7531FE"/>
+      <stop offset="0.78" stop-color="#C42B86"/>
+      <stop offset="1" stop-color="#E13A8E"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="112" fill="url(#glow)"/>
+
+  <!-- Holder and stand, behind the capsule. -->
+  <g fill="none" stroke="url(#tube)" stroke-width="28" stroke-linecap="round">
+    <path d="M142 276 V318 A114 114 0 0 0 370 318 V276"/>
+    <path d="M256 432 V456"/>
+    <path d="M204 464 H308"/>
+  </g>
+
+  <!-- Microphone capsule. -->
+  <rect x="166" y="82" width="180" height="258" rx="90" fill="url(#tube)"/>
+
+  <!-- Grille slots. -->
+  <g stroke="#140C1F" stroke-width="13" stroke-linecap="round" opacity="0.42">
+    <path d="M208 132 H304"/>
+    <path d="M208 166 H304"/>
+    <path d="M208 200 H304"/>
+  </g>
+
+  <!-- Voice waveform cut through the capsule. -->
+  <path d="M198 262 H216 L234 206 L252 300 L270 234 L284 278 L300 262 H314"
+        fill="none" stroke="#8FF0FF" stroke-width="27" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

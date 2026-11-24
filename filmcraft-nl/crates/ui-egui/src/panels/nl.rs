@@ -1,0 +1,1780 @@
+//! NL Video Suite panels: Generate, Music, ASR, Clipping, Rough Cut, Story, Queue and Settings.
+//!
+//! Each panel is a dockable surface over the engine's NL commands: it reads the session and calls
+//! commands, so everything it does is also available to the CLI, the control channel and agents.
+//! The NL preferences (Settings ▸ NL Video Suite) are the defaults; a panel's own controls only
+//! override them for the run being launched. Nothing here downloads a model or starts a service.
+//!
+//! Automation ids: `nl.<panel>.<control>`.
+
+use egui::{Rect, RichText, vec2};
+use serde_json::{Value, json};
+
+use crate::FilmcraftApp;
+use crate::dock::PanelKind;
+
+/// Which panel body to draw.
+pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect, panel: PanelKind) {
+    let mut child = ui.new_child(egui::UiBuilder::new().max_rect(rect.shrink2(vec2(12.0, 8.0))));
+    let ui = &mut child;
+    egui::ScrollArea::vertical().id_salt(("nl-panel", panel.id())).auto_shrink([false, false]).show(ui, |ui| match panel {
+        PanelKind::NlGenerate => generate(app, ui),
+        PanelKind::NlMusic => music(app, ui),
+        PanelKind::NlAsr => asr(app, ui),
+        PanelKind::NlClipping => clipping(app, ui),
+        PanelKind::NlSgrossa => sgrossa(app, ui),
+        PanelKind::NlStory => story(app, ui),
+        PanelKind::NlAnalyze => analyze(app, ui),
+        PanelKind::NlSubtitles => super::nl_studio::subtitles(app, ui),
+        PanelKind::NlTitles => super::nl_studio::titles(app, ui),
+        PanelKind::NlGraphics => super::nl_studio::graphics_panel(app, ui),
+        PanelKind::NlAudio => super::nl_studio::audio_panel(app, ui),
+        PanelKind::NlDelivery => super::nl_studio::delivery_panel(app, ui),
+        PanelKind::NlAlbum => super::nl_studio::album_panel(app, ui),
+        PanelKind::NlVersions => super::nl_studio::versions_panel(app, ui),
+        PanelKind::NlMontage => super::nl_studio::montage_panel(app, ui),
+        PanelKind::NlBridge => super::nl_studio::bridge_panel(app, ui),
+        PanelKind::NlQueue => queue(app, ui),
+        PanelKind::NlSettings => settings(app, ui),
+        PanelKind::NlCover => cover(app, ui),
+        PanelKind::NlWorkflows => workflows_panel(app, ui),
+        _ => {}
+    });
+}
+
+// ---------------------------------------------------------------- shared widgets
+
+pub(super) fn title(app: &mut FilmcraftApp, ui: &mut egui::Ui, title: &str, subtitle: &str) {
+    let t = app.tokens;
+    ui.add_space(2.0);
+    ui.label(RichText::new(title).size(17.0).strong().color(t.text));
+    ui.label(RichText::new(subtitle).size(12.0).color(t.text_dim));
+    ui.add_space(6.0);
+}
+
+pub(super) fn error_line(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    let status = app.ui.status.clone();
+    if !status.is_empty() {
+        ui.label(RichText::new(status).size(12.0).color(egui::Color32::from_rgb(233, 120, 120)));
+        ui.add_space(4.0);
+    }
+}
+
+/// Run one command for a button press, showing a failure in the panel status line.
+pub(super) fn run(app: &mut FilmcraftApp, ui: &egui::Ui, id: &str, params: Value) {
+    let ctx = ui.ctx().clone();
+    if let Err(e) = crate::menus::invoke(app, &ctx, id, params) {
+        app.ui.status = e;
+    }
+}
+
+/// A labelled single-line field with its automation id.
+pub(super) fn field(app: &mut FilmcraftApp, ui: &mut egui::Ui, key: &str, label: &str, text: &mut String) -> egui::Response {
+    ui.label(RichText::new(label).size(12.0).color(app.tokens.text_dim));
+    let r = ui.add(egui::TextEdit::singleline(text).desired_width(f32::INFINITY).id_salt(key));
+    app.auto.add(&format!("nl.{key}"), r.rect, label);
+    r
+}
+
+pub(super) fn button(app: &mut FilmcraftApp, ui: &mut egui::Ui, key: &str, label: &str) -> bool {
+    let r = ui.add(egui::Button::new(RichText::new(label).size(13.0)).min_size(vec2(0.0, 26.0)));
+    app.auto.add(&format!("nl.{key}"), r.rect, label);
+    r.clicked()
+}
+
+fn combo(app: &mut FilmcraftApp, ui: &mut egui::Ui, key: &str, label: &str, value: &mut usize, options: &[(String, String)]) {
+    ui.label(RichText::new(label).size(12.0).color(app.tokens.text_dim));
+    let current = options.get(*value).map(|(_, label)| label.clone()).unwrap_or_else(|| "—".into());
+    let r = craft_ui::ComboBox::from_id_salt(key).selected_text(current).width(ui.available_width().min(520.0)).show_ui(ui, |ui| {
+        for (i, (_, label)) in options.iter().enumerate() {
+            ui.selectable_value(value, i, label);
+        }
+    });
+    app.auto.add(&format!("nl.{key}"), r.response.rect, label);
+}
+
+/// The last job whose label starts with `prefix`, with its status line.
+fn job_line(app: &mut FilmcraftApp, ui: &mut egui::Ui, prefix: &str) {
+    let Some(job) = app.session.jobs.iter().rev().find(|j| j.label.starts_with(prefix)) else { return };
+    let progress = job.progress.fraction();
+    let status = job.progress.status.lock().unwrap_or_else(|e| e.into_inner()).clone();
+    let finished = job.progress.finished.load(std::sync::atomic::Ordering::Relaxed);
+    let mut line = format!("{}: {:.0}%", if finished { "Last job" } else { "Running" }, progress * 100.0);
+    if !status.is_empty() {
+        line.push_str(" · ");
+        line.push_str(&status);
+    }
+    ui.label(RichText::new(line).size(12.0).color(app.tokens.text_dim));
+}
+
+/// Workflows for a kind, read from the engine and refreshed when empty or older than a few
+/// seconds; `select` is the draft's index into the list.
+fn workflow_options(app: &mut FilmcraftApp, ui: &egui::Ui, kind: &str) -> Vec<(String, String)> {
+    let id = egui::Id::unique(("nl-workflows", kind));
+    let now = ui.input(|i| i.time);
+    let cached: Option<(f64, Vec<(String, String)>)> = ui.data(|d| d.get_temp(id));
+    if let Some((at, list)) = &cached
+        && now - at < 5.0
+        && !list.is_empty()
+    {
+        return list.clone();
+    }
+    let list = match app.session.execute("nl.models.workflows", json!({"kind": kind})) {
+        Ok(value) => value["workflows"]
+            .as_array()
+            .map(|rows| {
+                rows.iter()
+                    .map(|w| {
+                        (
+                            w["path"].as_str().unwrap_or_default().to_string(),
+                            format!("{} · {}", w["kind"].as_str().unwrap_or(""), w["name"].as_str().unwrap_or("workflow")),
+                        )
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default(),
+        Err(e) => {
+            app.ui.status = e.to_string();
+            Vec::new()
+        }
+    };
+    ui.data_mut(|d| d.insert_temp(id, (now, list.clone())));
+    list
+}
+
+/// The default workflow index for a kind from the NL preferences, else 0.
+fn default_workflow(options: &[(String, String)], app: &FilmcraftApp, kind: &str) -> usize {
+    let nl = &app.session.prefs.nl;
+    let wanted = match kind {
+        "video" => nl.comfy_video_workflow.as_str(),
+        "audio" => nl.comfy_music_workflow.as_str(),
+        _ => nl.comfy_image_workflow.as_str(),
+    };
+    if !wanted.is_empty()
+        && let Some(i) = options.iter().position(|(path, _)| path == wanted)
+    {
+        return i;
+    }
+    0
+}
+
+/// The size a generation will use, read from the engine so the panel shows the real number.
+fn size_preview(app: &mut FilmcraftApp, ui: &mut egui::Ui, mode: &str, scale: &str) {
+    let mut params = json!({"resolutionMode": mode});
+    if mode == "image" {
+        params["imageScale"] = json!(scale);
+    } else {
+        params["videoScale"] = json!(scale);
+    }
+    match app.session.execute("nl.size.preview", params) {
+        Ok(size) => {
+            let text = format!("{} × {} px", size["width"], size["height"]);
+            ui.label(RichText::new(format!("Derived from the open sequence: {text}")).size(12.0).color(app.tokens.text_dim));
+        }
+        Err(e) => {
+            ui.label(RichText::new(e.to_string()).size(12.0).color(egui::Color32::from_rgb(233, 180, 120)));
+        }
+    }
+}
+
+// ---------------------------------------------------------------- draft state
+
+#[derive(Clone, Default)]
+struct GenerateDraft {
+    prompt: String,
+    negative: String,
+    seed: u64,
+    kind: usize,
+    workflow: usize,
+    scale: usize,
+    overrides: String,
+}
+
+pub(super) fn draft<T: Clone + Default + Send + Sync + 'static>(ui: &egui::Ui, id: &str) -> T {
+    ui.data(|d| d.get_temp::<T>(egui::Id::unique(id))).unwrap_or_default()
+}
+
+pub(super) fn save_draft<T: Clone + Send + Sync + 'static>(ui: &egui::Ui, id: &str, value: T) {
+    ui.data_mut(|d| d.insert_temp(egui::Id::unique(id), value));
+}
+
+// ---------------------------------------------------------------- panels
+
+fn generate(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(app, ui, "NL Generate", "Images from a prompt with the local ComfyUI. The size comes from the open sequence: 1× or 2×, rounded to the model's grid.");
+    error_line(app, ui);
+    let mut d: GenerateDraft = draft(ui, "nl-generate");
+    let kinds = [("image", "Image"), ("video", "Video")];
+    let mut kind_label = kinds[d.kind.min(kinds.len() - 1)].1.to_string();
+    craft_ui::ComboBox::from_id_salt("nl-generate-kind").selected_text(&kind_label).show_ui(ui, |ui| {
+        for (i, (_, label)) in kinds.iter().enumerate() {
+            ui.selectable_value(&mut d.kind, i, *label);
+        }
+    });
+    kind_label = kinds[d.kind.min(kinds.len() - 1)].1.to_string();
+    let _ = &kind_label;
+    let kind = kinds[d.kind.min(kinds.len() - 1)].0;
+    let options = workflow_options(app, ui, kind);
+    if d.workflow >= options.len() {
+        d.workflow = default_workflow(&options, app, kind);
+    }
+    combo(app, ui, "generate.workflow", "Workflow", &mut d.workflow, &options);
+    ui.add_space(4.0);
+    let mut prompt = d.prompt.clone();
+    ui.label(RichText::new("Prompt").size(12.0).color(app.tokens.text_dim));
+    let r = ui.add(egui::TextEdit::multiline(&mut prompt).desired_rows(4).desired_width(f32::INFINITY).id_salt("nl-generate-prompt"));
+    app.auto.add("nl.generate.prompt", r.rect, "Prompt");
+    d.prompt = prompt;
+    // Prompt AI: the local model writes a prompt from the brief; the operator applies it.
+    ui.horizontal(|ui| {
+        if button(app, ui, "generate.enhance", "Enhance prompt with AI") {
+            let brief = if d.prompt.trim().is_empty() { "cinematic studio scene".to_string() } else { d.prompt.clone() };
+            let ctx = ui.ctx().clone();
+            if let Err(e) = crate::menus::invoke(app, &ctx, "nl.prompt.enhance", json!({"brief": brief, "kind": kind})) {
+                app.ui.status = e;
+            }
+        }
+        if let Some(suggestion) = app.session.nl.result("prompt").cloned()
+            && let Some(text) = suggestion["prompt"].as_str().map(str::to_string)
+        {
+            ui.label(RichText::new("suggestion ready").size(11.0).color(app.tokens.text_faint));
+            if button(app, ui, "generate.use_ai", "Use AI prompt") {
+                d.prompt = text;
+            }
+        }
+    });
+    if kind == "video" {
+        ui.horizontal(|ui| {
+            if button(app, ui, "generate.h3", "H3 prompt with AI") {
+                let brief = if d.prompt.trim().is_empty() { "the reference video with its reference picture".to_string() } else { d.prompt.clone() };
+                let ctx = ui.ctx().clone();
+                if let Err(e) = crate::menus::invoke(app, &ctx, "nl.prompt.h3", json!({"brief": brief, "mode": "ref"})) {
+                    app.ui.status = e;
+                }
+            }
+            if let Some(suggestion) = app.session.nl.result("h3prompt").cloned()
+                && let Some(text) = suggestion["prompt"].as_str().map(str::to_string)
+            {
+                ui.label(RichText::new("H3 prompt ready").size(11.0).color(app.tokens.text_faint));
+                if button(app, ui, "generate.use_h3", "Use H3 prompt") {
+                    d.prompt = text;
+                }
+            }
+            let selected = app.session.state.selection.first().map(|clip| clip.0);
+            if button(app, ui, "generate.extend", "Extend selected clip (v2v)") {
+                if let Some(clip) = selected {
+                    if let Err(e) = crate::menus::invoke(app, &ui.ctx().clone(), "nl.generate.extend", json!({"clip": clip, "wait": false})) {
+                        app.ui.status = e;
+                    }
+                } else {
+                    app.ui.status = "Select a video clip on the timeline to extend it.".into();
+                }
+            }
+        });
+    }
+    ui.add_space(4.0);
+    ui.label(RichText::new("Timeline analysis (local vision)").size(12.0).color(app.tokens.text_dim));
+    ui.horizontal(|ui| {
+        if button(app, ui, "generate.analyze_timeline", "Analyze timeline with vision") {
+            let ctx = ui.ctx().clone();
+            match crate::menus::invoke(app, &ctx, "nl.timeline.analyze", json!({"everySeconds": 5.0, "maxFrames": 4, "includeAudio": false})) {
+                Ok(value) => {
+                    ui.data_mut(|data| data.insert_temp(egui::Id::unique("nl-timeline-analysis"), value));
+                }
+                Err(e) => app.ui.status = e,
+            }
+        }
+        if let Some(analysis) = app.session.nl.result("analysis").cloned()
+            && let Some(context) = analysis["context"].as_str().map(str::to_string)
+        {
+            ui.label(RichText::new(format!("{} frame(s) analyzed", analysis["frames"].as_array().map_or(0, Vec::len))).size(11.0).color(app.tokens.text_faint));
+            if button(app, ui, "generate.use_analysis", "Use analysis in prompt") {
+                d.prompt = context;
+            }
+        }
+    });
+    if let Some(analysis) = ui.data(|data| data.get_temp::<Value>(egui::Id::unique("nl-timeline-analysis"))) {
+        egui::ScrollArea::vertical().id_salt("nl-timeline-analysis-list").max_height(120.0).show(ui, |ui| {
+            for frame in analysis["frames"].as_array().into_iter().flatten() {
+                ui.label(
+                    RichText::new(format!("{:.0}s · {}", frame["timeSeconds"].as_f64().unwrap_or(0.0), frame["description"].as_str().unwrap_or("")))
+                        .size(10.0)
+                        .color(app.tokens.text_dim),
+                );
+            }
+        });
+    }
+    let mut negative = d.negative.clone();
+    field(app, ui, "generate.negative", "Negative prompt (optional)", &mut negative);
+    d.negative = negative;
+    let mut seed = d.seed.to_string();
+    field(app, ui, "generate.seed", "Seed (0 = random)", &mut seed);
+    d.seed = seed.parse().unwrap_or(0);
+    let mut overrides = d.overrides.clone();
+    field(app, ui, "generate.overrides", "Widget overrides JSON (from Show parameters)", &mut overrides);
+    d.overrides = overrides;
+    let scale = if kind == "video" {
+        let options = [("2/3", "Two thirds (a third smaller)"), ("1/2", "Half")];
+        let mut i = if app.session.prefs.nl.video_scale == "1/2" { 1 } else { 0 };
+        ui.horizontal(|ui| {
+            for (j, (_, label)) in options.iter().enumerate() {
+                ui.selectable_value(&mut i, j, *label);
+            }
+        });
+        d.scale = i;
+        options[i].0
+    } else {
+        let options = [("1x", "Same as the sequence"), ("2x", "Double")];
+        let mut i = if app.session.prefs.nl.image_scale == "2x" { 1 } else { 0 };
+        ui.horizontal(|ui| {
+            for (j, (_, label)) in options.iter().enumerate() {
+                ui.selectable_value(&mut i, j, *label);
+            }
+        });
+        d.scale = i;
+        options[i].0
+    };
+    size_preview(app, ui, kind, scale);
+    ui.add_space(6.0);
+    let mut params = json!({
+        "prompt": d.prompt.trim(),
+        "seed": d.seed,
+        "resolutionMode": kind,
+        "kind": kind,
+    });
+    if let Some((path, _)) = options.get(d.workflow) {
+        params["workflow"] = json!(path);
+    }
+    if !d.negative.trim().is_empty() {
+        params["negative"] = json!(d.negative.trim());
+    }
+    if !d.overrides.trim().is_empty() {
+        match serde_json::from_str::<Value>(&d.overrides) {
+            Ok(overrides) if overrides.is_array() => params["overrides"] = overrides,
+            _ => {
+                app.ui.status = "Widget overrides must be a JSON array like [{\"node\":\"1\",\"field\":\"steps\",\"value\":8}]".into();
+            }
+        }
+    }
+    ui.horizontal(|ui| {
+        if button(app, ui, "generate.run", "Generate") {
+            if d.prompt.trim().is_empty() {
+                app.ui.status = "Write a prompt first.".into();
+            } else {
+                run(app, ui, "graphics.generateComfy", params.clone());
+            }
+        }
+        if kind == "video" && button(app, ui, "generate.t2v", "Text → Video (no reference)") {
+            let prompt = d.prompt.trim().to_string();
+            if prompt.is_empty() {
+                app.ui.status = "Write a prompt first.".into();
+            } else {
+                run(app, ui, "nl.generate.text", json!({"prompt": prompt, "seconds": 4, "wait": false}));
+            }
+        }
+        if button(app, ui, "generate.dry_run", "Dry run (no send)") {
+            if d.prompt.trim().is_empty() {
+                app.ui.status = "Write a prompt first.".into();
+            } else {
+                let mut dry = params.clone();
+                dry["dryRun"] = json!(true);
+                let ctx = ui.ctx().clone();
+                match crate::menus::invoke(app, &ctx, "graphics.generateComfy", dry) {
+                    Ok(value) => {
+                        ui.data_mut(|data| data.insert_temp(egui::Id::unique("nl-generate-dry"), value));
+                    }
+                    Err(e) => app.ui.status = e,
+                }
+            }
+        }
+    });
+    if let Some(dry) = ui.data(|data| data.get_temp::<Value>(egui::Id::unique("nl-generate-dry"))) {
+        let size = dry["size"]
+            .as_object()
+            .map(|size| format!("{}×{}", size.get("width").and_then(Value::as_u64).unwrap_or(0), size.get("height").and_then(Value::as_u64).unwrap_or(0)));
+        let refs = dry["references"].as_array().map_or(0, Vec::len);
+        ui.label(
+            RichText::new(format!(
+                "Dry run: {} node(s), {refs} reference group(s), size {} — nothing sent to ComfyUI.",
+                dry["nodes"].as_u64().unwrap_or(0),
+                size.unwrap_or_else(|| "explicit".into())
+            ))
+            .size(11.0)
+            .color(app.tokens.text_dim),
+        );
+    }
+    job_line(app, ui, "ComfyUI:");
+    job_line(app, ui, "NL prompt");
+    save_draft(ui, "nl-generate", d);
+}
+
+fn music(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(app, ui, "NL Music", "Music with the local ComfyUI (Ace Step or whatever workflow you installed). No model is downloaded.");
+    error_line(app, ui);
+    #[derive(Clone, Default)]
+    struct MusicDraft {
+        caption: String,
+        lyrics: String,
+        seconds: u32,
+        workflow: usize,
+    }
+    let mut d: MusicDraft = draft(ui, "nl-music");
+    let options = workflow_options(app, ui, "audio");
+    if d.workflow >= options.len() {
+        d.workflow = default_workflow(&options, app, "audio");
+    }
+    if d.seconds == 0 {
+        d.seconds = 30;
+    }
+    combo(app, ui, "music.workflow", "Workflow", &mut d.workflow, &options);
+    let mut caption = d.caption.clone();
+    ui.label(RichText::new("Style or subject").size(12.0).color(app.tokens.text_dim));
+    let r = ui.add(egui::TextEdit::multiline(&mut caption).desired_rows(3).desired_width(f32::INFINITY).id_salt("nl-music-caption"));
+    app.auto.add("nl.music.caption", r.rect, "Style or subject");
+    d.caption = caption;
+    let mut lyrics = d.lyrics.clone();
+    ui.label(RichText::new("Lyrics (optional)").size(12.0).color(app.tokens.text_dim));
+    let r = ui.add(egui::TextEdit::multiline(&mut lyrics).desired_rows(3).desired_width(f32::INFINITY).id_salt("nl-music-lyrics"));
+    app.auto.add("nl.music.lyrics", r.rect, "Lyrics");
+    d.lyrics = lyrics;
+    let mut seconds = d.seconds.to_string();
+    field(app, ui, "music.seconds", "Seconds", &mut seconds);
+    d.seconds = seconds.parse().unwrap_or(30).clamp(5, 600);
+    ui.add_space(6.0);
+    if button(app, ui, "music.run", "Generate music") {
+        let mut params = json!({"prompt": d.caption.trim(), "seconds": d.seconds, "kind": "audio"});
+        if let Some((path, _)) = options.get(d.workflow) {
+            params["workflow"] = json!(path);
+        }
+        if !d.lyrics.trim().is_empty() {
+            params["lyrics"] = json!(d.lyrics.trim());
+        }
+        run(app, ui, "audio.generateMusic", params);
+    }
+    job_line(app, ui, "ComfyUI:");
+    save_draft(ui, "nl-music", d);
+}
+
+fn asr(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(app, ui, "NL ASR", "Local speech recognition with word timings. GPU first, one CPU retry, and the result says which one ran.");
+    error_line(app, ui);
+    #[derive(Clone, Default)]
+    struct AsrDraft {
+        language: usize,
+        device: usize,
+    }
+    let mut d: AsrDraft = draft(ui, "nl-asr");
+    let languages = ["it", "en", "es", "fr", "de", "pt", "nl", "auto"];
+    let devices = ["auto", "cuda", "cpu"];
+    if d.language == 0 && app.session.prefs.nl.asr_language == "auto" {
+        d.language = 7;
+    }
+    if d.device == 0 && app.session.prefs.nl.asr_device() == "cpu" {
+        d.device = 2;
+    }
+    let options_lang: Vec<(String, String)> = languages.iter().map(|l| (l.to_string(), l.to_uppercase())).collect();
+    combo(app, ui, "asr.language", "Language", &mut d.language, &options_lang);
+    let options_dev: Vec<(String, String)> = devices.iter().map(|v| (v.to_string(), v.to_string())).collect();
+    combo(app, ui, "asr.device", "Device", &mut d.device, &options_dev);
+    ui.label(
+        RichText::new(format!(
+            "Model: {}. Cache: {}. Bridge: {}.",
+            if app.session.prefs.nl.asr_model.trim().is_empty() { "the portable one" } else { app.session.prefs.nl.asr_model.as_str() },
+            if app.session.prefs.nl.asr_cache { "reused for unchanged media" } else { "per run" },
+            if filmcraft_engine::nl_asr::available() { "found" } else { "not found in this suite folder" }
+        ))
+        .size(12.0)
+        .color(app.tokens.text_dim),
+    );
+    ui.add_space(6.0);
+    if button(app, ui, "asr.run", "Transcribe selected media") {
+        run(app, ui, "transcript.transcribeNl", json!({"language": languages[d.language], "device": devices[d.device]}));
+    }
+    job_line(app, ui, "Transcribe NL");
+    ui.add_space(10.0);
+    ui.separator();
+    ui.label(RichText::new("Subtitles and translation").size(13.0).strong());
+    ui.label(RichText::new("Importing SRT/VTT and translating the transcript arrive with the next ASR step; the commands are transcript.importSubtitle and transcript.translate.").size(12.0).color(app.tokens.text_dim));
+    save_draft(ui, "nl-asr", d);
+}
+
+/// Selection flags for a list, kept in the panel's own UI state.
+fn selection(ui: &egui::Ui, id: &str, len: usize) -> Vec<bool> {
+    let mut flags: Vec<bool> = ui.data(|d| d.get_temp::<Vec<bool>>(egui::Id::unique(id))).unwrap_or_default();
+    flags.resize(len, true);
+    if flags.len() > len {
+        flags.truncate(len);
+    }
+    flags
+}
+
+fn save_selection(ui: &egui::Ui, id: &str, flags: &[bool]) {
+    ui.data_mut(|d| d.insert_temp(egui::Id::unique(id), flags.to_vec()));
+}
+
+fn time_range(start: f64, end: f64) -> String {
+    let stamp = |s: f64| {
+        let s = s.max(0.0);
+        format!("{:02}:{:04.1}", (s / 60.0) as u64, s % 60.0)
+    };
+    format!("{} – {}", stamp(start), stamp(end))
+}
+
+/// NL Clipping: candidates from the bridge, selection, render and subtitles.
+fn clipping(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(app, ui, "NL Clipping", "Editorial candidates from a long video (score, title, dedupe), rendered with 16:9 and optional 9:16 copies plus subtitles.");
+    error_line(app, ui);
+    #[derive(Clone, Default)]
+    struct ClipDraft {
+        mode: usize,
+        vertical: bool,
+        hormozi: bool,
+    }
+    let mut d: ClipDraft = draft(ui, "nl-clipping");
+    let modes = [("1", "Stories (≤25 s)"), ("2", "Reels (30–75 s)"), ("3", "Narrative reel (multi-segment)")];
+    let mut mode_label = modes[d.mode.min(modes.len() - 1)].1.to_string();
+    craft_ui::ComboBox::from_id_salt("nl-clipping-mode").selected_text(&mode_label).show_ui(ui, |ui| {
+        for (i, (_, label)) in modes.iter().enumerate() {
+            ui.selectable_value(&mut d.mode, i, *label);
+        }
+    });
+    mode_label = modes[d.mode.min(modes.len() - 1)].1.to_string();
+    let _ = &mode_label;
+    ui.checkbox(&mut d.vertical, "Render a vertical 9:16 copy too");
+    if button(app, ui, "clipping.analyze", "Find candidates") {
+        run(app, ui, "nl.clipping.propose", json!({"mode": modes[d.mode.min(modes.len() - 1)].0}));
+    }
+    job_line(app, ui, "NL clipping");
+    let clips = app.session.nl.result("clips").cloned();
+    let reels = app.session.nl.result("reels").cloned();
+    let mut actions: Vec<(&str, Value)> = Vec::new();
+    if let Some(result) = clips {
+        let rows = result["clips"].as_array().cloned().unwrap_or_default();
+        ui.add_space(6.0);
+        ui.label(
+            RichText::new(format!("{} candidate(s) · {} words analysed", rows.len(), result["words_count"].as_u64().unwrap_or(0)))
+                .size(12.0)
+                .color(app.tokens.text_dim),
+        );
+        let mut flags = selection(ui, "nl-clipping-selected", rows.len());
+        let mut selected: Vec<Value> = Vec::new();
+        egui::ScrollArea::vertical().id_salt("nl-clipping-list").max_height(260.0).show(ui, |ui| {
+            for (i, row) in rows.iter().enumerate() {
+                let start = row["start"].as_f64().unwrap_or(0.0);
+                let end = row["end"].as_f64().unwrap_or(0.0);
+                ui.horizontal(|ui| {
+                    ui.checkbox(&mut flags[i], "");
+                    ui.label(RichText::new(row["title"].as_str().unwrap_or("Clip")).size(12.0));
+                    ui.label(
+                        RichText::new(format!("{} · {:.1} s · {}/10", time_range(start, end), end - start, row["score"].as_u64().unwrap_or(0)))
+                            .size(11.0)
+                            .color(app.tokens.text_dim),
+                    );
+                });
+                if flags[i] {
+                    selected.push(json!({"title": row["title"], "start": start, "end": end, "score": row["score"]}));
+                }
+            }
+        });
+        save_selection(ui, "nl-clipping-selected", &flags);
+        ui.horizontal(|ui| {
+            if button(app, ui, "clipping.render", "Render selected") && !selected.is_empty() {
+                actions.push(("nl.clipping.render", json!({"items": selected, "vertical": d.vertical})));
+            }
+            if button(app, ui, "clipping.srt", "Write SRT") && !selected.is_empty() {
+                for clip in &selected {
+                    actions.push(("nl.subtitles.srt", json!({"start": clip["start"], "end": clip["end"], "hormozi": d.hormozi})));
+                }
+            }
+        });
+        ui.checkbox(&mut d.hormozi, "Two-word uppercase subtitles (Hormozi style)");
+    }
+    if let Some(result) = reels {
+        let rows = result["reels"].as_array().cloned().unwrap_or_default();
+        ui.add_space(6.0);
+        ui.label(RichText::new(format!("{} narrative reel(s) proposed", rows.len())).size(12.0).color(app.tokens.text_dim));
+        let mut flags = selection(ui, "nl-reels-selected", rows.len());
+        for (i, row) in rows.iter().enumerate() {
+            ui.horizontal(|ui| {
+                ui.checkbox(&mut flags[i], "");
+                ui.label(RichText::new(row["title"].as_str().unwrap_or("Reel")).size(12.0));
+                ui.label(
+                    RichText::new(format!("{} segment(s) · {:.1} s", row["segments"].as_array().map_or(0, Vec::len), row["total_dur"].as_f64().unwrap_or(0.0)))
+                        .size(11.0)
+                        .color(app.tokens.text_dim),
+                );
+            });
+        }
+        save_selection(ui, "nl-reels-selected", &flags);
+        let chosen: Vec<Value> = rows.iter().enumerate().filter(|(i, _)| flags[*i]).map(|(_, row)| row.clone()).collect();
+        if button(app, ui, "clipping.render_reels", "Render selected reels") && !chosen.is_empty() {
+            actions.push(("nl.clipping.render", json!({"items": chosen, "vertical": d.vertical})));
+        }
+    }
+    for (cmd, params) in actions {
+        run(app, ui, cmd, params);
+    }
+    save_draft(ui, "nl-clipping", d);
+}
+
+/// NL Rough Cut: the cut plan and its render.
+fn sgrossa(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(
+        app,
+        ui,
+        "NL Rough Cut",
+        "Silences, breaths, fillers and retakes removed from the spoken track: a reviewable plan first, the render only for the pieces you keep.",
+    );
+    error_line(app, ui);
+    let mut actions: Vec<(&str, Value)> = Vec::new();
+    if button(app, ui, "sgrossa.analyze", "Analyse") {
+        actions.push(("nl.sgrossa.analyze", json!({})));
+    }
+    job_line(app, ui, "NL rough cut");
+    let result = app.session.nl.result("cleanup").cloned();
+    if let Some(result) = result {
+        let cuts = result["cuts"].as_array().cloned().unwrap_or_default();
+        let good = result["good"].as_array().cloned().unwrap_or_default();
+        ui.add_space(6.0);
+        ui.label(
+            RichText::new(format!(
+                "{:.1} s source · {} cut(s), {:.1} s removed · {} piece(s) to keep",
+                result["duration"].as_f64().unwrap_or(0.0),
+                cuts.len(),
+                result["removed_sec"].as_f64().unwrap_or(0.0),
+                good.len()
+            ))
+            .size(12.0)
+            .color(app.tokens.text_dim),
+        );
+        let overlap = result["overlap_sec"].as_f64().unwrap_or(0.0);
+        if overlap > 0.5 {
+            ui.label(
+                RichText::new(format!("Warning: {overlap:.2} s of speech would fall inside the cuts; review the plan before rendering."))
+                    .size(12.0)
+                    .color(egui::Color32::from_rgb(233, 180, 120)),
+            );
+        }
+        if !cuts.is_empty() {
+            egui::ScrollArea::vertical().id_salt("nl-sgrossa-cuts").max_height(200.0).show(ui, |ui| {
+                for cut in &cuts {
+                    ui.label(
+                        RichText::new(format!(
+                            "✂ {} · {:.2} s · {}",
+                            time_range(cut["start"].as_f64().unwrap_or(0.0), cut["end"].as_f64().unwrap_or(0.0)),
+                            cut["dur"].as_f64().unwrap_or(0.0),
+                            cut["reason"].as_str().unwrap_or("cut")
+                        ))
+                        .size(11.0)
+                        .color(app.tokens.text_dim),
+                    );
+                }
+            });
+        }
+        let mut flags = selection(ui, "nl-sgrossa-keep", good.len());
+        ui.label(RichText::new("Pieces to keep (uncheck one to leave it out)").size(12.0));
+        let mut keep: Vec<Value> = Vec::new();
+        egui::ScrollArea::vertical().id_salt("nl-sgrossa-good").max_height(220.0).show(ui, |ui| {
+            for (i, piece) in good.iter().enumerate() {
+                let start = piece[0].as_f64().unwrap_or(0.0);
+                let end = piece[1].as_f64().unwrap_or(0.0);
+                ui.horizontal(|ui| {
+                    ui.checkbox(&mut flags[i], "");
+                    ui.label(RichText::new(format!("{} ({:.2} s)", time_range(start, end), end - start)).size(11.0).color(app.tokens.text_dim));
+                });
+                if flags[i] {
+                    keep.push(json!([start, end]));
+                }
+            }
+        });
+        save_selection(ui, "nl-sgrossa-keep", &flags);
+        ui.horizontal(|ui| {
+            if button(app, ui, "sgrossa.apply", "Render kept pieces") && !keep.is_empty() {
+                actions.push(("nl.sgrossa.apply", json!({"items": keep})));
+            }
+            if button(app, ui, "sgrossa.report", "Write report") {
+                actions.push(("nl.sgrossa.report", json!({})));
+            }
+        });
+    }
+    for (cmd, params) in actions {
+        run(app, ui, cmd, params);
+    }
+}
+
+/// NL Cover: a thumbnail generated from a chosen frame, with the speech near it as context.
+fn cover(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(
+        app,
+        ui,
+        "NL Cover",
+        "A cover (thumbnail) generated from the frame at the playhead, guided by what is being said there. Review it, then mark the image you like as the cover.",
+    );
+    error_line(app, ui);
+    #[derive(Clone, Default)]
+    struct CoverDraft {
+        prompt: String,
+        workflow: usize,
+        seed: u64,
+    }
+    let mut d: CoverDraft = draft(ui, "nl-cover");
+    let options = workflow_options(app, ui, "image");
+    if d.workflow >= options.len() {
+        d.workflow = default_workflow(&options, app, "image");
+    }
+    let time = app.session.playhead();
+    let seconds = time.0 as f64 / filmcraft_time::TICKS_PER_SECOND as f64;
+    ui.label(RichText::new(format!("Frame at {}", time_range(seconds, seconds))).size(12.0).color(app.tokens.text_dim));
+    combo(app, ui, "cover.workflow", "Workflow (needs an image input)", &mut d.workflow, &options);
+    let mut prompt = d.prompt.clone();
+    ui.label(RichText::new("Description (empty = taken from the speech near the frame)").size(12.0).color(app.tokens.text_dim));
+    let r = ui.add(egui::TextEdit::multiline(&mut prompt).desired_rows(3).desired_width(f32::INFINITY).id_salt("nl-cover-prompt"));
+    app.auto.add("nl.cover.prompt", r.rect, "Description");
+    d.prompt = prompt;
+    if button(app, ui, "cover.from_speech", "Take the speech here") {
+        match app.session.execute("nl.cover.prompt", json!({"time": time.0})) {
+            Ok(value) => match value["prompt"].as_str() {
+                Some(text) => d.prompt = text.to_string(),
+                None => app.ui.status = "No speech near this frame: transcribe the sequence first.".into(),
+            },
+            Err(e) => app.ui.status = e.to_string(),
+        }
+    }
+    let mut seed = d.seed.to_string();
+    field(app, ui, "cover.seed", "Seed (0 = random)", &mut seed);
+    d.seed = seed.parse().unwrap_or(0);
+    let image_scale = app.session.prefs.nl.image_scale.clone();
+    size_preview(app, ui, "image", &image_scale);
+    ui.add_space(6.0);
+    if button(app, ui, "cover.generate", "Generate cover from this frame") {
+        let mut params = json!({"time": time.0, "seed": d.seed});
+        if !d.prompt.trim().is_empty() {
+            params["prompt"] = json!(d.prompt.trim());
+        }
+        if let Some((path, _)) = options.get(d.workflow) {
+            params["workflow"] = json!(path);
+        }
+        run(app, ui, "graphics.generateCover", params);
+    }
+    job_line(app, ui, "ComfyUI cover");
+    ui.add_space(8.0);
+    ui.separator();
+    let cover = app.session.nl.cover.clone();
+    match &cover {
+        Some(value) => {
+            let path = value["path"].as_str().unwrap_or("the selected image");
+            ui.label(RichText::new(format!("Cover set: {path}")).size(12.0));
+        }
+        None => {
+            ui.label(RichText::new("No cover set yet: select the generated image in the Project panel and mark it.").size(12.0).color(app.tokens.text_faint));
+        }
+    }
+    if button(app, ui, "cover.set", "Use the selected image as cover") {
+        run(app, ui, "nl.cover.set", json!({}));
+    }
+    save_draft(ui, "nl-cover", d);
+}
+
+/// NL Workflows: the library, the API check and the doctor in one place.
+fn workflows_panel(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(
+        app,
+        ui,
+        "NL Workflows",
+        "Everything the suite can run, checked against the ComfyUI that is really running: node classes, model files and reference inputs. Add workflows by importing the JSON saved in API Format.",
+    );
+    error_line(app, ui);
+    let now = ui.input(|i| i.time);
+    let list_id = egui::Id::unique("nl-workflows-panel-list");
+    let mut result: Value = ui.data(|d| d.get_temp::<Value>(list_id)).unwrap_or(Value::Null);
+    let stale = ui.data(|d| d.get_temp::<f64>(list_id.with("at")).is_none_or(|at| now - at > 5.0));
+    let mut refresh = stale || result.is_null();
+    if button(app, ui, "workflows.refresh", "Refresh library") {
+        refresh = true;
+    }
+    if refresh {
+        match app.session.execute("nl.workflows.list", json!({"kind": "all"})) {
+            Ok(value) => {
+                result = value;
+                ui.data_mut(|d| {
+                    d.insert_temp(list_id, result.clone());
+                    d.insert_temp(list_id.with("at"), now);
+                });
+            }
+            Err(e) => app.ui.status = e.to_string(),
+        }
+    }
+    let mut actions: Vec<(&str, Value)> = Vec::new();
+    ui.horizontal(|ui| {
+        if button(app, ui, "workflows.verify", "Verify ComfyUI API") {
+            actions.push(("nl.workflows.verify", json!({})));
+        }
+        if button(app, ui, "workflows.diagnose_all", "Doctor all workflows") {
+            actions.push(("nl.workflows.diagnose", json!({"all": true})));
+        }
+    });
+    let verified = result["apiVerified"].as_bool().unwrap_or(false);
+    ui.label(
+        RichText::new(if verified {
+            "API verified: the checks below include the node classes and models this ComfyUI has."
+        } else {
+            "Run “Verify ComfyUI API” for live checks; without it only the file itself is examined."
+        })
+        .size(12.0)
+        .color(app.tokens.text_dim),
+    );
+    let rows = result["workflows"].as_array().cloned().unwrap_or_default();
+    #[derive(Clone, Default)]
+    struct PanelState {
+        selected: usize,
+        import_path: String,
+    }
+    let mut state: PanelState = draft(ui, "nl-workflows-panel");
+    if state.selected >= rows.len() {
+        state.selected = 0;
+    }
+    ui.add_space(4.0);
+    ui.label(RichText::new(format!("{} workflow(s), root: {}", rows.len(), result["root"].as_str().unwrap_or("—"))).size(12.0).color(app.tokens.text_dim));
+    egui::ScrollArea::vertical().id_salt("nl-workflows-list").max_height(300.0).show(ui, |ui| {
+        for (i, row) in rows.iter().enumerate() {
+            let kind = row["kind"].as_str().unwrap_or("other");
+            let caps = &row["capabilities"];
+            let mut badges = vec![kind.to_string()];
+            if caps["v2v"].as_bool().unwrap_or(false) {
+                badges.push("v2v".into());
+            }
+            if !caps["imageRefs"].as_array().is_none_or(Vec::is_empty) {
+                badges.push("ref img".into());
+            }
+            if !caps["audioInputs"].as_array().is_none_or(Vec::is_empty) {
+                badges.push("audio in".into());
+            }
+            let label = format!(
+                "{}  [{}]  {} KB{}",
+                row["name"].as_str().unwrap_or("workflow"),
+                badges.join(" · "),
+                row["bytes"].as_u64().unwrap_or(0) / 1024,
+                if row.get("error").is_some() { "  ⚠ unreadable" } else { "" }
+            );
+            if ui.selectable_label(state.selected == i, RichText::new(label).size(12.0)).clicked() {
+                state.selected = i;
+            }
+        }
+    });
+    ui.add_space(6.0);
+    if let Some(row) = rows.get(state.selected) {
+        let path = row["path"].as_str().unwrap_or_default().to_string();
+        ui.label(RichText::new(format!("Selected: {path}")).size(12.0));
+        ui.horizontal(|ui| {
+            if button(app, ui, "workflows.diagnose_one", "Doctor this one") {
+                actions.push(("nl.workflows.diagnose", json!({"workflow": path})));
+            }
+            if button(app, ui, "workflows.fix", "Write a repaired copy") {
+                actions.push(("nl.workflows.fix", json!({"workflow": path})));
+            }
+            if button(app, ui, "workflows.params", "Show parameters") {
+                actions.push(("nl.workflows.parameters", json!({"workflow": path, "api": true})));
+            }
+        });
+    }
+    ui.add_space(8.0);
+    ui.separator();
+    ui.label(RichText::new("Import a workflow (ComfyUI ▸ Save (API Format))").size(12.0));
+    ui.horizontal(|ui| {
+        field(app, ui, "workflows.import_path", "JSON file", &mut state.import_path);
+        if ui.button("Pick…").clicked() {
+            app.pick_ui(crate::native_dialogs::FileDialog::OpenFile { filter: "ComfyUI API workflow".into(), exts: vec!["json".into()] }, |app, paths| {
+                if let Some(path) = paths.first()
+                    && let Err(e) = app.session.execute("nl.workflows.import", json!({"path": path}))
+                {
+                    app.ui.status = e.to_string();
+                }
+            });
+        }
+        if button(app, ui, "workflows.import", "Import") {
+            if state.import_path.trim().is_empty() {
+                app.ui.status = "Choose the workflow JSON (API Format) first.".into();
+            } else {
+                actions.push(("nl.workflows.import", json!({"path": state.import_path.trim()})));
+            }
+        }
+    });
+    for (cmd, params) in actions {
+        match app.session.execute(cmd, params.clone()) {
+            Ok(value) => {
+                let key = format!("nl-result-{cmd}");
+                ui.data_mut(|d| d.insert_temp(egui::Id::unique(key.as_str()), value.clone()));
+                if cmd == "nl.workflows.import" {
+                    state.import_path.clear();
+                    ui.data_mut(|d| d.insert_temp(list_id.with("at"), 0.0f64));
+                }
+            }
+            Err(e) => app.ui.status = e.to_string(),
+        }
+    }
+    save_draft(ui, "nl-workflows-panel", state);
+    // The last doctor/verify answer, kept until the next run.
+    for key in ["nl.workflows.diagnose", "nl.workflows.verify", "nl.workflows.fix", "nl.workflows.parameters"] {
+        let id = egui::Id::unique(format!("nl-result-{key}").as_str());
+        let Some(value) = ui.data(|d| d.get_temp::<Value>(id)) else { continue };
+        ui.add_space(8.0);
+        ui.separator();
+        if key == "nl.workflows.parameters" {
+            let total = value["total"].as_u64().unwrap_or(0);
+            let missing = value["missingClasses"].as_array().map_or(0, Vec::len);
+            ui.label(
+                RichText::new(format!(
+                    "Parameters: {total} widget(s){}{}",
+                    if missing > 0 { format!(", {missing} class(es) missing") } else { String::new() },
+                    if value["truncated"] == true { " (showing the first ones)" } else { "" }
+                ))
+                .size(12.0),
+            );
+            for row in value["parameters"].as_array().into_iter().flatten().take(80) {
+                let text = if row["linked"] == true {
+                    format!(
+                        "node {} [{}] {}: linked",
+                        row["node"].as_str().unwrap_or(""),
+                        row["class"].as_str().unwrap_or(""),
+                        row["field"].as_str().unwrap_or("")
+                    )
+                } else {
+                    format!(
+                        "node {} [{}] {} = {}",
+                        row["node"].as_str().unwrap_or(""),
+                        row["class"].as_str().unwrap_or(""),
+                        row["field"].as_str().unwrap_or(""),
+                        row["value"].as_str().map(str::to_string).unwrap_or_else(|| row["value"].to_string())
+                    )
+                };
+                ui.label(RichText::new(text).size(11.0).color(app.tokens.text_dim));
+            }
+        } else if key == "nl.workflows.verify" {
+            let classes = value["classes"].as_u64().unwrap_or(0);
+            let missing = value["missingWorkflows"].as_u64().unwrap_or(0);
+            ui.label(RichText::new(format!("API: {classes} node classes · {missing} workflow(s) with missing classes")).size(12.0));
+            if let Some(rows) = value["workflows"].as_array() {
+                for row in rows.iter().filter(|r| r["ok"] == false) {
+                    ui.label(
+                        RichText::new(format!("{}: missing {}", row["path"].as_str().unwrap_or(""), row["missing"].as_array().map_or(0, Vec::len)))
+                            .size(11.0)
+                            .color(egui::Color32::from_rgb(233, 180, 120)),
+                    );
+                }
+            }
+        } else if key == "nl.workflows.fix" {
+            if value["fixed"].as_bool().unwrap_or(false) {
+                ui.label(RichText::new(format!("Repaired copy: {}", value["path"].as_str().unwrap_or(""))).size(12.0));
+                for fix in value["fixes"].as_array().into_iter().flatten() {
+                    ui.label(RichText::new(format!("· {}", fix.as_str().unwrap_or(""))).size(11.0).color(app.tokens.text_dim));
+                }
+            } else {
+                ui.label(RichText::new(value["note"].as_str().unwrap_or("no automatic fix")).size(12.0).color(app.tokens.text_dim));
+            }
+        } else {
+            let counts = &value["counts"];
+            ui.label(
+                RichText::new(format!(
+                    "Doctor: {} error(s), {} warning(s), {} note(s){}",
+                    counts["error"].as_u64().unwrap_or(0),
+                    counts["warning"].as_u64().unwrap_or(0),
+                    counts["info"].as_u64().unwrap_or(0),
+                    if value["apiVerified"].as_bool().unwrap_or(false) { " (live)" } else { "" }
+                ))
+                .size(12.0),
+            );
+            for issue in value["issues"].as_array().into_iter().flatten().take(60) {
+                let color = match issue["severity"].as_str() {
+                    Some("error") => egui::Color32::from_rgb(233, 120, 120),
+                    Some("warning") => egui::Color32::from_rgb(233, 180, 120),
+                    _ => app.tokens.text_dim,
+                };
+                let node = issue["node"].as_str().map(|n| format!("node {n}: ")).unwrap_or_default();
+                ui.label(RichText::new(format!("{node}{}", issue["message"].as_str().unwrap_or(""))).size(11.0).color(color));
+                if let Some(fix) = issue["fix"].as_str() {
+                    ui.label(RichText::new(format!("   → {fix}")).size(11.0).color(app.tokens.text_faint));
+                }
+            }
+            // Doctor-all summary.
+            if let Some(rows) = value["workflows"].as_array() {
+                ui.label(RichText::new(format!("{} workflow(s) with issues", rows.len())).size(12.0).color(app.tokens.text_dim));
+                for row in rows.iter().take(20) {
+                    let counts = &row["counts"];
+                    ui.label(
+                        RichText::new(format!(
+                            "{}: {} error(s), {} warning(s)",
+                            row["path"].as_str().unwrap_or(""),
+                            counts["error"].as_u64().unwrap_or(0),
+                            counts["warning"].as_u64().unwrap_or(0)
+                        ))
+                        .size(11.0)
+                        .color(app.tokens.text_dim),
+                    );
+                }
+            }
+        }
+    }
+}
+
+/// NL Story: an AI-drafted story with scenes and prompts, keyframes generated with ComfyUI and
+/// placed on the timeline.
+fn story(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(
+        app,
+        ui,
+        "NL Story",
+        "Draft a story with the local model, refine each scene, generate its keyframe with ComfyUI and place the scenes on the timeline in order.",
+    );
+    error_line(app, ui);
+    let now = ui.input(|i| i.time);
+    let cache = egui::Id::unique("nl-story-cache");
+    let mut data: Value = ui.data(|d| d.get_temp::<Value>(cache)).unwrap_or(Value::Null);
+    let stale = ui.data(|d| d.get_temp::<f64>(cache.with("at")).is_none_or(|at| now - at > 2.0));
+    let refresh = stale || data.is_null();
+    if refresh {
+        match app.session.execute("nl.story.get", json!({})) {
+            Ok(value) => {
+                data = value;
+                ui.data_mut(|d| {
+                    d.insert_temp(cache, data.clone());
+                    d.insert_temp(cache.with("at"), now);
+                });
+            }
+            Err(e) => app.ui.status = e.to_string(),
+        }
+    }
+    #[derive(Clone, Default)]
+    struct StoryDraft {
+        idea: String,
+        scene: usize,
+        heading: String,
+        action: String,
+        dialogue: String,
+        image_prompt: String,
+        motion_prompt: String,
+        duration: f64,
+        instructions: String,
+        loaded_scene: i64,
+        use_sheet: bool,
+    }
+    let mut d: StoryDraft = draft(ui, "nl-story-draft");
+    let story = data["story"].clone();
+    let scenes = story["scenes"].as_array().cloned().unwrap_or_default();
+    let mut actions: Vec<(&str, Value)> = Vec::new();
+    // Draft from an idea.
+    let mut idea = d.idea.clone();
+    ui.label(RichText::new("Idea").size(12.0).color(app.tokens.text_dim));
+    let r = ui.add(egui::TextEdit::multiline(&mut idea).desired_rows(2).desired_width(f32::INFINITY).id_salt("nl-story-idea"));
+    app.auto.add("nl.story.idea", r.rect, "Idea");
+    d.idea = idea;
+    ui.horizontal(|ui| {
+        if button(app, ui, "story.draft", "Draft story with AI") {
+            if d.idea.trim().is_empty() {
+                app.ui.status = "Write the idea first.".into();
+            } else {
+                actions.push(("nl.story.draft", json!({"idea": d.idea.trim()})));
+            }
+        }
+        let saved = data["saved"].as_bool().unwrap_or(false);
+        ui.label(
+            RichText::new(if saved { "saved beside the project".to_string() } else { "session only: save the project to keep it".to_string() })
+                .size(11.0)
+                .color(app.tokens.text_faint),
+        );
+    });
+    job_line(app, ui, "NL story draft");
+    if !story["title"].as_str().unwrap_or_default().is_empty() {
+        ui.add_space(4.0);
+        ui.label(RichText::new(story["title"].as_str().unwrap_or_default()).size(14.0).strong());
+        let synopsis = story["synopsis"].as_str().unwrap_or_default();
+        if !synopsis.is_empty() {
+            ui.label(RichText::new(synopsis).size(12.0).color(app.tokens.text_dim));
+        }
+    }
+    // Reference library: sheets and plates are generated once and reused by every scene keyframe.
+    let characters = story["characters"].as_array().cloned().unwrap_or_default();
+    let locations = story["locations"].as_array().cloned().unwrap_or_default();
+    if !characters.is_empty() || !locations.is_empty() {
+        ui.add_space(4.0);
+        ui.label(RichText::new("Reference library: generate a sheet/plate once, scenes reuse them automatically").size(11.0).color(app.tokens.text_dim));
+        ui.horizontal_wrapped(|ui| {
+            for (index, character) in characters.iter().enumerate() {
+                let name = character["name"].as_str().unwrap_or("character");
+                let linked = character["sheet"]["item"].as_u64().is_some();
+                let id = format!("nl.story.sheet.{index}");
+                if button(app, ui, &id, &format!("Sheet: {name}{}", if linked { " ✓" } else { "" })) {
+                    actions.push(("nl.story.sheet", json!({"character": index + 1})));
+                }
+            }
+            for (index, location) in locations.iter().enumerate() {
+                let name = location["name"].as_str().unwrap_or("location");
+                let linked = location["plate"]["item"].as_u64().is_some();
+                let id = format!("nl.story.plate.{index}");
+                if button(app, ui, &id, &format!("Plate: {name}{}", if linked { " ✓" } else { "" })) {
+                    actions.push(("nl.story.plate", json!({"location": index + 1})));
+                }
+            }
+        });
+    }
+    if scenes.is_empty() {
+        ui.add_space(6.0);
+        ui.label(
+            RichText::new("No story yet: write an idea and draft it, or load a saved project that already has one.").size(12.0).color(app.tokens.text_faint),
+        );
+    } else {
+        ui.add_space(6.0);
+        ui.label(RichText::new(format!("{} scene(s): select one to refine, generate or place", scenes.len())).size(12.0).color(app.tokens.text_dim));
+        if d.scene >= scenes.len() {
+            d.scene = 0;
+        }
+        egui::ScrollArea::vertical().id_salt("nl-story-scenes").max_height(150.0).show(ui, |ui| {
+            for (i, scene) in scenes.iter().enumerate() {
+                let generated = scene["image"].get("item").is_some() || scene["video"].get("item").is_some();
+                let duration = scene["durationSec"].as_f64().unwrap_or(0.0);
+                let shots = scene["shots"].as_array().map_or(0, Vec::len);
+                let label = format!(
+                    "{:>2}. {}  · {:.1} s{}{}",
+                    scene["id"].as_u64().unwrap_or(i as u64 + 1),
+                    scene["heading"].as_str().unwrap_or("scene"),
+                    duration,
+                    if shots > 0 { format!("  · {shots} shot(s)") } else { String::new() },
+                    if generated { "  ✓ keyframe" } else { "" }
+                );
+                if ui.selectable_label(d.scene == i, RichText::new(label).size(12.0)).clicked() {
+                    d.scene = i;
+                }
+            }
+        });
+        let Some(scene) = scenes.get(d.scene).cloned() else { return };
+        let scene_id = scene["id"].as_u64().unwrap_or(d.scene as u64 + 1);
+        // Load the selected scene into the editor once per selection (and after saving).
+        if d.loaded_scene != scene_id as i64 {
+            d.heading = scene["heading"].as_str().unwrap_or_default().to_string();
+            d.action = scene["action"].as_str().unwrap_or_default().to_string();
+            d.dialogue = scene["dialogue"].as_str().unwrap_or_default().to_string();
+            d.image_prompt = scene["imagePrompt"].as_str().unwrap_or_default().to_string();
+            d.motion_prompt = scene["motionPrompt"].as_str().unwrap_or_default().to_string();
+            d.duration = scene["durationSec"].as_f64().unwrap_or(5.0);
+            d.instructions.clear();
+            d.loaded_scene = scene_id as i64;
+        }
+        ui.add_space(6.0);
+        let mut heading = d.heading.clone();
+        field(app, ui, "story.heading", "Scene heading", &mut heading);
+        d.heading = heading;
+        let mut action = d.action.clone();
+        ui.label(RichText::new("Action").size(12.0).color(app.tokens.text_dim));
+        let r = ui.add(egui::TextEdit::multiline(&mut action).desired_rows(2).desired_width(f32::INFINITY).id_salt("nl-story-action"));
+        app.auto.add("nl.story.action", r.rect, "Action");
+        d.action = action;
+        let mut dialogue = d.dialogue.clone();
+        ui.label(RichText::new("Dialogue").size(12.0).color(app.tokens.text_dim));
+        let r = ui.add(egui::TextEdit::multiline(&mut dialogue).desired_rows(2).desired_width(f32::INFINITY).id_salt("nl-story-dialogue"));
+        app.auto.add("nl.story.dialogue", r.rect, "Dialogue");
+        d.dialogue = dialogue;
+        let mut image_prompt = d.image_prompt.clone();
+        ui.label(RichText::new("Keyframe prompt (English)").size(12.0).color(app.tokens.text_dim));
+        let r = ui.add(egui::TextEdit::multiline(&mut image_prompt).desired_rows(2).desired_width(f32::INFINITY).id_salt("nl-story-image-prompt"));
+        app.auto.add("nl.story.imagePrompt", r.rect, "Keyframe prompt");
+        d.image_prompt = image_prompt;
+        ui.horizontal(|ui| {
+            if button(app, ui, "story.enhance_prompt", "Enhance keyframe prompt with AI") {
+                let brief = format!("{} {}", d.heading.trim(), d.action.trim()).trim().to_string();
+                let brief = if brief.is_empty() { d.image_prompt.clone() } else { brief };
+                let ctx = ui.ctx().clone();
+                if let Err(e) = crate::menus::invoke(app, &ctx, "nl.prompt.enhance", json!({"brief": brief, "kind": "image"})) {
+                    app.ui.status = e;
+                }
+            }
+            if let Some(suggestion) = app.session.nl.result("prompt").cloned()
+                && let Some(text) = suggestion["prompt"].as_str().map(str::to_string)
+            {
+                ui.label(RichText::new("suggestion ready").size(11.0).color(app.tokens.text_faint));
+                if button(app, ui, "story.use_ai_prompt", "Use AI prompt") {
+                    d.image_prompt = text;
+                }
+            }
+        });
+        let mut motion_prompt = d.motion_prompt.clone();
+        field(app, ui, "story.motion", "Motion prompt (English)", &mut motion_prompt);
+        d.motion_prompt = motion_prompt;
+        let mut duration = d.duration.to_string();
+        field(app, ui, "story.duration", "Seconds", &mut duration);
+        d.duration = duration.parse::<f64>().unwrap_or(5.0).clamp(1.0, 120.0);
+        ui.horizontal(|ui| {
+            if button(app, ui, "story.save_scene", "Save scene") {
+                actions.push((
+                    "nl.story.update",
+                    json!({"scene": scene_id, "fields": {
+                        "heading": d.heading.trim(), "action": d.action.trim(), "dialogue": d.dialogue.trim(),
+                        "imagePrompt": d.image_prompt.trim(), "motionPrompt": d.motion_prompt.trim(), "durationSec": d.duration,
+                    }}),
+                ));
+            }
+            if button(app, ui, "story.generate", "Generate keyframe") {
+                actions.push(("nl.story.generate", json!({"scene": scene_id})));
+            }
+            if button(app, ui, "story.place", "Place on timeline") {
+                actions.push(("nl.story.place", json!({"scene": scene_id})));
+            }
+        });
+        ui.horizontal(|ui| {
+            ui.checkbox(&mut d.use_sheet, RichText::new("Use the character sheet as second reference").size(11.0));
+            if button(app, ui, "story.generate_video", "Generate video from keyframe") {
+                actions.push(("nl.story.generate", json!({"scene": scene_id, "kind": "video", "useSheet": d.use_sheet})));
+            }
+            if button(app, ui, "story.shotmap_scene", "Shot map for this scene") {
+                actions.push(("nl.story.shotmap", json!({"scene": scene_id})));
+            }
+            let previous = d.scene.checked_sub(1).and_then(|index| scenes.get(index)).and_then(|scene| scene["id"].as_u64());
+            if let Some(previous) = previous
+                && button(app, ui, "story.extend_video", "Extend video from previous scene")
+            {
+                actions.push(("nl.story.generate", json!({"scene": scene_id, "kind": "video", "extendFromScene": previous, "useSheet": d.use_sheet})));
+            }
+        });
+        ui.horizontal(|ui| {
+            if button(app, ui, "story.extend_audio", "Generate music for this scene") {
+                actions.push(("nl.story.extendAudio", json!({"scene": scene_id})));
+            }
+            if scene["audio"]["item"].as_u64().is_some() && button(app, ui, "story.place_audio", "Place music on the timeline") {
+                actions.push(("nl.story.placeAudio", json!({"scene": scene_id})));
+            }
+        });
+        let video_workflow = app.session.prefs.nl.comfy_video_workflow.clone();
+        ui.label(
+            RichText::new(if video_workflow.trim().is_empty() {
+                "Video workflow: set one in Settings ▸ NL Video Suite, or a video generation is refused with the reason.".to_string()
+            } else {
+                format!("Video workflow: {video_workflow}")
+            })
+            .size(11.0)
+            .color(app.tokens.text_faint),
+        );
+        let mut instructions = d.instructions.clone();
+        ui.label(RichText::new("Refine with AI (what should change?)").size(12.0).color(app.tokens.text_dim));
+        let r = ui.add(egui::TextEdit::singleline(&mut instructions).desired_width(f32::INFINITY).id_salt("nl-story-refine"));
+        app.auto.add("nl.story.refine", r.rect, "Refine instructions");
+        d.instructions = instructions;
+        if button(app, ui, "story.refine_run", "Refine this scene") {
+            if d.instructions.trim().is_empty() {
+                app.ui.status = "Write what should change in the scene.".into();
+            } else {
+                actions.push(("nl.story.refine", json!({"scene": scene_id, "instructions": d.instructions.trim()})));
+            }
+        }
+        ui.add_space(6.0);
+        ui.horizontal(|ui| {
+            if button(app, ui, "story.place_all", "Place all generated scenes on the timeline") {
+                actions.push(("nl.story.placeAll", json!({})));
+            }
+            if button(app, ui, "story.shotmap_all", "Shot map (all scenes)") {
+                actions.push(("nl.story.shotmap", json!({})));
+            }
+        });
+    }
+    for (cmd, params) in actions {
+        match app.session.execute(cmd, params) {
+            Ok(_) => {
+                ui.data_mut(|d| d.insert_temp(cache.with("at"), 0.0f64));
+                d.loaded_scene = -1;
+            }
+            Err(e) => app.ui.status = e.to_string(),
+        }
+    }
+    save_draft(ui, "nl-story-draft", d);
+}
+
+/// NL Analyze: chapters of a long recording read from its ASR transcript by the local model, with
+/// one click to turn every chapter into a timeline marker.
+fn analyze(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(
+        app,
+        ui,
+        "NL Analyze",
+        "Chapters for a long recording, read from the ASR transcript with the local model; each chapter can become a timeline marker.",
+    );
+    error_line(app, ui);
+    if button(app, ui, "analyze.run", "Analyze chapters") {
+        run(app, ui, "nl.longform.analyze", json!({"wait": false}));
+    }
+    job_line(app, ui, "NL longform");
+    let longform = app.session.nl.result("longform").cloned().or_else(|| app.session.nl.longform.clone());
+    let Some(longform) = longform.filter(|value| !value.is_null()) else {
+        ui.add_space(6.0);
+        ui.label(RichText::new("No chapters yet: transcribe the sequence first (NL ASR), then analyze it here.").size(12.0).color(app.tokens.text_faint));
+        return;
+    };
+    let chapters = longform["chapters"].as_array().cloned().unwrap_or_default();
+    let duration = longform["durationSec"].as_f64().unwrap_or(0.0);
+    ui.add_space(4.0);
+    ui.label(
+        RichText::new(format!("{} chapter(s) from {} block(s) · media {:.1} s", chapters.len(), longform["blocks"].as_u64().unwrap_or(0), duration))
+            .size(11.0)
+            .color(app.tokens.text_dim),
+    );
+    egui::ScrollArea::vertical().id_salt("nl-analyze-chapters").max_height(260.0).show(ui, |ui| {
+        for chapter in &chapters {
+            let start = chapter["startSec"].as_f64().unwrap_or(0.0);
+            let end = chapter["endSec"].as_f64().unwrap_or(start);
+            let time = format!("{:02}:{:04.1}–{:02}:{:04.1}", (start / 60.0) as u64, start % 60.0, (end / 60.0) as u64, end % 60.0);
+            ui.label(RichText::new(format!("{time}  {}", chapter["title"].as_str().unwrap_or(""))).size(12.0).strong());
+            if let Some(summary) = chapter["summary"].as_str().filter(|summary| !summary.is_empty()) {
+                ui.label(RichText::new(summary).size(11.0).color(app.tokens.text_dim));
+            }
+        }
+    });
+    ui.add_space(6.0);
+    if button(app, ui, "analyze.markers", "Add chapter markers to the timeline") {
+        run(app, ui, "nl.longform.markers", json!({}));
+    }
+    if button(app, ui, "analyze.export", "Export chapters…") {
+        app.pick_ui(
+            crate::native_dialogs::FileDialog::SaveAs {
+                filter: "Chapter list".into(),
+                exts: vec!["json".into(), "md".into(), "srt".into()],
+                name: "chapters.json".into(),
+                adds_ext: true,
+            },
+            |app, paths| {
+                let Some(path) = paths.first() else { return };
+                if let Err(e) = app.session.execute("nl.longform.export", json!({"path": path})) {
+                    app.ui.status = e.to_string();
+                }
+            },
+        );
+    }
+    ui.add_space(8.0);
+    ui.separator();
+    // Project search: one index over clips, markers, captions, the story and the transcripts.
+    ui.label(RichText::new("Search the project (clips, markers, captions, story, transcripts)").size(12.0).color(app.tokens.text_dim));
+    let query_id = egui::Id::unique("nl-search-query");
+    let mut query = ui.data(|data| data.get_temp::<String>(query_id)).unwrap_or_default();
+    let r = ui.add(egui::TextEdit::singleline(&mut query).desired_width(f32::INFINITY).hint_text("what are you looking for?").id_salt("nl-search-query"));
+    app.auto.add("nl.search.query", r.rect, "Search the project");
+    let submitted = r.lost_focus() && ui.input(|input| input.key_pressed(egui::Key::Enter));
+    ui.data_mut(|data| data.insert_temp(query_id, query.clone()));
+    let result_id = egui::Id::unique("nl-search-result");
+    ui.horizontal(|ui| {
+        if button(app, ui, "search.run", "Search") || submitted {
+            if query.trim().is_empty() {
+                app.ui.status = "Write what to search for.".into();
+            } else {
+                let ctx = ui.ctx().clone();
+                match crate::menus::invoke(app, &ctx, "nl.search.query", json!({"query": query.trim(), "limit": 20})) {
+                    Ok(value) => {
+                        ui.data_mut(|data| {
+                            data.insert_temp(result_id, value);
+                        });
+                    }
+                    Err(e) => app.ui.status = e,
+                }
+            }
+        }
+        if button(app, ui, "search.rebuild", "Rebuild index") {
+            let ctx = ui.ctx().clone();
+            match crate::menus::invoke(app, &ctx, "nl.search.index", json!({})) {
+                Ok(value) => {
+                    ui.data_mut(|data| {
+                        data.insert_temp(result_id, value);
+                    });
+                }
+                Err(e) => app.ui.status = e,
+            }
+        }
+    });
+    ui.add_space(8.0);
+    ui.separator();
+    ui.label(RichText::new("Translate the captions with the local model").size(12.0).color(app.tokens.text_dim));
+    let languages = [("en", "English"), ("es", "Spanish")];
+    let lang_id = egui::Id::unique("nl-translate-language");
+    let mut language = ui.data(|data| data.get_temp::<usize>(lang_id)).unwrap_or(0).min(languages.len() - 1);
+    ui.horizontal(|ui| {
+        for (index, (_, label)) in languages.iter().enumerate() {
+            ui.selectable_value(&mut language, index, *label);
+        }
+        if button(app, ui, "translate.captions", "Translate caption track") {
+            run(app, ui, "nl.translate.captions", json!({"to": languages[language].0}));
+        }
+    });
+    ui.data_mut(|data| data.insert_temp(lang_id, language));
+    ui.add_space(8.0);
+    ui.separator();
+    // Ask the project: the answer cites the documents it used.
+    ui.label(RichText::new("Ask the project (answers only from the indexed documents)").size(12.0).color(app.tokens.text_dim));
+    let question_id = egui::Id::unique("nl-assistant-question");
+    let mut question = ui.data(|data| data.get_temp::<String>(question_id)).unwrap_or_default();
+    let r = ui
+        .add(egui::TextEdit::singleline(&mut question).desired_width(f32::INFINITY).hint_text("a question about the project").id_salt("nl-assistant-question"));
+    app.auto.add("nl.assistant.question", r.rect, "Ask the project");
+    let ask_submitted = r.lost_focus() && ui.input(|input| input.key_pressed(egui::Key::Enter));
+    ui.data_mut(|data| data.insert_temp(question_id, question.clone()));
+    if button(app, ui, "assistant.ask", "Ask the project") || ask_submitted {
+        if question.trim().is_empty() {
+            app.ui.status = "Write a question first.".into();
+        } else {
+            run(app, ui, "nl.assistant.ask", json!({"question": question.trim()}));
+        }
+    }
+    job_line(app, ui, "NL assistant");
+    if let Some(answer) = app.session.nl.result("assistant").cloned() {
+        ui.label(RichText::new("Answer").size(12.0).strong());
+        ui.label(RichText::new(answer["answer"].as_str().unwrap_or("")).size(12.0));
+        if let Some(sources) = answer["sources"].as_array() {
+            for source in sources {
+                let time = source["timeSec"].as_f64().map(|seconds| format!("{:02}:{:04.1}  ", (seconds / 60.0) as u64, seconds % 60.0)).unwrap_or_default();
+                ui.label(
+                    RichText::new(format!(
+                        "[{}] {time}[{}] {} — {}",
+                        source["n"].as_u64().unwrap_or(0),
+                        source["source"].as_str().unwrap_or(""),
+                        source["title"].as_str().unwrap_or(""),
+                        source["snippet"].as_str().unwrap_or("")
+                    ))
+                    .size(10.0)
+                    .color(app.tokens.text_faint),
+                );
+            }
+        }
+    }
+    if let Some(result) = ui.data(|data| data.get_temp::<Value>(result_id)) {
+        if let Some(results) = result["results"].as_array() {
+            ui.label(
+                RichText::new(format!("{} hit(s) of {} document(s)", result["total"].as_u64().unwrap_or(0), result["documents"].as_u64().unwrap_or(0)))
+                    .size(11.0)
+                    .color(app.tokens.text_faint),
+            );
+            egui::ScrollArea::vertical().id_salt("nl-search-results").max_height(220.0).show(ui, |ui| {
+                for hit in results {
+                    let time = hit["timeSec"].as_f64().map(|seconds| format!("{:02}:{:04.1}  ", (seconds / 60.0) as u64, seconds % 60.0)).unwrap_or_default();
+                    ui.label(
+                        RichText::new(format!("{time}[{}] {}", hit["source"].as_str().unwrap_or(""), hit["title"].as_str().unwrap_or(""))).size(11.0).strong(),
+                    );
+                    ui.label(RichText::new(hit["snippet"].as_str().unwrap_or("")).size(11.0).color(app.tokens.text_dim));
+                }
+            });
+        } else {
+            ui.label(
+                RichText::new(format!("Index: {} document(s) — {}", result["documents"].as_u64().unwrap_or(0), result["sources"]))
+                    .size(11.0)
+                    .color(app.tokens.text_faint),
+            );
+        }
+    }
+}
+
+// ---------------------------------------------------------------- variation queue
+
+#[derive(Clone, Default)]
+struct QueueDraft {
+    prompt: String,
+    kind: usize,
+    count: String,
+    seed: String,
+    overrides: String,
+    confirm_send: bool,
+    confirm_free: bool,
+}
+
+/// Variants with deterministic seeds: prepare shows the payload, send waits for a second click.
+fn queue_variants(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    let mut d: QueueDraft = draft(ui, "nl-queue-draft");
+    ui.label(RichText::new("Variants").size(13.0).strong());
+    let mut prompt = d.prompt.clone();
+    ui.label(RichText::new("Prompt").size(12.0).color(app.tokens.text_dim));
+    let r = ui.add(egui::TextEdit::multiline(&mut prompt).desired_rows(2).desired_width(f32::INFINITY).id_salt("nl-queue-prompt"));
+    app.auto.add("nl.queue.prompt", r.rect, "Variants prompt");
+    d.prompt = prompt;
+    let kinds = [("image", "Image"), ("video", "Video"), ("audio", "Audio")];
+    let mut kind = kinds[d.kind.min(kinds.len() - 1)].0.to_string();
+    let label = kinds[d.kind.min(kinds.len() - 1)].1;
+    craft_ui::ComboBox::from_id_salt("nl-queue-kind").selected_text(label).show_ui(ui, |ui| {
+        for (index, (value, label)) in kinds.iter().enumerate() {
+            if ui.selectable_value(&mut d.kind, index, *label).clicked() {
+                kind = value.to_string();
+            }
+        }
+    });
+    let mut count = d.count.clone();
+    let mut seed = d.seed.clone();
+    ui.horizontal(|ui| {
+        ui.label(RichText::new("Variants").size(12.0));
+        let r = ui.add(egui::TextEdit::singleline(&mut count).desired_width(48.0).id_salt("nl-queue-count"));
+        app.auto.add("nl.queue.count", r.rect, "Variants");
+        ui.label(RichText::new("First seed (0 = random)").size(12.0));
+        let r = ui.add(egui::TextEdit::singleline(&mut seed).desired_width(96.0).id_salt("nl-queue-seed"));
+        app.auto.add("nl.queue.seed", r.rect, "First seed");
+    });
+    d.count = count;
+    d.seed = seed;
+    let count_value: u64 = d.count.trim().parse().unwrap_or(1).clamp(1, 32);
+    let seed_value: u64 = d.seed.trim().parse().unwrap_or(0);
+    let mut overrides = d.overrides.clone();
+    field(app, ui, "queue.overrides", "Widget overrides JSON (optional)", &mut overrides);
+    d.overrides = overrides;
+    let parsed_overrides =
+        if d.overrides.trim().is_empty() { Some(Value::Null) } else { serde_json::from_str::<Value>(&d.overrides).ok().filter(Value::is_array) };
+    if button(app, ui, "queue.add", "Add variants") {
+        if d.prompt.trim().is_empty() {
+            app.ui.status = "Write a prompt for the variants.".into();
+        } else if let Some(overrides) = parsed_overrides {
+            run(app, ui, "nl.queue.add", json!({"prompt": d.prompt.trim(), "kind": kind, "count": count_value, "seed": seed_value, "overrides": overrides}));
+        } else {
+            app.ui.status = "Widget overrides must be a JSON array like [{\"node\":\"1\",\"field\":\"steps\",\"value\":8}]".into();
+        }
+    }
+    let entries = app.session.nl.queue.clone();
+    if entries.is_empty() {
+        ui.label(RichText::new("The queue is empty: add variants to prepare them.").size(11.0).color(app.tokens.text_faint));
+    } else {
+        let prepared = entries.iter().filter(|entry| entry["status"].as_str() == Some("prepared")).count();
+        ui.label(RichText::new(format!("{} entr(ies), {prepared} prepared", entries.len())).size(11.0).color(app.tokens.text_dim));
+        egui::ScrollArea::vertical().id_salt("nl-queue-entries").max_height(170.0).show(ui, |ui| {
+            for entry in &entries {
+                let status = entry["status"].as_str().unwrap_or("new");
+                let mark = match status {
+                    "prepared" => "◔",
+                    "sent" => "✓",
+                    "error" => "!",
+                    _ => "·",
+                };
+                let workflow = entry["workflow"]
+                    .as_str()
+                    .filter(|workflow| !workflow.is_empty())
+                    .map(|workflow| workflow.rsplit(['/', '\\']).next().unwrap_or(workflow))
+                    .unwrap_or("default workflow");
+                let size = entry["prepared"]["size"]
+                    .as_object()
+                    .map(|size| {
+                        format!(" · {}×{}", size.get("width").and_then(Value::as_u64).unwrap_or(0), size.get("height").and_then(Value::as_u64).unwrap_or(0))
+                    })
+                    .unwrap_or_default();
+                ui.label(
+                    RichText::new(format!(
+                        "{mark} #{} seed {} · {status} · {workflow}{size}",
+                        entry["id"].as_u64().unwrap_or(0),
+                        entry["seed"].as_u64().unwrap_or(0),
+                    ))
+                    .size(11.0)
+                    .color(if status == "error" { egui::Color32::from_rgb(233, 150, 120) } else { app.tokens.text_dim }),
+                );
+                if let Some(error) = entry["error"].as_str() {
+                    ui.label(RichText::new(error).size(10.0).color(egui::Color32::from_rgb(233, 150, 120)));
+                }
+            }
+        });
+        ui.horizontal(|ui| {
+            if button(app, ui, "queue.prepare", "Prepare variants") {
+                run(app, ui, "nl.queue.prepare", json!({}));
+            }
+            if button(app, ui, "queue.remove", "Remove finished") {
+                run(app, ui, "nl.queue.remove", json!({"finished": true}));
+            }
+        });
+        if d.confirm_send {
+            ui.label(
+                RichText::new(format!("Sending {prepared} prepared variant(s) to ComfyUI: confirm?")).size(12.0).color(egui::Color32::from_rgb(233, 180, 120)),
+            );
+            ui.horizontal(|ui| {
+                if button(app, ui, "queue.send_confirm", "Confirm send") {
+                    run(app, ui, "nl.queue.send", json!({"confirm": true}));
+                    d.confirm_send = false;
+                }
+                if button(app, ui, "queue.send_cancel", "Cancel") {
+                    d.confirm_send = false;
+                }
+            });
+        } else {
+            if button(app, ui, "queue.send", "Send prepared…") {
+                if prepared == 0 {
+                    app.ui.status = "Prepare the variants first: nothing is sent unprepared.".into();
+                } else {
+                    d.confirm_send = true;
+                }
+            }
+        }
+    }
+    if d.confirm_free {
+        ui.label(
+            RichText::new("Free ComfyUI's VRAM now? It unloads its models; queued generations may reload them.")
+                .size(12.0)
+                .color(egui::Color32::from_rgb(233, 180, 120)),
+        );
+        ui.horizontal(|ui| {
+            if button(app, ui, "queue.free_confirm", "Confirm free") {
+                run(app, ui, "nl.queue.free", json!({"confirm": true}));
+                d.confirm_free = false;
+            }
+            if button(app, ui, "queue.free_cancel", "Cancel") {
+                d.confirm_free = false;
+            }
+        });
+    } else if button(app, ui, "queue.free", "Free ComfyUI VRAM…") {
+        d.confirm_free = true;
+    }
+    save_draft(ui, "nl-queue-draft", d);
+}
+
+fn queue(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(app, ui, "NL Queue", "Variants prepared and sent on purpose, and the background jobs of the suite.");
+    error_line(app, ui);
+    queue_variants(app, ui);
+    ui.add_space(8.0);
+    ui.separator();
+    ui.label(RichText::new("Background jobs").size(12.0).color(app.tokens.text_dim));
+    let jobs: Vec<Value> = app.session.jobs.iter().rev().map(|j| j.to_json()).collect();
+    if jobs.is_empty() {
+        ui.label(RichText::new("No background jobs.").size(12.0).color(app.tokens.text_faint));
+    }
+    let mut cancel: Option<u64> = None;
+    for job in &jobs {
+        let id = job["id"].as_u64().unwrap_or(0);
+        let label = job["label"].as_str().unwrap_or("Job");
+        let done = job["done"].as_u64().unwrap_or(0);
+        let total = job["total"].as_u64().unwrap_or(0);
+        let finished = job["finished"].as_bool().unwrap_or(false);
+        let status = job["status"].as_str().unwrap_or("");
+        ui.horizontal(|ui| {
+            ui.label(RichText::new(label).size(12.0));
+            ui.label(
+                RichText::new(if finished {
+                    "finished".to_string()
+                } else if total > 0 {
+                    format!("{done}/{total}")
+                } else {
+                    "running".to_string()
+                })
+                .size(12.0)
+                .color(app.tokens.text_dim),
+            );
+            if !status.is_empty() {
+                ui.label(RichText::new(status).size(11.0).color(app.tokens.text_faint));
+            }
+            if !finished && button(app, ui, &format!("queue.cancel.{id}"), "Cancel") {
+                cancel = Some(id);
+            }
+        });
+    }
+    if let Some(id) = cancel {
+        run(app, ui, "jobs.cancel", json!({"job": id}));
+    }
+    ui.add_space(8.0);
+    let mut refresh = false;
+    if button(app, ui, "queue.services", "Check services") {
+        refresh = true;
+    }
+    if refresh {
+        match app.session.execute("nl.services.status", json!({})) {
+            Ok(status) => {
+                for (name, value) in [("ComfyUI", &status["comfy"]), ("Ollama", &status["ollama"]), ("Language model", &status["llm"])] {
+                    let reachable = value["reachable"].as_bool().unwrap_or(false);
+                    let url = value["url"].as_str().unwrap_or("");
+                    let text = if reachable { format!("{name}: reachable at {url}") } else { format!("{name}: not reachable at {url}") };
+                    let color = if reachable { app.tokens.text_dim } else { egui::Color32::from_rgb(233, 180, 120) };
+                    ui.label(RichText::new(text).size(12.0).color(color));
+                }
+            }
+            Err(e) => app.ui.status = e.to_string(),
+        }
+    }
+}
+
+fn settings(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(app, ui, "NL Settings", "The same values as Settings ▸ NL Video Suite: endpoints, installed models, resolution profiles and speech recognition.");
+    error_line(app, ui);
+    let nl = app.session.prefs.nl.clone();
+    let rows = [
+        ("ComfyUI", nl.comfy_url()),
+        ("Language model", format!("{} · {} · {}", nl.llm_provider(), nl.llm_url(), nl.llm_model())),
+        ("Workflow folder", nl.comfy_workflow_dir.clone()),
+        ("Images", format!("{} (round to {} px)", nl.image_scale, nl.size_multiple)),
+        ("Video", format!("{} of the sequence", nl.video_scale)),
+        ("Speech", format!("{} · {} · {} · cache {}", nl.asr_provider(), nl.asr_device(), nl.asr_language(), if nl.asr_cache { "on" } else { "off" })),
+        ("Queue timeout", format!("{} s", nl.queue_timeout_sec)),
+    ];
+    for (label, value) in rows {
+        ui.horizontal(|ui| {
+            ui.label(RichText::new(label).size(12.0).color(app.tokens.text_dim));
+            ui.label(RichText::new(value).size(12.0));
+        });
+    }
+    ui.add_space(8.0);
+    ui.label(RichText::new("Speech models found locally").size(12.0).color(app.tokens.text_dim));
+    let scan_id = egui::Id::unique("nl-asr-scan");
+    ui.horizontal(|ui| {
+        if button(app, ui, "settings.asr_scan", "Scan ASR models") {
+            let ctx = ui.ctx().clone();
+            match crate::menus::invoke(app, &ctx, "nl.asr.models", json!({})) {
+                Ok(value) => {
+                    ui.data_mut(|data| data.insert_temp(scan_id, value));
+                }
+                Err(e) => app.ui.status = e,
+            }
+        }
+        if let Some(scan) = ui.data(|data| data.get_temp::<Value>(scan_id)) {
+            ui.label(
+                RichText::new(format!(
+                    "{} verified model(s), {} engine(s)",
+                    scan["count"].as_u64().unwrap_or(0),
+                    scan["engines"].as_array().map_or(0, Vec::len)
+                ))
+                .size(11.0)
+                .color(app.tokens.text_faint),
+            );
+            let models = scan["models"].as_array().cloned().unwrap_or_default();
+            let engines = scan["engines"].as_array().cloned().unwrap_or_default();
+            let qwen_model = models.iter().find(|m| m["kind"] == "qwen-gguf" && m["role"] == "asr").cloned();
+            let qwen_aligner = models.iter().find(|m| m["kind"] == "qwen-gguf" && m["role"] == "aligner").cloned();
+            let qwen_runner = engines.iter().find(|e| e["engine"] == "qwen3-asr").cloned();
+            if let (Some(model), Some(aligner), Some(runner)) = (qwen_model, qwen_aligner, qwen_runner)
+                && button(app, ui, "settings.asr_use_qwen", "Use Qwen3-ASR")
+            {
+                let mut set = |key: &str, value: &str| {
+                    if let Err(e) = app.session.execute("prefs.set", json!({"key": key, "value": value})) {
+                        app.ui.status = e.to_string();
+                    }
+                };
+                set("nl.asrProvider", "qwen_gguf");
+                set("nl.asrRunner", runner["path"].as_str().unwrap_or(""));
+                set("nl.asrQwenModel", model["path"].as_str().unwrap_or(""));
+                set("nl.asrQwenAligner", aligner["path"].as_str().unwrap_or(""));
+                app.ui.status = "ASR provider set to Qwen3-ASR (local GGUF).".into();
+            }
+            if let Some(whisper) = models.iter().find(|m| m["kind"] == "whisper-ct2").cloned()
+                && button(app, ui, "settings.asr_use_whisper", "Use Whisper (bridge)")
+            {
+                if let Err(e) = app.session.execute("prefs.set", json!({"key": "nl.asrProvider", "value": "bridge"})) {
+                    app.ui.status = e.to_string();
+                }
+                if let Err(e) = app.session.execute("prefs.set", json!({"key": "nl.asrModel", "value": whisper["path"].as_str().unwrap_or("")})) {
+                    app.ui.status = e.to_string();
+                }
+                app.ui.status = "ASR provider set to the local Whisper bridge model.".into();
+            }
+        }
+    });
+    if let Some(scan) = ui.data(|data| data.get_temp::<Value>(scan_id)) {
+        for model in scan["models"].as_array().into_iter().flatten().take(6) {
+            ui.label(
+                RichText::new(format!(
+                    "{} · {} · verified {} · {}",
+                    model["kind"].as_str().unwrap_or(""),
+                    model["role"].as_str().unwrap_or(""),
+                    model["verified"],
+                    model["path"].as_str().unwrap_or("")
+                ))
+                .size(10.0)
+                .color(app.tokens.text_faint),
+            );
+        }
+    }
+    if button(app, ui, "settings.open", "Open NL settings…") {
+        run(app, ui, "app.settings.nl", json!({}));
+    }
+    ui.add_space(10.0);
+    ui.label(
+        RichText::new("Nothing is downloaded automatically: the suite uses the ComfyUI endpoint and the language-model provider you already run (Ollama, or any OpenAI-compatible server such as llama.cpp/LM Studio) and the models they already have.")
+            .size(12.0)
+            .color(app.tokens.text_dim),
+    );
+}

@@ -1,0 +1,8 @@
+asset:        ai.nlvideo.suite.png
+title:        NL Video Suite app icon, Linux 24x24
+author:       Nicola Lanci (NL Video Suite owner)
+source:       original work (owner's mark, derived from LogoMioBozza.svg)
+license:      LicenseRef-NL-Video-Suite-Trademark - NL Video Suite name and marks are trademarks of Nicola Lanci, not open source; usable only unmodified and only in the context of NL Video Suite, under docs/brand/LICENSE-nlvideo.txt.
+license-file: docs/brand/LICENSE-nlvideo.txt
+added:        2026-11-21 by DeepSeek (agent) for Nicola Lanci
+notes:        Generated from assets/app-icon/nlvideo.svg or docs/brand/nlvideo-wordmark-*.svg; palette violet #7531fe, magenta #c42b86, neon cyan #8ff0ff on near-black plum.

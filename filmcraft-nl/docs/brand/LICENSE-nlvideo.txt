@@ -1,0 +1,25 @@
+NL Video Suite brand assets: license
+
+The NL Video Suite name, wordmark, microphone mark and app icon (the "NL Video Suite Marks"),
+including every file in docs/brand and every NL Video Suite icon in assets/app-icon, are owned by
+Nicola Lanci. They are trademarks and are NOT open source. They are not covered by FilmCraft's
+MIT OR Apache-2.0 license.
+
+Permission
+
+Nicola Lanci grants a limited, non-exclusive, non-transferable, revocable, royalty-free permission
+to use the NL Video Suite Marks only as part of copies of NL Video Suite and within NL Video Suite
+itself, its documentation and its official builds, to identify the product.
+
+Conditions
+
+  - The marks are used exactly as supplied in this repository. Do not redraw, recolor, crop,
+    stretch, rotate, animate, outline or add effects to them, extract parts of them, or combine
+    them with any other name, mark or artwork.
+  - They must never suggest that Nicola Lanci made, sponsors, endorses or supports another product,
+    service, fork, modified version, plug-in, organization or person.
+  - Forks must replace the marks with their own and must not call their work NL Video Suite.
+
+Everything else
+
+Any use not expressly permitted here needs prior written permission from Nicola Lanci.
