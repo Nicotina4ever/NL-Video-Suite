@@ -1,0 +1,70 @@
+{
+  "date": "2026-11-24",
+  "phase": "P28 — test GUI: immagine generata e inserita, parametri, trascrizione",
+  "gui": {
+    "window": "NL Video Suite aperta (control 55901, workspace Editing)",
+    "image_generation": {
+      "panel": "NL Generate",
+      "workflow": "image · Krea2_t2i_20260818_API",
+      "prompt": "cinematic portrait of a woman with red hair, neon studio light, 85mm",
+      "result": "ComfyUI: imported 1 media item(s) into the project",
+      "project_item": 68,
+      "project_name": "Assets_00002_-1.png",
+      "project_duration_seconds": 5,
+      "timeline": "trascinato dalla GUI sul binario V2; il clip è selezionato e le proprietà mostrano Assets_00002_-1.png",
+      "screenshots": ["image-generating.png", "project-after-image.png", "timeline-after-drag.png"]
+    },
+    "model_dropdowns": {
+      "header": "Modelli, LoRA e parametri (16)",
+      "ids": [
+        "nl.generate.param.146.cfg",
+        "nl.generate.param.146.denoise",
+        "nl.generate.param.146.sampler_name",
+        "nl.generate.param.146.scheduler",
+        "nl.generate.param.146.steps",
+        "nl.generate.param.148.unet_name",
+        "nl.generate.param.149.clip_name",
+        "nl.generate.param.152.lora_name"
+      ],
+      "screenshots": ["generate-params-expanded.png"]
+    },
+    "transcription": {
+      "panel": "NL Transcript",
+      "status": "premuto Trascrivi nella GUI; il pannello mostra 'Running: 0% · ASR NL: caricamento del modello e trascrizione' dopo 45 s, nessun risultato",
+      "screenshot": "transcript-done.png",
+      "blocker": "caricamento ASR locale non completato nel tempo del test"
+    },
+    "music": {
+      "panel": "NL Music",
+      "status": "pannello mostra 'No model is downloaded' con workflow audio MiniMax Music; generazione non eseguita",
+      "screenshot": "music-generating.png",
+      "blocker": "modello audio assente o workflow audio non installato"
+    }
+  },
+  "code": {
+    "generate_action_row": "Generate/Dry run spostati subito sotto il prompt, prima dei campi avanzati, per non dipendere dallo scroll del dock",
+    "parameters": "dropdown da nl.workflows.parameters (/object_info), valori in overrides",
+    "references": "character/background/images/videos/audios/loras nel workflow"
+  },
+  "tested": [
+    "generazione immagine reale dalla GUI e import nel progetto",
+    "drag del media dal Project alla timeline V2",
+    "menu a tendina parametri/LoRA nella GUI",
+    "apertura e avvio trascrizione dalla GUI"
+  ],
+  "not_tested": [
+    "trascrizione completata con risultato",
+    "generazione musica (modello assente)",
+    "video/i2v reale a bassa risoluzione",
+    "reframing dalla GUI",
+    "storia AI completa → asset → sostituzione",
+    "bridge/transizione tra due clip",
+    "30 secondi totali in timeline"
+  ],
+  "next": [
+    "verificare/installare il modello audio usato da NL Music",
+    "completare o diagnosticare l'ASR locale",
+    "test i2v a 360×640/1-2 s",
+    "test reframe, bridge, storia e 30 s"
+  ]
+}
