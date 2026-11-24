@@ -1,5 +1,41 @@
 # Punto di ripresa — NL Video Suite 2.0.0 (24/11/2026)
 
+## P25 — Montaggio base, menu NL e agente timeline (24/11/2026)
+
+- **Niente più muro di 29 tab**: il workspace **Editing (Montaggio)** ha nel gruppo in alto a
+  destra `Proprietà / Grafica essenziale / Testo / NL Home / NL Agent`. «NL Video Suite» resta un
+  alias dello stesso layout, non un workspace separato con tutte le tab.
+- **Menu di primo livello «NL Video Suite»** con gruppi: Panoramica, Timeline e analisi,
+  Generazione, Testo/voce/grafica, Consegna, Workflow, Agente timeline. I 30 pannelli restano
+  anche nel menu Window per chi lo preferisce.
+- **Tasto destro sulla timeline** (righello/gap) → **NL Video Suite** → Aggiungi oggetto da
+  generare, Apri NL Agent, Compila prompt con AI, Genera e sostituisci, Raccogli asset nel
+  progetto.
+- **Agente timeline**: `nl.agent.sketch` da soggetto → piano, prompt e traccia **NL** di
+  placeholder; `nl.agent.prompts` riempie i prompt con il modello locale; `nl.agent.generate`
+  genera con ComfyUI, sposta il file in `<progetto>/generated/`, lo ricollega e sostituisce il
+  clip placeholder nella posizione originale; `nl.agent.collect` raccoglie anche i media sotto
+  `generated/comfy-*`.
+- **Timeline-first**: `target_media` ora preferisce i clip video della sequenza aperta, poi
+  l'audio; Clips AI non richiede più un file se il video è già in timeline. NL Speech può
+  trascrivere senza percorso (usa la selezione/sequenza).
+- **Prove live**: sketch esplicito 3 oggetti (clip 70/72/74, traccia NL); sketch agentico da
+  soggetto con LLM (2 oggetti, `source: model`); prompt riempito dall'LLM; **generazione reale
+  ComfyUI** di 1 oggetto (`z-image-turbo`), asset in `<progetto>/generated/`, clip 70 sostituito
+  dall'item 71 con stessa posizione e durata 3 s. Evidenze in `prove/p25-redesign/`.
+- **UI smoke**: `Editing` con tab NL, menu di primo livello NL, pannello NL Agent (9 controlli),
+  menu contestuale timeline con 6 voci (`timeline.nlMenu.*`); screenshot in
+  `prove/p25-redesign/`.
+- **Test**: engine `nl::agent` 4/4, timeline-first ok; dock 11/11; menus default ok; NL panels 3/3;
+  workspaces UI 10/10.
+- **Limiti**: `nl.agent.generate` è sincrono (UI occupata durante ComfyUI); una nuova sketch non
+  cancella i clip della precedente; «Raccogli asset» è esplicito, non automatico per ogni
+  generazione fuori dall'agente.
+- **Pulizia P25**: il `filmcraft-nl/target` ricreato da test e release (23.042,8 MB) è stato
+  spostato in `da_eliminare/2026-11-24-ottimizzazione/filmcraft-nl_target_p25`; `da_eliminare`
+  contiene ora 23.149,3 MB. Spazio K: **72,71 GB liberi**; svuotando `da_eliminare` si torna a
+  circa **95,3 GB**. Con `target` spostato la prossima build parte da zero (~6 min release).
+
 ## Stato verificato 24/11/2026 — P19/P20/P21
 
 Baseline riprodotta con l'exe precedente (`documentazione/prove/p19-nl-surface/baseline.json`):

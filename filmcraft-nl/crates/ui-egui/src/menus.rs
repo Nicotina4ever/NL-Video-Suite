@@ -945,7 +945,7 @@ pub struct MenuItem {
     pub checked: Option<bool>,
 }
 
-pub const MENUS: [&str; 9] = ["File", "Edit", "Clip", "Sequence", "Markers", "Graphics and Titles", "View", "Window", "Help"];
+pub const MENUS: [&str; 10] = ["File", "Edit", "Clip", "Sequence", "Markers", "Graphics and Titles", "NL Video Suite", "View", "Window", "Help"];
 
 /// Labels only the native macOS app menu shows, with no command in the menu tree behind them: the
 /// Settings submenu and the predefined Hide, Hide Others and Quit items. They are translated through
@@ -1080,7 +1080,66 @@ pub fn menu_items_for(session: &filmcraft_engine::Session) -> Vec<MenuItem> {
             checked: None,
         });
     }
+    nl_menu_items(&mut out, session);
     out
+}
+
+/// The top-level NL Video Suite menu: the same panels as Window, grouped by what the operator is
+/// doing (creation, timeline, text, finishing, delivery) plus the timeline-agent actions. It keeps
+/// the Window menu for “where is this panel” and gives the suite a home of its own.
+fn nl_menu_items(out: &mut Vec<MenuItem>, session: &filmcraft_engine::Session) {
+    let groups: [(&str, &[PanelKind]); 6] = [
+        ("Panoramica", &[PanelKind::NlHome, PanelKind::NlAgent, PanelKind::NlStudio, PanelKind::NlServices, PanelKind::NlSettings]),
+        (
+            "Timeline e analisi",
+            &[
+                PanelKind::NlClipping,
+                PanelKind::NlSgrossa,
+                PanelKind::NlShots,
+                PanelKind::NlMontage,
+                PanelKind::NlTranscript,
+                PanelKind::NlLongform,
+                PanelKind::NlAnalyze,
+                PanelKind::NlSearch,
+                PanelKind::NlVersions,
+                PanelKind::NlAlbum,
+            ],
+        ),
+        ("Generazione", &[PanelKind::NlGenerate, PanelKind::NlStory, PanelKind::NlBridge, PanelKind::NlCover, PanelKind::NlMusic, PanelKind::NlQueue]),
+        (
+            "Testo, voce e grafica",
+            &[PanelKind::NlSubtitles, PanelKind::NlTitles, PanelKind::NlGraphics, PanelKind::NlAudio, PanelKind::NlAsr, PanelKind::NlSpeech],
+        ),
+        ("Consegna", &[PanelKind::NlDelivery, PanelKind::NlSocial]),
+        ("Workflow", &[PanelKind::NlWorkflows]),
+    ];
+    for (group, panels) in groups {
+        for panel in panels {
+            out.push(MenuItem {
+                id: panel_command_id(*panel),
+                label: panel.title().into(),
+                path: vec!["NL Video Suite".into(), group.into()],
+                shortcut: session.shortcuts.primary(&panel_command_id(*panel)),
+                enabled: true,
+                checked: None,
+            });
+        }
+    }
+    for (group, id, label) in [
+        ("Agente timeline", "nl.agent.prompts", "Compila i prompt con AI"),
+        ("Agente timeline", "nl.agent.generate", "Genera e sostituisci gli oggetti"),
+        ("Agente timeline", "nl.agent.collect", "Raccogli gli asset nel progetto"),
+        ("Agente timeline", "nl.agent.add", "Aggiungi un oggetto da generare"),
+    ] {
+        out.push(MenuItem {
+            id: id.into(),
+            label: label.into(),
+            path: vec!["NL Video Suite".into(), group.into()],
+            shortcut: None,
+            enabled: session.is_enabled(id),
+            checked: None,
+        });
+    }
 }
 
 /// Shortcut text for menus in this OS's notation (`⇧⌘K` on macOS, `Ctrl+Shift+K` elsewhere).

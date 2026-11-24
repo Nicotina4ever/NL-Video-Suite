@@ -28,6 +28,10 @@ un modello piccolo (`lfm2.5:latest` o `granite4.2:3b`), poi scaricarlo prima di 
   (0 action), pulizia bundle 1.4.1/1.5.0 + target/debug, K: 77,53 → 93,95 GB liberi (+16,42 GB),
   ricevute in `documentazione/prove/p23-release/`.
 
+- [x] **P25 redesign**: workspace Montaggio con NL Home/NL Agent in alto a destra, menu di primo
+  livello «NL Video Suite», menu contestuale timeline, agente timeline (`nl.agent.*`), generazione
+  ComfyUI reale con asset in `<progetto>/generated/` e sostituzione in place; prove in
+  `documentazione/prove/p25-redesign/`.
 - [x] **P24 ottimizzazione**: spostati in `da_eliminare/2026-11-24-ottimizzazione/` 2.502,4 MB
   (target, node_modules vecchi, backup app, screenshot duplicati, web-dist, fixture); audit
   post-pulizia 29/29; ricevuta `documentazione/prove/p24-optimization/receipt.json`.

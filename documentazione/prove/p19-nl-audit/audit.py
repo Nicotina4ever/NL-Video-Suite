@@ -35,6 +35,7 @@ DEFAULT_PROJECT = ROOT / "documentazione" / "prove" / "f4-shorts" / "gta6-shorts
 # The 29 panels, their title (as `ui.panel.show` accepts) and a safe command for the audit.
 PANELS = [
     ("NL Home", "NlHome", "project.inspect", {}),
+    ("NL Agent", "NlAgent", "nl.agent.plan", {}),
     ("NL Generate", "NlGenerate", "nl.models.workflows", {}),
     ("NL Music", "NlMusic", "nl.models.workflows", {}),
     ("NL ASR", "NlAsr", "nl.asr.models", {}),
@@ -200,7 +201,7 @@ def main():
         docking = client.ok("ui.docking")
         layout_panels = panels_in_layout(docking.get("layout", {}))
         report["layout_panels"] = sorted(layout_panels)
-        missing_layout = [name for _, name, _, _ in PANELS if name not in layout_panels]
+        missing_layout = [name for name in ("NlHome", "NlAgent") if name not in layout_panels]
         report["missing_layout"] = missing_layout
 
         # First pass: screenshots and elements only. Commands run in a second pass, so a refusal

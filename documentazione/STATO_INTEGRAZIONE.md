@@ -22,6 +22,21 @@ Avvio: doppio clic, oppure `NL Video Suite.exe --control 9876` per l’automazio
   comandi, clippy engine+UI pulito. Dettagli in `NL_PANELS.md`, `REFRAME_REPOS.md`,
   `NL_PARITA_2026-11-24.md`, `prove/p19-nl-surface/`, `prove/p19-nl-audit/`.
 
+## P25 — Montaggio base, menu NL e agente timeline (24/11/2026)
+
+- Il workspace **Editing** è la base: `Proprietà / Grafica essenziale / Testo / NL Home / NL Agent`
+  nel gruppo in alto a destra. «NL Video Suite» resta un alias dello stesso layout.
+- Voce di menu di primo livello **NL Video Suite**, con gruppi per uso; tasto destro sulla
+  timeline con le azioni NL.
+- **NL Agent**: soggetto → piano/prompt → traccia NL di placeholder → generazione ComfyUI →
+  asset in `<progetto>/generated/` → sostituzione del clip nella posizione originale.
+- `target_media` è timeline-first: i pannelli usano la sequenza aperta invece di chiedere un
+  nuovo file.
+- Prova reale ComfyUI: 1 oggetto generato (`z-image-turbo`), clip 70 sostituito dall'item 71
+  con stessa posizione/durata. Evidenze in `prove/p25-redesign/`.
+- Limiti: generazione sincrona, sketch successiva non cancella i placeholder precedenti, raccolta
+  asset esplicita.
+
 ## P24 — ottimizzazione cartella (24/11/2026)
 
 - Spostati in `da_eliminare/2026-11-24-ottimizzazione/` 2.502,4 MB di materiale vecchio o

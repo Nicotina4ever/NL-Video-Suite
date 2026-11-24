@@ -6,8 +6,11 @@ o harness senza perdere stato. Il codice e le prove restano su disco; questo è 
 ## Ripresa rapida 2.0.0
 
 1. Apri `NL Video Suite.exe` nella radice (oppure il bundle 2.0.0 in `distribuzione/`).
-2. **Window ▸ Workspaces ▸ NL Video Suite** (o `Alt+Shift+9`): NL Home, creazione, Program,
-   timeline e finitura con tutti i 29 pannelli.
+2. **Area Montaggio (Editing)**: in alto a destra, accanto a Proprietà/Testo, ci sono **NL Home** e
+   **NL Agent**; il menu di primo livello **NL Video Suite** raggruppa gli altri 28 pannelli. Il
+   vecchio workspace «NL Video Suite» resta un alias dello stesso layout, non un muro di tab.
+3. Tasto destro sulla timeline (righello/gap) → **NL Video Suite** → aggiungi un oggetto da
+   generare, apri l'agente, compila i prompt, genera e sostituisci, raccogli gli asset.
 3. Ogni pannello mostra in alto `nl.context` (progetto, sequenza, playhead, selezione,
    trascrizione, ASR, ComfyUI). Se un pannello NL mostrasse «coming in a later milestone», è una
    regressione: esegui l'audit (sotto) e confronta `NL_PANELS`.

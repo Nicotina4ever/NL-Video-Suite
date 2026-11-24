@@ -189,6 +189,35 @@ pub(super) fn ruler_menu(app: &mut FilmcraftApp, ctx: &egui::Context, ui: &mut e
             }
         }
     }
+    nl_timeline_menu(app, ctx, ui);
+}
+
+/// The NL Video Suite entries of the timeline context menu: create a generation object here,
+/// sketch the whole timeline from a subject, fill the prompts, generate and replace, collect the
+/// assets into the project folder.
+fn nl_timeline_menu(app: &mut FilmcraftApp, ctx: &egui::Context, ui: &mut egui::Ui) {
+    ui.separator();
+    let submenu = ui.menu_button("NL Video Suite", |ui| {
+        let entries = [
+            ("timeline.nlMenu.add", "Aggiungi oggetto da generare", "nl.agent.add", json!({})),
+            ("timeline.nlMenu.agent", "Apri NL Agent", "window.panel.NlAgent", json!({})),
+            ("timeline.nlMenu.prompts", "Compila i prompt con AI", "nl.agent.prompts", json!({})),
+            ("timeline.nlMenu.generate", "Genera e sostituisci gli oggetti", "nl.agent.generate", json!({"all": true})),
+            ("timeline.nlMenu.collect", "Raccogli gli asset nel progetto", "nl.agent.collect", json!({})),
+        ];
+        for (id, label, command, params) in entries {
+            let enabled = command.starts_with("window.") || app.session.is_enabled(command);
+            let r = ui.add_enabled(enabled, egui::Button::new(label));
+            app.auto.add(id, r.rect, label);
+            if r.clicked() {
+                if let Err(e) = crate::menus::invoke(app, ctx, command, params) {
+                    app.ui.status = e;
+                }
+                ui.close();
+            }
+        }
+    });
+    app.auto.add("timeline.nlMenu.open", submenu.response.rect, "NL Video Suite");
 }
 
 /// The menu of a right-clicked track header: add or delete tracks here, or through the dialogs of
@@ -257,6 +286,7 @@ pub(super) fn gap_menu(app: &mut FilmcraftApp, ctx: &egui::Context, ui: &mut egu
         }
         ui.close();
     }
+    nl_timeline_menu(app, ctx, ui);
 }
 
 /// The clip menu's Multi-Camera submenu: Enable, Flatten, and the cameras of the selected nested

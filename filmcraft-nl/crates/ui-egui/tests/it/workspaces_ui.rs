@@ -458,9 +458,19 @@ fn nl_workspace_is_in_the_menu_and_opens_every_nl_panel() {
 
     assert_eq!(d.menu("window.workspace.nlvideosuite", json!({}))["workspace"], "NL Video Suite");
     assert_eq!(d.workspace(), "NL Video Suite");
-    for panel in filmcraft_ui_egui::dock::NL_PANELS {
-        assert!(d.shows(panel), "{} is missing from the NL workspace", panel.title());
+    assert!(d.shows(filmcraft_ui_egui::dock::PanelKind::NlHome), "NL Home is in the Montaggio layout");
+    assert!(d.shows(filmcraft_ui_egui::dock::PanelKind::NlAgent), "NL Agent is in the Montaggio layout");
+    // Every NL panel is reachable from the top-level NL Video Suite menu, grouped by use.
+    let items = d.ok("ui.menu.list", json!({}));
+    let mut menu_panels = 0;
+    for item in items.as_array().unwrap() {
+        if item["path"].as_array().is_some_and(|path| path.first().and_then(|p| p.as_str()) == Some("NL Video Suite"))
+            && item["id"].as_str().is_some_and(|id| id.starts_with("window.panel.Nl"))
+        {
+            menu_panels += 1;
+        }
     }
+    assert_eq!(menu_panels, filmcraft_ui_egui::dock::NL_PANELS.len(), "the NL menu lists every NL panel");
 
     // The slug is normalized: spaces and case do not matter, as Premiere's workspace names.
     d.ok("ui.set", json!({"workspace": "nl video suite"}));

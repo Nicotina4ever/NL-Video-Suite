@@ -28,14 +28,14 @@
   },
   "after": {
     "exe": "NL Video Suite.exe 2.0.0 24/11/2026 17:45",
-    "panels": 29,
+    "panels": 30,
     "workspace_listed": true,
     "workspace_after": "NL Video Suite",
     "missing_layout": [],
     "missing_context": [],
     "placeholders": [],
-    "home_buttons": 28,
-    "screenshots": 29,
+    "home_buttons": 29,
+    "screenshots": 30,
     "audit": "documentazione/prove/p19-nl-audit/audit.json"
   },
   "limits": [

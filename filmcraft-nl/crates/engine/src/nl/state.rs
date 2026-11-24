@@ -98,6 +98,8 @@ pub struct NlState {
     pub longform_pending: Option<PendingLongform>,
     /// A background project-assistant answer waiting to be offered.
     pub assistant_pending: Option<PendingPrompt>,
+    /// The NL timeline sketch: generation placeholders with their prompts and generated media.
+    pub agent_plan: Option<Value>,
 }
 
 impl NlState {

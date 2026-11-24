@@ -66,6 +66,7 @@ pub enum PanelKind {
     NlSearch,
     NlSpeech,
     NlHome,
+    NlAgent,
     NlShots,
     NlSocial,
     NlStudio,
@@ -74,8 +75,9 @@ pub enum PanelKind {
 
 /// Every NL Video Suite panel, in the order the workspace, the dashboard and the audits use.
 /// One list, so a new NL panel cannot be routed without also being in the layout and the menu.
-pub const NL_PANELS: [PanelKind; 29] = [
+pub const NL_PANELS: [PanelKind; 30] = [
     PanelKind::NlHome,
+    PanelKind::NlAgent,
     PanelKind::NlGenerate,
     PanelKind::NlMusic,
     PanelKind::NlBridge,
@@ -107,7 +109,7 @@ pub const NL_PANELS: [PanelKind; 29] = [
 ];
 
 impl PanelKind {
-    pub const ALL: [PanelKind; 57] = [
+    pub const ALL: [PanelKind; 58] = [
         PanelKind::Project,
         PanelKind::MediaBrowser,
         PanelKind::Libraries,
@@ -161,6 +163,7 @@ impl PanelKind {
         PanelKind::NlSearch,
         PanelKind::NlSpeech,
         PanelKind::NlHome,
+        PanelKind::NlAgent,
         PanelKind::NlShots,
         PanelKind::NlSocial,
         PanelKind::NlStudio,
@@ -221,6 +224,7 @@ impl PanelKind {
             PanelKind::NlSearch => "NL Search",
             PanelKind::NlSpeech => "NL Speech",
             PanelKind::NlHome => "NL Home",
+            PanelKind::NlAgent => "NL Agent",
             PanelKind::NlShots => "NL Shot Map",
             PanelKind::NlSocial => "NL Social",
             PanelKind::NlStudio => "NL Studio",
@@ -660,87 +664,32 @@ fn workspace_root(name: &str) -> Node<PanelKind> {
             ),
             hsplit(Ratio(0.26), tabs(&[Project, MediaBrowser, Libraries, Info, Effects, Markers, History], 0), bottom_editing()),
         ),
-        // NL Video Suite: a readable default rather than a wall of truncated tabs. NL Home is the
-        // dashboard with every NL function one click away; the creation tools, the picture, the
-        // timeline and the finishing panels stay docked.
-        "NL Video Suite" => vsplit(
-            Ratio(0.56),
-            hsplit(
-                Ratio(0.2),
-                tabs(&[NlHome, Project, MediaBrowser, Libraries, Info, Effects, Markers, History], 0),
-                hsplit(
-                    Ratio(0.66),
-                    tabs(&[Program], 0),
-                    tabs(
-                        &[
-                            NlGenerate,
-                            NlStory,
-                            NlQueue,
-                            NlMusic,
-                            NlBridge,
-                            NlCover,
-                            EffectControls,
-                            Source,
-                            Metadata,
-                            AudioClipMixer,
-                            AudioTrackMixer,
-                            ReferenceMonitor,
-                            Text,
-                            EssentialGraphics,
-                            EssentialSound,
-                            TextToSpeech,
-                            Properties,
-                            LumetriColor,
-                            LumetriScopes,
-                        ],
-                        0,
-                    ),
-                ),
-            ),
-            hsplit(
-                Ratio(0.22),
-                tabs(
-                    &[
-                        NlLongform,
-                        NlTranscript,
-                        NlAnalyze,
-                        NlSearch,
-                        NlClipping,
-                        NlShots,
-                        NlSgrossa,
-                        NlStudio,
-                        NlSocial,
-                        NlServices,
-                        NlSettings,
-                        NlWorkflows,
-                        NlAsr,
-                        NlSpeech,
-                    ],
-                    0,
-                ),
-                hsplit(
-                    SplitSize::FixedFirst(TOOLS_WIDTH),
-                    tabs(&[Tools], 0),
-                    hsplit(
-                        SplitSize::FixedSecond(METERS_WIDTH),
-                        tabs(&[Timeline, NlMontage, NlVersions, NlAlbum, NlDelivery, NlSubtitles, NlTitles, NlGraphics, NlAudio], 0),
-                        tabs(&[AudioMeters], 0),
-                    ),
-                ),
-            ),
-        ),
-        // Editing (default), Learning, Review — Premiere 26 factory layout:
-        // top: Source group | Program | Properties; bottom: Project group | Tools | Timeline | Meters.
-        _ => vsplit(
-            Ratio(0.57),
-            hsplit(
-                Ratio(0.72),
-                hsplit(Ratio(0.5), tabs(&[Source, EffectControls, AudioClipMixer, Metadata], 0), tabs(&[Program], 0)),
-                tabs(&[Properties, EssentialGraphics, Text], 0),
-            ),
-            hsplit(Ratio(0.29), tabs(&[Project, MediaBrowser, Libraries, Info, Effects, Markers, History], 0), bottom_editing()),
-        ),
+        // Editing (default) and the NL Video Suite alias: the familiar Montaggio layout, with the
+        // NL dashboard and the timeline agent as tabs beside Properties / Essential Graphics /
+        // Text. Every other NL panel is one click away in the top-level NL Video Suite menu, so
+        // the right-hand group stays readable instead of becoming a wall of tabs.
+        "Editing" | "NL Video Suite" => editing_root(true),
+        // Learning, Review — same factory layout without the NL tabs.
+        _ => editing_root(false),
     }
+}
+
+/// The Premiere-style Montaggio layout. `with_nl` adds the NL dashboard and agent tabs to the
+/// Properties group; the rest of the NL surface is in the NL Video Suite menu.
+fn editing_root(with_nl: bool) -> Node<PanelKind> {
+    use PanelKind::*;
+    use SplitSize::Ratio;
+    let right = if with_nl { vec![Properties, EssentialGraphics, Text, NlHome, NlAgent] } else { vec![Properties, EssentialGraphics, Text] };
+    let bottom = hsplit(
+        SplitSize::FixedFirst(TOOLS_WIDTH),
+        tabs(&[Tools], 0),
+        hsplit(SplitSize::FixedSecond(METERS_WIDTH), tabs(&[Timeline], 0), tabs(&[AudioMeters], 0)),
+    );
+    vsplit(
+        Ratio(0.57),
+        hsplit(Ratio(0.72), hsplit(Ratio(0.5), tabs(&[Source, EffectControls, AudioClipMixer, Metadata], 0), tabs(&[Program], 0)), tabs(&right, 0)),
+        hsplit(Ratio(0.29), tabs(&[Project, MediaBrowser, Libraries, Info, Effects, Markers, History], 0), bottom),
+    )
 }
 
 /// FilmCraft's queries and changes on a [`Layout`] beyond craft-ui's actions.
@@ -1052,15 +1001,15 @@ mod tests {
     #[test]
     fn every_nl_panel_is_routed_and_lives_in_the_nl_layout() {
         let layout = workspace("NL Video Suite");
-        for panel in PanelKind::ALL {
-            if panel.id().starts_with("Nl") {
-                assert!(panel.is_nl(), "{} is an NL panel but is_nl() says no", panel.title());
-                assert!(layout.contains(&panel), "{} is missing from the NL Video Suite layout", panel.title());
-            }
-        }
         for panel in NL_PANELS {
-            assert!(layout.contains(&panel), "{} is missing from the NL Video Suite layout", panel.title());
+            assert!(panel.is_nl(), "{} is an NL panel but is_nl() says no", panel.title());
         }
+        // The Montaggio-based layout keeps the two NL surfaces the operator uses while editing;
+        // the other panels are in the top-level NL Video Suite menu, not in a wall of tabs.
+        assert!(layout.contains(&PanelKind::NlHome));
+        assert!(layout.contains(&PanelKind::NlAgent));
+        assert!(layout.contains(&PanelKind::Program));
+        assert!(layout.contains(&PanelKind::Timeline));
     }
 
     /// The NL workspace is a built-in workspace, so it is listed in Window ▸ Workspaces and in the
@@ -1108,9 +1057,12 @@ mod tests {
         assert!(panels.contains(&PanelKind::Program), "{panels:?}");
         assert!(panels.contains(&PanelKind::Timeline), "{panels:?}");
         assert!(!panels.iter().any(|p| p.id().starts_with("Nl")), "{panels:?}");
-        // The startup layout must not dock an NL panel either.
+        // The Editing workspace is Montaggio plus the NL dashboard/agent tabs, not the old wall
+        // of 29 NL tabs.
         let startup = workspace("Editing");
-        assert!(!startup.visible_panels().iter().any(|p| p.id().starts_with("Nl")));
+        assert!(startup.contains(&PanelKind::NlHome));
+        assert!(startup.contains(&PanelKind::NlAgent));
+        assert!(!startup.contains(&PanelKind::NlClipping), "the other NL tools stay in the NL menu");
     }
 
     /// The fixed sizes of a tree's splits, depth first.

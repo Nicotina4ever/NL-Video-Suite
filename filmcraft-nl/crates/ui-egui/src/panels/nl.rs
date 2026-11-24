@@ -43,6 +43,7 @@ fn body(panel: PanelKind) -> Option<Body> {
         PanelKind::NlSearch => Some(search),
         PanelKind::NlSpeech => Some(speech),
         PanelKind::NlHome => Some(home),
+        PanelKind::NlAgent => Some(agent),
         PanelKind::NlShots => Some(shots),
         PanelKind::NlSocial => Some(social),
         PanelKind::NlStudio => Some(studio),
@@ -57,6 +58,7 @@ fn body(panel: PanelKind) -> Option<Body> {
 /// old `transcript.importSubtitle` promise was exactly that).
 pub const PANEL_COMMANDS: &[(PanelKind, &[&str])] = &[
     (PanelKind::NlHome, &[]),
+    (PanelKind::NlAgent, &["nl.agent.plan", "nl.agent.sketch", "nl.agent.add", "nl.agent.prompts", "nl.agent.generate", "nl.agent.collect"]),
     (
         PanelKind::NlGenerate,
         &[
@@ -787,8 +789,9 @@ fn home_groups() -> [(&'static str, &'static [PanelKind]); 4] {
     [
         ("Creazione", &[PanelKind::NlGenerate, PanelKind::NlMusic, PanelKind::NlBridge, PanelKind::NlStory, PanelKind::NlCover, PanelKind::NlQueue]),
         (
-            "Montaggio e analisi",
+            "Agente e timeline",
             &[
+                PanelKind::NlAgent,
                 PanelKind::NlMontage,
                 PanelKind::NlSgrossa,
                 PanelKind::NlClipping,
@@ -866,6 +869,89 @@ fn home(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
             .size(11.0)
             .color(app.tokens.text_dim),
     );
+}
+
+/// NL Agent: from a subject to a timeline of generation objects, with prompts written by the
+/// local model and generated media replacing the placeholders in place.
+fn agent(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    title(
+        app,
+        ui,
+        "NL Agent",
+        "Da un soggetto a una timeline bozza: l'agente scrive i prompt, crea gli oggetti sulla timeline, li fa generare con ComfyUI e sostituisce i placeholder nella posizione originale.",
+    );
+    error_line(app, ui);
+    #[derive(Clone, Default)]
+    struct AgentDraft {
+        subject: String,
+        style: String,
+        scenes: String,
+    }
+    let mut d: AgentDraft = draft(ui, "nl-agent");
+    field(app, ui, "agent.subject", "Soggetto / brief", &mut d.subject);
+    field(app, ui, "agent.style", "Stile (opzionale)", &mut d.style);
+    field(app, ui, "agent.scenes", "Numero di oggetti", &mut d.scenes);
+    ui.horizontal_wrapped(|ui| {
+        if button(app, ui, "agent.sketch", "Crea timeline bozza") {
+            let scenes = d.scenes.trim().parse::<u64>().unwrap_or(6);
+            run(
+                app,
+                ui,
+                "nl.agent.sketch",
+                json!({"subject": d.subject.trim(), "style": d.style.trim(), "scenes": scenes, "startSeconds": app.session.playhead().seconds()}),
+            );
+        }
+        if button(app, ui, "agent.add", "Aggiungi oggetto qui") {
+            run(app, ui, "nl.agent.add", json!({"seconds": 4, "startSeconds": app.session.playhead().seconds()}));
+        }
+        if button(app, ui, "agent.prompts", "Compila prompt con AI") {
+            run(app, ui, "nl.agent.prompts", json!({}));
+        }
+    });
+    ui.horizontal_wrapped(|ui| {
+        if button(app, ui, "agent.generate", "Genera e sostituisci") {
+            run(app, ui, "nl.agent.generate", json!({"all": true}));
+        }
+        if button(app, ui, "agent.collect", "Raccogli asset nel progetto") {
+            run(app, ui, "nl.agent.collect", json!({}));
+        }
+        if button(app, ui, "agent.home", "Apri NL Home") {
+            app.show_panel(PanelKind::NlHome);
+        }
+    });
+    job_line(app, ui, "ComfyUI");
+    ui.add_space(6.0);
+    ui.separator();
+    let plan = app.session.execute("nl.agent.plan", json!({})).ok().and_then(|value| value.get("plan").cloned());
+    if let Some(plan) = plan {
+        let entries = plan["entries"].as_array().cloned().unwrap_or_default();
+        let generated = entries.iter().filter(|entry| entry["status"] == "generated").count();
+        ui.label(
+            RichText::new(format!("{} oggetti · {generated} generati · soggetto: {}", entries.len(), plan["subject"].as_str().unwrap_or("—")))
+                .size(11.0)
+                .color(app.tokens.text_dim),
+        );
+        if let Some(error) = plan["llmError"].as_str() {
+            ui.label(RichText::new(format!("Agente: {error}")).size(10.0).color(egui::Color32::from_rgb(233, 180, 120)));
+        }
+        egui::ScrollArea::vertical().id_salt("nl-agent-plan").max_height(280.0).show(ui, |ui| {
+            for entry in entries {
+                let title = entry["title"].as_str().unwrap_or("Oggetto");
+                let status = entry["status"].as_str().unwrap_or("draft");
+                let seconds = entry["seconds"].as_f64().unwrap_or(4.0);
+                ui.label(RichText::new(format!("{title} · {status} · {seconds:.0}s")).size(11.0).strong());
+                let prompt = entry["prompt"].as_str().unwrap_or("");
+                ui.label(
+                    RichText::new(if prompt.is_empty() { "Prompt vuoto: usa «Compila prompt con AI» o scrivilo nel piano." } else { prompt })
+                        .size(10.0)
+                        .color(app.tokens.text_faint),
+                );
+            }
+        });
+    } else {
+        ui.label(RichText::new("Nessun piano: scrivi un soggetto e premi «Crea timeline bozza».").size(11.0).color(app.tokens.text_faint));
+    }
+    save_draft(ui, "nl-agent", d);
 }
 
 /// NL Longform: chapters over a transcription.
@@ -1138,8 +1224,12 @@ fn speech(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
                 },
             );
         }
-        if button(app, ui, "speech.transcribe", "Trascrivi") && !d.path.trim().is_empty() {
-            run(app, ui, "nl.asr.transcribe", json!({"path": d.path.trim(), "backend": app.session.prefs.nl.asr_provider()}));
+        if button(app, ui, "speech.transcribe", "Trascrivi") {
+            let mut params = json!({"backend": app.session.prefs.nl.asr_provider()});
+            if !d.path.trim().is_empty() {
+                params["path"] = json!(d.path.trim());
+            }
+            run(app, ui, "nl.asr.transcribe", params);
         }
     });
     save_draft(ui, "nl-speech", d);
@@ -1587,15 +1677,11 @@ fn clipping(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         run(app, ui, "nl.reframe.sequence", params);
     }
     if button(app, ui, "clipping.analyze", "Find candidates") {
-        if d.item.is_none() && app.session.state.project_selection.is_empty() {
-            app.ui.status = "Scegli un video con «Scegli video…» oppure seleziona un clip nel pannello Progetto/timeline.".into();
-        } else {
-            let mut params = json!({"mode": modes[d.mode.min(modes.len() - 1)].0});
-            if let Some(item) = d.item {
-                params["item"] = json!(item);
-            }
-            run(app, ui, "nl.clipping.propose", params);
+        let mut params = json!({"mode": modes[d.mode.min(modes.len() - 1)].0});
+        if let Some(item) = d.item {
+            params["item"] = json!(item);
         }
+        run(app, ui, "nl.clipping.propose", params);
     }
     job_line(app, ui, "NL clipping");
     let clips = app.session.nl.result("clips").cloned();
@@ -3064,7 +3150,7 @@ mod tests {
         for panel in NL_PANELS {
             assert!(body(panel).is_some(), "{} has no NL body", panel.title());
         }
-        assert_eq!(NL_PANELS.len(), 29);
+        assert_eq!(NL_PANELS.len(), 30);
     }
 
     /// NL Home is the dashboard with all the functions: every NL panel except Home itself appears

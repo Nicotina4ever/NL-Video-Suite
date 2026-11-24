@@ -1,0 +1,44 @@
+{
+  "path": "C:\\Users\\Nicola\\AppData\\Local\\Temp\\nl-agent-live\\nl\\timeline-plan.json",
+  "placed": 3,
+  "plan": {
+    "entries": [
+      {
+        "clip": 70,
+        "id": 1,
+        "kind": "image",
+        "placeholderItem": 69,
+        "prompt": "strada bagnata, neon viola",
+        "seconds": 3.0,
+        "source": "",
+        "status": "draft",
+        "title": "Apertura"
+      },
+      {
+        "clip": 72,
+        "id": 2,
+        "kind": "image",
+        "placeholderItem": 71,
+        "prompt": "primo piano, controluce",
+        "seconds": 4.0,
+        "source": "",
+        "status": "draft",
+        "title": "Volto"
+      },
+      {
+        "clip": 74,
+        "id": 3,
+        "kind": "image",
+        "placeholderItem": 73,
+        "prompt": "skyline notturno",
+        "seconds": 3.0,
+        "source": "",
+        "status": "draft",
+        "title": "Chiusura"
+      }
+    ],
+    "source": "given",
+    "style": "neo-noir",
+    "subject": "un detective nella notte"
+  }
+}

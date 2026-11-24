@@ -5,11 +5,14 @@ Questa è la versione **nuova** (`filmcraft-nl`), diversa dalla suite classica a
 
 ## La superficie NL in un colpo d'occhio
 
-- All'avvio scegli **Window ▸ Workspaces ▸ NL Video Suite** (oppure `Alt+Shift+9`, o il pulsante
-  Workspaces nella barra): il layout mette a vista **NL Home** (tutte le funzioni con un clic), i
-  pannelli di creazione, il Program, la timeline e i pannelli di finitura.
-- Ogni pannello NL mostra in alto il progetto, la sequenza aperta (risoluzione/fps/playhead/selection),
+- **Area Montaggio (Editing)**: in alto a destra, accanto a Proprietà / Grafica essenziale / Testo,
+  ci sono **NL Home** e **NL Agent**. Il menu di primo livello **NL Video Suite** raggruppa gli
+  altri pannelli per uso (Timeline e analisi, Generazione, Testo/voce/grafica, Consegna, Workflow,
+  Agente timeline). «NL Video Suite» nel menu Workspace è solo un alias di questo layout.
+- Ogni pannello NL mostra in alto il progetto, la sequenza aperta (risoluzione/fps/playhead/selezione),
   la trascrizione, il provider ASR e l'endpoint ComfyUI.
+- **Tasto destro sulla timeline** → NL Video Suite: aggiungi un oggetto da generare, compila i
+  prompt con l'AI, genera e sostituisci, raccogli gli asset nel progetto.
 - **NL Transcript** gestisce trascrizione, import SRT/VTT, sottotitoli e traduzioni; **NL Clips AI**
   ha il reframe automatico con focus volti, stabilità/reattività e comportamento.
 - Il reframe automatico usa il runtime della suite (`runtime/python` + OpenCV); senza runtime il

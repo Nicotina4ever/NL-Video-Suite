@@ -1,0 +1,84 @@
+{
+  "date": "2026-11-24",
+  "phase": "P25 — Montaggio base, menu NL, agente timeline e asset nel progetto",
+  "layout": {
+    "base": "workspace Editing (Montaggio): il gruppo in alto a destra ora è Proprietà / Grafica essenziale / Testo / NL Home / NL Agent",
+    "old_nl_workspace": "«NL Video Suite» resta un alias dello stesso layout Montaggio, non più un muro di 29 tab",
+    "menu": "voce di primo livello «NL Video Suite» con gruppi Panoramica, Timeline e analisi, Generazione, Testo/voce/grafica, Consegna, Workflow e Agente timeline",
+    "timeline_context": "tasto destro su righello/gap → NL Video Suite → Aggiungi oggetto da generare, Apri NL Agent, Compila prompt con AI, Genera e sostituisci, Raccogli asset nel progetto"
+  },
+  "engine": {
+    "module": "filmcraft-nl/crates/engine/src/nl/agent.rs",
+    "commands": ["nl.agent.plan", "nl.agent.sketch", "nl.agent.add", "nl.agent.prompts", "nl.agent.generate", "nl.agent.collect"],
+    "plan": "nl/timeline-plan.json beside the project; placeholder cards in nl/placeholders; generated media in generated/",
+    "timeline_first": "target_media now prefers the video clips of the open sequence, then audio, so Clips AI/Sgrossa/ASR/Transcript use what is already on the timeline",
+    "generation": "nl.agent.generate calls graphics.generateComfy wait:true, moves the downloaded file into the project, relinks the item, replaces the placeholder clip with keepSourceIn:false (same position/duration)",
+    "collect": "moves plan assets and any project media still under the ComfyUI data folder (generated/comfy-*) into the project folder"
+  },
+  "live": {
+    "explicit_sketch": {"file": "explicit-sketch.json", "placed": 3, "track": "NL", "clips": [70, 72, 74], "items": [69, 71, 73]},
+    "agentic_sketch": {
+      "file": "agentic-sketch.json",
+      "subject": "un viaggio in treno di notte",
+      "source": "model",
+      "placed": 2,
+      "titles": ["Notte incontaminata e cielo stellato", "Interior del treno al buio"]
+    },
+    "prompt_fill": "nl.agent.prompts filled the empty object from a local LLM with a visual prompt (source model)",
+    "real_generation": {
+      "file": "generated-end-to-end.json",
+      "generated": 1,
+      "failed": [],
+      "project_asset": "<project>/generated/nl-01-z-image-turbo_00014_.png",
+      "placeholder_clip": 70,
+      "generated_item": 71,
+      "clip_start_ticks": 0,
+      "clip_duration_ticks": 762048000000,
+      "sequence_check": "clip 70 now points at item 71; same start and 3 s duration",
+      "release_run": {
+        "file": "generated-release.json",
+        "plan": "generated-release-plan.json",
+        "exe": "NL Video Suite.exe 2.0.0 (P25)",
+        "generated": 1,
+        "failed": [],
+        "project_asset": "<project>/generated/nl-01-z-image-turbo_00015_.png",
+        "generated_item": 71
+      }
+    }
+  },
+  "ui_smoke": {
+    "file": "smoke.json",
+    "workspace": "Editing",
+    "agent_elements": [
+      "nl.agent.subject", "nl.agent.style", "nl.agent.scenes", "nl.agent.sketch",
+      "nl.agent.add", "nl.agent.prompts", "nl.agent.generate", "nl.agent.collect", "nl.agent.home"
+    ],
+    "timeline_menu": ["timeline.nlMenu.open", "timeline.nlMenu.add", "timeline.nlMenu.agent", "timeline.nlMenu.prompts", "timeline.nlMenu.generate", "timeline.nlMenu.collect"],
+    "menu_has_nl": true,
+    "screenshots": ["editing-nl-tabs.png", "nl-agent-panel.png", "timeline-nl-menu.png", "timeline-context.png"]
+  },
+  "release": {
+    "exe": "NL Video Suite.exe",
+    "exe_bytes": 85997056,
+    "exe_sha256": "F2F583AB3FF83EE534892BD92220FC50E99AAB91BF077CA9CB72C62F1AA758B9",
+    "cli_bytes": 54694912,
+    "bundle": "distribuzione/NLVideoSuite-2.0.0-windows-x64",
+    "zip_bytes": 235342600,
+    "audit": {"panels": 30, "home_buttons": 29, "screenshots": 30, "placeholders": 0, "missing_context": 0},
+    "bundle_audit": {"panels": 30, "home_buttons": 29, "screenshots": 30, "result": "ok"}
+  },
+  "tests": [
+    "nl::agent::tests 4/4 (sketch, dry run, sanitize, asset move)",
+    "nl::performance_tests::the_active_timeline_is_the_default_media: ok",
+    "cargo test -p filmcraft-ui-egui --lib dock::tests: 11/11",
+    "cargo test -p filmcraft-ui-egui --lib menus::tests::default_menu_items_are_the_shipped_menu_bar: ok",
+    "cargo test -p filmcraft-ui-egui --lib panels::nl::: 3/3",
+    "cargo test -p filmcraft-ui-egui --test it workspaces_ui::: 10/10"
+  ],
+  "limits": [
+    "nl.agent.generate attende ComfyUI in modo sincrono: la UI resta occupata durante la generazione; la coda asincrona è il prossimo passo.",
+    "«Raccogli asset» sposta su richiesta i media sotto generated/comfy-*; non è automatico a ogni generazione fuori dall'agente.",
+    "Una nuova sketch sostituisce il piano ma non cancella i clip placeholder della sketch precedente: vanno rimossi a mano o con un futuro «reset agente».",
+    "Il bundle portabile senza runtime/models non genera; la generazione richiede ComfyUI locale."
+  ]
+}

@@ -5,6 +5,7 @@
 //! `nl_asr.rs`, `shorts.rs`); this module holds what those features share and the commands the
 //! NL panels call. Nothing here downloads a model or starts a service by itself.
 
+pub mod agent;
 pub mod album;
 pub mod analysis;
 pub mod asr_models;
@@ -53,7 +54,17 @@ pub(crate) fn target_media(s: &Session, p: &Value) -> Option<(ItemId, String)> {
     if raw.is_empty()
         && let Some(q) = s.active_sequence()
     {
-        raw = q.audio_tracks.iter().flat_map(|t| t.items.iter()).filter(|i| i.enabled).map(|i| i.item).collect();
+        // Timeline-first: the open sequence is the source. Prefer the picture, then the sound, so
+        // "Find candidates", rough cut, ASR and transcription work on what the operator is
+        // already editing instead of asking for another file.
+        raw = q
+            .video_tracks
+            .iter()
+            .flat_map(|t| t.items.iter())
+            .filter(|i| i.enabled)
+            .map(|i| i.item)
+            .chain(q.audio_tracks.iter().flat_map(|t| t.items.iter()).filter(|i| i.enabled).map(|i| i.item))
+            .collect();
     }
     for id in raw {
         // A selected sequence clip resolves to the media it plays; a selected Project-panel item
@@ -608,6 +619,7 @@ pub fn commands() -> Vec<CommandSpec> {
     .chain(analysis::commands())
     .chain(versions::commands())
     .chain(montage::commands())
+    .chain(agent::commands())
     .collect()
 }
 
@@ -788,5 +800,17 @@ mod performance_tests {
         assert!(s.nl.results.is_empty(), "no analysis at open");
         assert!(s.nl.object_info.is_none(), "ComfyUI is not contacted at open");
         assert!(s.comfy_jobs.is_empty() && s.asr_jobs.is_empty() && s.shorts_jobs.is_empty());
+    }
+
+    #[test]
+    fn the_active_timeline_is_the_default_media() {
+        let dir = crate::media_test_util::tmp_dir("nl-timeline-target");
+        let movie = dir.join("clip.mp4");
+        crate::media_test_util::make_movie(&movie, filmcraft_media::DemoScene::Plasma, 64, 36, 24);
+        let (s, items, _) = crate::media_test_util::session_with(&[&movie]);
+        let (media, path) = super::target_media(&s, &json!({})).expect("the open sequence is the default media");
+        assert_eq!(media, items[0]);
+        assert!(!path.is_empty());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
