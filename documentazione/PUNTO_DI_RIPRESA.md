@@ -35,7 +35,12 @@ Map, NL Audio restava vuoto, il pannello ASR prometteva comandi inesistenti e NL
   54.339.072 byte; bundle `distribuzione/NLVideoSuite-2.0.0-windows-x64` + zip 235.060.798 byte;
   audit del bundle 29/29 verde; reframe del bundle senza `runtime/` → fallback statico dichiarato
   (`fallback: camera tracker unavailable`, 0 keyframe).
-- **Restano in P23**: commit, push GitHub, verifica GitHub, pulizia con ricevuta.
+- **P23 — consegna e pulizia**: commit `b4bf1cc` su `main`, push su
+  https://github.com/Nicotina4ever/NL-Video-Suite.git; GitHub head `b4bf1cc`, 0 workflow/action,
+  commit unsigned normale. Pulizia: rimossi bundle 1.4.1/1.5.0 (1.584,7 MB) e
+  `filmcraft-nl/target/debug` (18.766,3 MB); spazio K: da 77,53 a **93,95 GB** liberi
+  (+16,42 GB). Restano radice exe/CLI, bundle 2.0.0, workflows, runtime, models, prove e progetti.
+  Ricevute: `documentazione/prove/p23-release/receipt.json` e `cleanup.json`.
 
 ## P18 — correzione (24/11/2026)
 
