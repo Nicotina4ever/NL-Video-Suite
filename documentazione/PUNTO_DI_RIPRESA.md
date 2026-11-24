@@ -1,4 +1,12 @@
 # Punto di ripresa — CHIUSO 1.2.0 (24/11/2026)
+## CONSEGNA GITHUB — 24/11/2026
+
+- Push riuscito su https://github.com/Nicotina4ever/NL-Video-Suite.git (main, commit ef4ead6):
+  95 commit (docs + import del sorgente filmcraft-nl, 1331 file).
+- Verifiche GitHub: 0 workflow/action (nessun workflow alla radice), 0 check configurati, commit
+  «unsigned» normale; nessun errore di permessi o push protection; repo PUBBLICO.
+- Pulizia finale: eliminati 1.569 MB di vecchie build in da_eliminare, 2,9 MB di temp e 2,6 MB di cache
+  analisi; disco ~95,8 GB. Restano portabile 1.2.0, exe in radice, prove, modelli e progetti.
 
 ## CHIUSURA 1.1.0
 - **Vision del frame entrante** implementata e provata (gemma4:e4b, 26 s) e **bridge end-to-end riuscito**

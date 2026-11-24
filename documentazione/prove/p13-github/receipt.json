@@ -1,0 +1,45 @@
+{
+  "date": "2026-11-24",
+  "phase": "P13 (consegna GitHub e pulizia finale)",
+  "title": "Push su https://github.com/Nicotina4ever/NL-Video-Suite.git, verifica notifiche/errori GitHub e ottimizzazione della cartella progetto",
+  "intent": "Consegnare il programma e la documentazione sul repository dell'operatore, controllare che il push non abbia prodotto errori o workflow falliti e ripulire il workspace da build, cache e test non più necessari.",
+  "push": {
+    "url": "https://github.com/Nicotina4ever/NL-Video-Suite.git",
+    "branch": "main",
+    "from": "5fea7c45fa5f2b5f4fb86f69553acd9831c34f8a",
+    "to": "ef4ead6411d1aa936543b6bfe175de3f663ea55c",
+    "commits": "95 (94 di documentazione + 1 import del sorgente filmcraft-nl)",
+    "source_import": "filmcraft-nl/ (1331 file, 466.256 righe): engine, UI egui, CLI, workflow NL, packaging Windows/Linux/macOS, test",
+    "authentication": "push HTTPS riuscito con il credential manager di Windows; nessun errore di permessi",
+    "visibility": "PUBBLICO"
+  },
+  "github_checks": {
+    "repo": "private=false, visibility=public, default=main, pushed_at aggiornato",
+    "head": "ef4ead6 su main; filmcraft-nl/Cargo.toml e documentazione/PUNTO_DI_RIPRESA.md presenti via API",
+    "actions": "0 workflow run: il repository non ha .github/workflows alla radice; i workflow del fork restano in filmcraft-nl/.github e GitHub non li esegue da una sottocartella",
+    "checks": "nessun check configurato (0 status); combined status 'pending' con 0 status è l'assenza di CI, non un errore",
+    "commit_verification": "verified=false, reason=unsigned: commit non firmato GPG, normale per push via HTTPS",
+    "secrets": "scansione dei file tracciati: solo stringhe di test (api_key=secret, secret-token), nessuna chiave reale; nessun blocco di push protection",
+    "diagnosis": "Nessuna notifica di errore GitHub accessibile: push accettato fast-forward, nessuna action, nessuna branch protection. L'unico avviso è il commit 'unsigned', non un errore."
+  },
+  "cleanup": {
+    "da_eliminare": "1.569,1 MB eliminati (vecchie build 1.0.0/1.1.0, zip sperimentale, metadati temporanei)",
+    "temp": "2,9 MB di workspace nl-* e file di prova rimossi",
+    "analysis_cache": "2,6 MB di frame di analisi generati dalle prove rimossi (non media generati)",
+    "target": "già rimosso in precedenza (15,92 GB)",
+    "kept": "distribuzione/NLVideoSuite-1.2.0 (portabile+zip), NL Video Suite.exe/CLI in radice, documentazione/prove, modelli, runtime, progetti utente",
+    "disk_free": "~95,8 GB"
+  },
+  "limits": [
+    "Linux/macOS restano da provare sulle macchine dell'operatore.",
+    "Il repository è pubblico: contiene anche documentazione/prove con immagini di repertorio e screenshot; se non deve essere pubblico va cambiata la visibilità su GitHub.",
+    "La CI del fork non è attiva nella radice del repository; se si vuole CI va aggiunto un workflow alla radice.",
+    "L'installer Inno Setup non è compilato (iscc assente)."
+  ],
+  "rules_respected": [
+    "Nessun segreto o file >100 MB nel push",
+    "Nessuna modifica a progetti utente o media",
+    "Pulizia solo di build/cache/test rigenerabili",
+    "Niente 'FilmCraft' nei testi visibili dell'app"
+  ]
+}
