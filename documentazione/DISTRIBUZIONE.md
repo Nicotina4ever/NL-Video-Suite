@@ -18,6 +18,13 @@ obbligatori e niente download automatici: la suite usa ciò che l'operatore ha g
 - **Portable**: nessuna scrittura nel registro; impostazioni in `%APPDATA%\NL Video Suite` (o
   `~/.config`/`~/Library`), progetti dove scegli l'operatore.
 
+## Avvio rapido su Windows
+
+- Doppio clic su `AVVIA-NL-Video-Suite-NUOVA.cmd` nella radice del workspace: cerca la build più
+  recente in `distribuzione\NLVideoSuite-*-windows-x64` e la avvia.
+- `INSTALLA-NL-Video-Suite-NUOVA.cmd` installa per-utente con scorciatoie Start Menu/Desktop.
+- Guida dettagliata: `documentazione/GUIDA_AVVIO_NL_VIDEO_SUITE.md`.
+
 ## Build e installer per piattaforma
 
 | Piattaforma | Portabile (consigliato per provare) | Installer / pacchetto |
@@ -163,6 +170,9 @@ Setup 6 (qui non installato).
   rinomina completa dei pacchetti installer è tracciata in P10.
 
 ## Verifica su una nuova macchina
+
+Per Linux e macOS, con prerequisiti, build, bundle, `test-portable.sh` headless e installazione
+per-utente, segui `documentazione/INSTALL_LINUX_MACOS.md`.
 
 1. Copiare la cartella portabile (o installare il pacchetto).
 2. Avviare con il launcher.

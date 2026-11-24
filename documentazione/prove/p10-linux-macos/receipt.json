@@ -1,0 +1,31 @@
+{
+  "date": "2026-11-24",
+  "phase": "P10e (Linux/macOS: guide e test autocontenuti)",
+  "title": "Percorso Linux/macOS completo: build, bundle, verifica headless, installazione per-utente e guida per le macchine dell'operatore",
+  "intent": "Rendere possibile completare la validazione su Linux e macOS senza questa macchina Windows: script aggiornati (CLI inclusa nei bundle), un test headless unico e una guida passo-passo con prerequisiti, comandi, controlli attesi e troubleshooting.",
+  "implemented": {
+    "bundles": "packaging/nl/portable.sh ora copia anche filmcraft-cli come «NL Video Suite CLI»; packaging/nl/portable.ps1 fa lo stesso per Windows, così i test di automazione girano anche sui bundle",
+    "test": "packaging/nl/test-portable.sh: verifica app+CLI eseguibili, comandi NL (bridge, storage cleanup, ASR provider), apertura demo + inspect + storage, e con --install prova install.sh su Linux o install-macos.sh su macOS in destinazioni temporanee, launcher/.desktop o .app e disinstallazione; exit code 0 solo se tutto passa",
+    "guide": "documentazione/INSTALL_LINUX_MACOS.md: prerequisiti Debian/Fedora/macOS, build release, bundle, test-portable.sh, install per-utente, pacchetti nativi upstream, test di sviluppo, primo avvio/configurazione AI, troubleshooting (ldd, Wayland, quarantine macOS, link errori da build parallele)",
+    "links": "packaging/nl/README.md e documentazione/DISTRIBUZIONE.md rimandano alla guida"
+  },
+  "live_evidence": {
+    "syntax": "Git Bash: bash -n packaging/nl/test-portable.sh, portable.sh, install.sh, install-macos.sh → exit 0",
+    "windows_equivalent": "install.ps1 già testato (install+uninstall) e bundle Windows verificato con smoke test CLI release",
+    "operator_followup": "eseguire su Linux/macOS: ./packaging/nl/portable.sh --version 1.1.0 e bash packaging/nl/test-portable.sh --bundle <cartella> --install"
+  },
+  "checks": [
+    "Sintassi di tutti gli script shell verificata",
+    "Nessuna modifica a progetti utente o servizi AI"
+  ],
+  "limits": [
+    "Linux/macOS non sono eseguibili da questa macchina: la prova reale resta all'operatore (le macchine sono disponibili in seguito).",
+    "L'installer Inno Setup resta da compilare su Windows con iscc; i pacchetti nativi (deb/rpm/Flatpak/DMG) usano gli script upstream.",
+    "Il test headless non apre la GUI: verifica motore, comandi e installazione; la prova visiva resta manuale."
+  ],
+  "rules_respected": [
+    "Nessun download o servizio installato",
+    "Script e guide nella lingua dell'operatore",
+    "Niente 'FilmCraft' nei testi visibili"
+  ]
+}

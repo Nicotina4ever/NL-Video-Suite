@@ -1,6 +1,13 @@
-# Punto di ripresa — CHIUSO 1.0.0 (24/11/2026)
+# Punto di ripresa — CHIUSO 1.1.0 (24/11/2026)
 
-## CHIUSURA
+## CHIUSURA 1.1.0
+- **Vision del frame entrante** implementata e provata (gemma4:e4b, 26 s) e **bridge end-to-end riuscito**
+  in 1161 s: MiniMax_H3_00070_.mp4 importato e piazzato con 2 transizioni (0–48 / 48–96 / 96–144).
+- **Tutti i test da zero** dopo aver cancellato il target: engine 1046+17, UI 368+4+1+815, clippy pulito.
+- **Portabile 1.1.0** in `distribuzione/` (zip 223,7 MB, con CLI) + **launcher** `AVVIA-NL-Video-Suite-NUOVA.cmd`
+  e `INSTALLA-NL-Video-Suite-NUOVA.cmd`; guida `GUIDA_AVVIO_NL_VIDEO_SUITE.md`.
+- **Linux/macOS**: `test-portable.sh` + `INSTALL_LINUX_MACOS.md` pronti per le macchine dell’operatore.
+- Pulizia: target −17,1 GB, build 1.0.0 in `da_eliminare`, temp rimossi; disco libero ~95,8 GB.
 - Release 1.0.0 (48 pannelli), portabile definitivo in `distribuzione/`, test engine/UI verdi, clippy
   pulito; GTA6 read-only con export completo; performance misurate; pulizia `target/` (−16,97 GB) e
   temp (−1,47 GB), disco libero ~95,9 GB.

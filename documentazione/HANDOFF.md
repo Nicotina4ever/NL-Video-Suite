@@ -65,6 +65,7 @@ Matrice dettagliata: `documentazione/PARITA_FEATURE.md`.
 | P8c Traduzioni | **fatte** | `nl.translate.captions/text` (nuova traccia EN/ES) + pulsante in NL Analyze; `prove/p8c-translate/` |
 | P8c Assistente | **fatto** | `nl.assistant.ask` con citazioni dai documenti indicizzati; `prove/p8c-assistant/` |
 | P8e Sottotitoli/Titoli/Grafici/Audio | **fatta** | NL Subtitles, NL Titles, NL Graphics (`nl.graphics.add`), NL Audio (Essential Sound + mixer); `prove/p8e-studio/` |
+| P11f Vision+Bridge E2E | **fatta** | vision gemma4:e4b 26 s, bridge completo 1161 s con 2 transizioni; `prove/p11-vision/` |
 | P11e Transizioni ponte | **fatta** | Cut/Dissolve su plan/generate/place, pannello NL Bridge, prova 2 transizioni; `prove/p11-bridge-transitions/` |
 | P10d Trascrizione provider | **fatta** | `nl.asrProvider` bridge/OpenAI-compatibile, `nl.asr.transcribe` multipart, dry run; `prove/p10-asr-provider/` |
 | P10c Installer per-utente | **fatta** | install.ps1 Windows testato, Inno/Linux/macOS forniti, docs; `prove/p10-installers/` |

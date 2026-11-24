@@ -47,6 +47,7 @@
       "attempt_2": "generazione riuscita in 794 s: MiniMax_H3_00067_.mp4 importato come item 900016; il placement non è avvenuto perché il piano passava il nome visuale «Video 1» a timeline.place invece di «V1» — corretto mappando la traccia su V<n>",
       "placement_path_check": "graphics.generateComfy con z-image-turbo e place {track: V1}: PNG generato z-image-turbo_00013_.png importato e piazzato al frame 0 per 48 frame, prima delle clip esistenti; il percorso di auto-placement dopo import funziona",
       "attempt_3": "timeout del client a 900 s (901 s trascorsi) mentre ComfyUI ha poi completato con successo (MiniMax_H3_00068_.mp4 nella history); il timeout predefinito dei comandi video è stato portato a 3600 s",
+      "attempt_5_end_to_end": "RIUSCITO il 24/11: nl.bridge.generate con analyzeIncoming=true, transition=dissolve, wait=true, timeout 7200 → MiniMax_H3_00070_.mp4 generato in 1161 s (inclusa vision 26 s), importato come item 900016, piazzato nel gap con 2 transizioni; sequenza 0–48 / 48–96 / 96–144. Evidenza in prove/p11-vision/vision-bridge-live.jsonl",
       "attempt_4": "timeout del client a 1800 s mentre ComfyUI stava ancora generando (la GPU impiega oltre 30 minuti per la variante FLF con keyframe su questa macchina): la generazione è stata interrotta e il file è stato recuperato con nl.bridge.place",
       "gap_fill_check": "il file generato MiniMax_H3_00067_.mp4 è stato inserito nel gap con nl.album.insert atSeconds=2 seconds=2: sequenza 0–48 (uscente), 48–96 (ponte), 96–144 (entrante), durata esatta del gap e clip entrante intatta",
       "auto_place": "percorso di auto-placement verificato con una generazione z-image + place: PNG importato e piazzato al frame 0 per 48 frame",
@@ -64,6 +65,7 @@
     "clippy -D warnings, test engine e UI"
   ],
   "limits": [
+    "Il giro completo è stato osservato: resta dipendente dalla GPU (circa 19 min per un ponte da 2 s su RTX 4060 Ti) e dal modello di visione installato.",
     "Il bridge completo end-to-end automatico (generazione FLF + placement nel gap senza passaggi manuali) non è stato ancora osservato in una singola prova: la generazione è riuscita e il placement è verificato separatamente; il rerun con timeout 1800 s resta da fare.",
     "Il bridge non analizza semanticamente il frame entrante con un modello di visione: il prompt di default è deterministico (movimento continuo, luce/camera coerenti); un prompt dell'operatore può descrivere la transizione.",
     "Il workflow FLF viene derivato a runtime dal t2v (il file video_minimax_h3_t2v.json deve restare con un nodo MiniMaxH3ImageToVideo); il file generato è in <data>/nl/workflows/bridge-first-last-frame.json.",
