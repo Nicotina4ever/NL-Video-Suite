@@ -1,0 +1,62 @@
+{
+  "date": "2026-11-24",
+  "phase": "P24 — ottimizzazione cartella progetto",
+  "goal": "Spostare in da_eliminare solo materiale vecchio o rigenerabile, senza toccare runtime, modelli, media, progetti utente, evidenze referenziate e la release 2.0.0.",
+  "before": {
+    "free_gb": 93.95,
+    "top_dirs_mb": {
+      "runtime": 5159.8,
+      "models": 4151.3,
+      "sviluppo": 2705.7,
+      "filmcraft-nl": 2434.0,
+      "distribuzione": 792.6,
+      "data": 535.6,
+      "app": 496.5,
+      "ZMateriale": 399.8,
+      "engines": 330.6,
+      "documentazione": 113.8
+    }
+  },
+  "moved_to_da_eliminare": {
+    "root": "da_eliminare/2026-11-24-ottimizzazione",
+    "total_mb": 2502.4,
+    "items": [
+      {"name": "filmcraft-nl_target", "original": "filmcraft-nl/target", "mb": 2395.9, "why": "cache di build/test rigenerabile; exe e CLI sono già in radice e nel bundle 2.0.0"},
+      {"name": "sviluppo_web-app_node_modules", "original": "sviluppo/web-app/node_modules", "mb": 56.86, "why": "dipendenze npm della vecchia shell web, non usate dalla suite nuova"},
+      {"name": "app_stabile-backup", "original": "app/stabile-backup", "mb": 36.5, "why": "backup dell'app classica; la release attuale è NL Video Suite 2.0.0"},
+      {"name": "sviluppo_tests_node_modules", "original": "sviluppo/tests/node_modules", "mb": 11.55, "why": "dipendenze npm dei vecchi test della shell classica"},
+      {"name": "prove_p19_audit_stale_screenshots", "original": "documentazione/prove/p19-nl-audit/panels/NL *.png", "mb": 1.41, "why": "29 screenshot duplicati con il vecchio nome a spazi; l'audit usa Nl*.png"},
+      {"name": "sviluppo_web-dist", "original": "sviluppo/web-dist", "mb": 0.15, "why": "build statica della vecchia shell web"},
+      {"name": "sviluppo_maintenance-test-fixtures", "original": "sviluppo/.maintenance-test-fixtures", "mb": 0.0, "why": "fixture dei vecchi test di manutenzione"},
+      {"name": "sviluppo_playback-test-fixtures", "original": "sviluppo/.playback-test-fixtures", "mb": 0.0, "why": "fixture dei vecchi test di playback"}
+    ]
+  },
+  "kept_intentionally": [
+    "runtime/ (5,16 GB): Python + OpenCV per reframe e bridge ASR",
+    "models/ (4,15 GB): modelli ASR/LLM locali",
+    "data/projects/ (535 MB): progetti utente, invariati",
+    "ZMateriale/ (400 MB): media dei progetti",
+    "app/tools/ (434 MB): ffmpeg/ffprobe usati dalla suite",
+    "sviluppo/bridge/ e sviluppo/src/ (1,6 MB): bridge ASR/ClipsAI e riferimento della vecchia suite",
+    "engines/clipsai/ (330 MB): motore ClipsAI richiamato dal bridge",
+    "distribuzione/NLVideoSuite-2.0.0-windows-x64 + zip (792 MB): release corrente",
+    "NL Video Suite.exe + CLI in radice (133 MB)",
+    "documentazione/prove/ (79 MB): ricevute, JSON e screenshot; short01.mp4 e ace-step.mp3 sono referenziati dalle ricevute F4/F6 e sono stati ripristinati",
+    "reference_software/ (2,4 MB): riferimento citato da AUTOCLIP_CONFRONTO.md, ripristinato",
+    "app/nl-video-suite.exe (25,6 MB): vecchia app classica lasciata perché i .cmd classici la usano; non è un test"
+  ],
+  "result": {
+    "free_gb": 93.95,
+    "free_after_empty_gb_estimate": 96.4,
+    "note": "Lo spostamento è sullo stesso disco K:, quindi lo spazio si libera quando da_eliminare viene svuotata. La cartella è pronta per la revisione/eliminazione.",
+    "audit_after_cleanup": "documentazione/prove/p19-nl-audit/audit.json: 29 pannelli, workspace attivo, 0 placeholder, 0 senza contesto, 29 screenshot",
+    "smoke_after_cleanup": "NL Video Suite CLI.exe --project copia GTA6 exec sequence.inspect e nl.story.get: ok"
+  },
+  "rebuild_note": "Con filmcraft-nl/target spostato, una nuova build parte da zero (release ~6 min su questa macchina; i test più a lungo). Gli eseguibili in radice e il bundle non dipendono da target.",
+  "rules": [
+    "Nessun progetto utente toccato: data/projects, ZMateriale, Pubblicità AI EP2, sviluppo/anteprima_creativa (GTA6) restano.",
+    "Nessuna evidenza referenziata rimossa: short01.mp4 e ace-step.mp3 ripristinati.",
+    "Nessun runtime/modello rimosso: il reframe e l'ASR restano funzionanti.",
+    "da_eliminare è gitignored: la pulizia non entra nel push; le ricevute sì."
+  ]
+}

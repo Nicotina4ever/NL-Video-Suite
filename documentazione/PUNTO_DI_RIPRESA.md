@@ -42,6 +42,26 @@ Map, NL Audio restava vuoto, il pannello ASR prometteva comandi inesistenti e NL
   (+16,42 GB). Restano radice exe/CLI, bundle 2.0.0, workflows, runtime, models, prove e progetti.
   Ricevute: `documentazione/prove/p23-release/receipt.json` e `cleanup.json`.
 
+## P24 — ottimizzazione cartella e da_eliminare (24/11/2026)
+
+- Spostati in `da_eliminare/2026-11-24-ottimizzazione/` **2.502,4 MB** di materiale vecchio o
+  rigenerabile: `filmcraft-nl/target` (2.395,9 MB), `sviluppo/web-app/node_modules` (56,9 MB),
+  `app/stabile-backup` (36,5 MB), `sviluppo/tests/node_modules` (11,6 MB), 29 screenshot duplicati
+  dell'audit (1,4 MB), `sviluppo/web-dist` (0,15 MB) e due cartelle di fixture dei vecchi test.
+- **Non** sono stati toccati: `runtime/`, `models/`, `data/projects/`, `ZMateriale/`,
+  `app/tools/`, `sviluppo/bridge/`, `engines/clipsai/`, `distribuzione/2.0.0`, exe/CLI in radice,
+  `documentazione/prove/` e `reference_software/`. `short01.mp4` e `ace-step.mp3` sono stati
+  ripristinati perché referenziati dalle ricevute F4/F6.
+- Spazio K: **93,95 GB liberi**; svuotando `da_eliminare` si liberano circa **96,4 GB**. Lo
+  spostamento è sullo stesso disco, quindi lo spazio si libera solo all'eliminazione.
+- Dopo la pulizia l'audit è stato rieseguito: **29 pannelli, workspace attivo, 0 placeholder,
+  0 senza contesto, 29 screenshot** (`documentazione/prove/p19-nl-audit/audit.json`). Smoke CLI su
+  copia GTA6 (`sequence.inspect`, `nl.story.get`) ok.
+- Con `filmcraft-nl/target` spostato, una nuova build parte da zero (release ~6 min); gli eseguibili
+  in radice e il bundle 2.0.0 non dipendono da `target`.
+- Ricevuta: `documentazione/prove/p24-optimization/receipt.json`.
+
+
 ## P18 — correzione (24/11/2026)
 
 La voce P18 sotto è **superata e incompleta**: il routing era stato corretto, ma il workspace non

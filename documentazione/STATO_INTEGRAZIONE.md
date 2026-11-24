@@ -22,6 +22,17 @@ Avvio: doppio clic, oppure `NL Video Suite.exe --control 9876` per l’automazio
   comandi, clippy engine+UI pulito. Dettagli in `NL_PANELS.md`, `REFRAME_REPOS.md`,
   `NL_PARITA_2026-11-24.md`, `prove/p19-nl-surface/`, `prove/p19-nl-audit/`.
 
+## P24 — ottimizzazione cartella (24/11/2026)
+
+- Spostati in `da_eliminare/2026-11-24-ottimizzazione/` 2.502,4 MB di materiale vecchio o
+  rigenerabile: `filmcraft-nl/target`, `sviluppo/web-app/node_modules`, `app/stabile-backup`,
+  `sviluppo/tests/node_modules`, 29 screenshot duplicati, `sviluppo/web-dist`, fixture dei vecchi
+  test.
+- Non toccati: runtime, models, data/projects, ZMateriale, app/tools, sviluppo/bridge,
+  engines/clipsai, distribuzione 2.0.0, exe/CLI, documentazione/prove, reference_software.
+- Audit post-pulizia: 29 pannelli, workspace attivo, 0 placeholder, 0 senza contesto.
+- Ricevuta: `documentazione/prove/p24-optimization/receipt.json`.
+
 ## Cosa è integrato e verificato
 
 | Funzione | Dove | Prova |

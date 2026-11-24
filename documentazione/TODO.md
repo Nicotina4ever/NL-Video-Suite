@@ -28,6 +28,11 @@ un modello piccolo (`lfm2.5:latest` o `granite4.2:3b`), poi scaricarlo prima di 
   (0 action), pulizia bundle 1.4.1/1.5.0 + target/debug, K: 77,53 → 93,95 GB liberi (+16,42 GB),
   ricevute in `documentazione/prove/p23-release/`.
 
+- [x] **P24 ottimizzazione**: spostati in `da_eliminare/2026-11-24-ottimizzazione/` 2.502,4 MB
+  (target, node_modules vecchi, backup app, screenshot duplicati, web-dist, fixture); audit
+  post-pulizia 29/29; ricevuta `documentazione/prove/p24-optimization/receipt.json`.
+
+
 ## Punto di ripresa (leggere prima di tutto)
 
 - F1–F4b sono fatti e verificati; F4b reale: `documentazione/prove/f4b-ollama/receipt.json`.

@@ -22,6 +22,9 @@ o harness senza perdere stato. Il codice e le prove restano su disco; questo è 
    0 comandi falliti (4 rifiuti attesi), 28 pulsanti Home, 29 screenshot.
 6. Controlli: `cargo fmt --check`, clippy `-D warnings` engine/UI/CLI, `cargo test -p
    filmcraft-engine`, `cargo test -p filmcraft-ui-egui`, `cargo test -p filmcraft-cli`.
+   Nota: `filmcraft-nl/target` è stato spostato in `da_eliminare/2026-11-24-ottimizzazione/`; la
+   prima build dopo la pulizia parte da zero (~6 min release). Gli exe in radice e il bundle non
+   dipendono da `target`.
 7. Stato, limiti e gap: `PUNTO_DI_RIPRESA.md`, `STATO_INTEGRAZIONE.md`, `NL_PANELS.md`,
    `NL_PARITA_2026-11-24.md`, `REFRAME_REPOS.md`.
 

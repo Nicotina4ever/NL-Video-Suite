@@ -1,5 +1,5 @@
 {
-  "date": "2026-11-24T17:48:36",
+  "date": "2026-11-24T18:16:04",
   "exe": "K:\\AI\\NL_Video_Suite\\NL Video Suite.exe",
   "exe_mtime": "2026-11-24T17:45:33",
   "project": "K:\\AI\\NL_Video_Suite\\documentazione\\prove\\f4-shorts\\gta6-shorts.fcproj",
@@ -1797,7 +1797,7 @@
     "activeSequence": 9,
     "dialog": null,
     "elements": 220,
-    "fps": 75.01386260986328,
+    "fps": 75.99520874023438,
     "input": {
       "effectiveWindowFocused": true,
       "mode": "controlOnly",
