@@ -1,0 +1,42 @@
+{
+  "date": "2026-11-24",
+  "phase": "P10g (analisi timeline con vision LFM + audio)",
+  "title": "Analisi della timeline con LFM3 su llama.cpp: frame chiave, OCR/descrizioni scene e trascrizione audio come rinforzo per i prompt",
+  "intent": "Dare all'operatore un'opzione «rafforzante»: capire l'intera timeline (scene, testo a schermo, luci, colori) e il contenuto audio con modelli locali leggeri, e usare il risultato come contesto per guidare le nuove generazioni.",
+  "implemented": {
+    "engine": [
+      "crates/engine/src/nl/analysis.rs: nl.timeline.analyze {startSeconds, endSeconds, everySeconds, maxFrames, includeAudio, visionUrl, visionModel, dryRun}",
+      "campiona i frame del programma con file.exportFrame, li invia a un endpoint OpenAI-compatibile /v1/chat/completions come image_url (base64) e chiede in italiano scena/soggetti/azione/OCR/camera/luci/colori",
+      "modello: nl.visionModel, altrimenti il primo dichiarato da /v1/models; endpoint nl.visionUrl (default http://127.0.0.1:8080/v1)",
+      "includeAudio: esporta il range in WAV e lo trascrive con nl.asr.transcribe (provider configurato, es. Qwen3-ASR); in caso di errore audio il report dei frame resta valido",
+      "risultato: frames[{timeSeconds, description, frame}], audio{text,language,provider}, context testuale pronto per i prompt; salvato in nl.results['analysis'] e nel sidecar nl/analysis.json del progetto"
+    ],
+    "gui": [
+      "pannello NL Generate: pulsante «Analyze timeline with vision», elenco dei frame analizzati e pulsante «Use analysis in prompt»",
+      "pannello NL Settings: endpoint/modello vision nelle impostazioni; scansione modelli ASR per l'audio"
+    ]
+  },
+  "live_evidence": {
+    "llama_cpp": "server avviato in locale con K:\\AI\\LlamaCPP\\llama-server.exe + LFM3-Omni-2B-Q8_0.gguf + mmproj, endpoint http://127.0.0.1:8080/v1; vision su un frame GTA6 in 2,6 s",
+    "frames_demo": "nl.timeline.analyze 0–8 s, 2 frame: descrizioni di frame nero e tramonto/aurora con camera, luci e colori; context pronto",
+    "audio_qwen": "analisi GTA6 0–8 s con includeAudio: 66 s totali; frame con uomo/cuffie/microfono + trascrizione audio «pensato di provare a realizzare il testo per questo promo sfruttando le intelligenze artificiali e riuscire a ficcarmi in mezzo.» (Qwen3-ASR)",
+    "files": ["documentazione/prove/p10-timeline-analysis/analysis.jsonl", "documentazione/prove/p10-timeline-analysis/analysis-audio.jsonl"]
+  },
+  "checks": [
+    "nl::analysis::tests (frame times, cap)",
+    "Prove live vision LFM3 e vision+audio Qwen",
+    "Clippy -D warnings, test engine/UI"
+  ],
+  "limits": [
+    "Serve un server vision OpenAI-compatibile già avviato (llama.cpp); la suite non lo avvia da sola.",
+    "Il campionamento è a intervalli (default 5 s, max 12 frame): non è un OCR per-frame completo né una comprensione semantica del montaggio.",
+    "L'audio richiede un provider ASR reale (Qwen o server whisper); con il bridge la trascrizione del range non è applicata al progetto.",
+    "I tempi dipendono dal modello: LFM3 2B ~2–3 s/frame su GPU, Qwen 1.7B CPU ~40 s per 8 s di audio."
+  ],
+  "rules_respected": [
+    "Tutto locale: llama.cpp/Ollama/ComfyUI dell'operatore, nessun upload cloud",
+    "Nessun download; modelli già presenti",
+    "Nessuna modifica al progetto (solo frame/report in cache dati e sidecar)",
+    "Niente 'FilmCraft' nei testi visibili"
+  ]
+}

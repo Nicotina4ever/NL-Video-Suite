@@ -1,33 +1,31 @@
 {
   "date": "2026-11-24",
-  "phase": "P7/P10/P11 — CHIUSURA 1.1.0",
-  "title": "Riapertura e completamento: vision del frame entrante, bridge end-to-end, tutti i test da zero, portabile 1.1.0, guide Linux/macOS e launcher pronti",
-  "intent": "Dopo la prima chiusura, riaprire il lavoro per completare i punti rimasti: tutti i test da zero, vision locale per il bridge, bridge completo in una singola esecuzione, installer/guide Linux e macOS, portabile definitivo e launcher chiari per l'operatore, pulizia finale.",
+  "phase": "CHIUSURA 1.2.0 (riapertura e completamento richiesto dall'operatore)",
+  "title": "Tutti i test da zero, ASR Whisper+Qwen da J:\\ZLinkdaC, analisi timeline con LFM, GUI per i nuovi strumenti, eseguibile in radice e portabile 1.2.0",
+  "intent": "Dopo la prima chiusura l'operatore ha chiesto di riaprire e completare tutto: test da zero, uso dei modelli già presenti in J:\\ZLinkdaC (Whisper e Qwen3-ASR), analisi del video con OCR/vision LFM su llama.cpp e audio come rinforzo, corrispondenze GUI per richiamare tutto, un eseguibile facilmente trovabile e la pulizia finale.",
   "completed": {
-    "tests": "engine 1046+17, UI 368+4+1+815 integration, clippy -D warnings: tutti verdi dopo la ricostruzione completa (target era stato cancellato nella pulizia precedente)",
-    "vision": "nl/vision.rs (base64 senza dipendenze, Ollama /api/generate con images, keep_alive 0); nl.bridge.plan/generate analyzeIncoming=true: descrizione reale del primo frame entrante (682 caratteri in 26 s) inserita nel prompt",
-    "bridge_end_to_end": "RIUSCITO: nl.bridge.generate con vision, transition=dissolve, wait=true, timeout 7200 → MiniMax_H3_00070_.mp4 in 1161 s, importato, piazzato nel gap con 2 transizioni; sequenza 0–48 / 48–96 / 96–144",
-    "portable": "distribuzione/NLVideoSuite-1.1.0-windows-x64 + zip 223,7 MB (con «NL Video Suite CLI»); hash zip F851E81A…, exe DBE5813E…, cli B1161009…",
-    "launchers": "radice workspace: AVVIA-NL-Video-Suite-NUOVA.cmd (auto-detect della build più recente) e INSTALLA-NL-Video-Suite-NUOVA.cmd (install per-utente + scorciatoie); guida documentazione/GUIDA_AVVIO_NL_VIDEO_SUITE.md",
-    "linux_macos": "packaging/nl/test-portable.sh (verifica headless app/CLI/comandi/demo/storage + install/uninstall) e documentazione/INSTALL_LINUX_MACOS.md con prerequisiti, build, bundle, install, troubleshooting; script shell con bash -n pulito",
-    "cleanup": "target/ rimosso per la seconda volta (17,1 GB), build 1.0.0 spostata in da_eliminare/2026-11-24-finale, workspace temp rimossi; disco libero ~95,8 GB; prove/ricevute conservate"
+    "tests": "engine 1049+17, UI 368+4+1+integration, clippy -D warnings; test di scoperta modelli ASR e frame times; prova GUI smoke dell'eseguibile in radice (finestra «NL Video Suite», chiusura pulita)",
+    "asr_models": "nl.asr.models scopre e verifica Whisper CTranslate2 e Qwen3-ASR GGUF in J:\\ZLinkdaC, confrontando path/bytes/sha256 con le asr-identities della suite classica; Qwen reale in 42 s (17 parole); Whisper reale via server OpenAI-compatibile in 19 s. GUI: Scan ASR models + Use Qwen3-ASR / Use Whisper",
+    "timeline_analysis": "nl.timeline.analyze: frame chiave → LFM3 Omni su llama.cpp (2,6 s/frame), descrizioni scena/OCR/luci/colori, audio opzionale trascritto con Qwen (prova GTA6 0–8 s: 66 s totali, frame + transcript). GUI: Analyze timeline with vision + Use analysis in prompt",
+    "deliverable": "root NL Video Suite.exe (80,8 MB) + NL Video Suite CLI.exe, avviabili con doppio clic; distribuzione/NLVideoSuite-1.2.0-windows-x64 (+ zip 223,9 MB, CLI inclusa, workflows, ffmpeg, docs, launcher); installer per-utente testato con 1.2.0 (install+uninstall)",
+    "cleanup": "target/ rimosso (−15,92 GB), build 1.1.0 archiviata in da_eliminare/2026-11-24-finale, workspace temp rimossi; prove e ricevute conservate"
   },
-  "operator_next_steps": [
-    "Windows: doppio clic su AVVIA-NL-Video-Suite-NUOVA.cmd (o INSTALLA-... per Start Menu/Desktop).",
-    "Linux/macOS: seguire documentazione/INSTALL_LINUX_MACOS.md, eseguire build e portable.sh, poi test-portable.sh --install; riportare l'output per aggiornare le ricevute.",
-    "ASR reale: serve un server whisper compatibile installato; poi nl.asr.transcribe con backend=openai_compatible.",
-    "Installer Inno Setup: compilare installer.iss con iscc; i pacchetti nativi usano gli script upstream."
+  "gui_correspondences": [
+    "NL Generate → Analyze timeline with vision / Use analysis in prompt",
+    "NL Settings → Scan ASR models / Use Qwen3-ASR / Use Whisper (bridge)",
+    "Impostazioni ▸ NL Video Suite → Timeline analysis (vision): nl.visionUrl / nl.visionModel; Speech: provider, runner, modelli Qwen"
   ],
   "limits": [
-    "Linux/macOS non sono stati eseguiti da questa macchina Windows: guida e test automatici sono pronti, l'esecuzione resta all'operatore.",
-    "ASR HTTP reale non provato (nessun server whisper installato); dry run e validazione sì.",
-    "Inno Setup non compilato (iscc assente); install.ps1 Windows è invece testato.",
-    "Rename NL dei pacchetti upstream non fatto (il livello NL ha portabili/installer propri)."
+    "Linux/macOS restano da eseguire sulle macchine dell’operatore (guide e test-portable.sh pronti).",
+    "L'analisi vision richiede il server llama.cpp già avviato (comando in DISTRIBUZIONE.md); Qwen CPU impiega ~40 s per 8 s di audio.",
+    "L'ASR HTTP reale è stato provato con un server locale temporaneo (faster-whisper); per l'uso quotidiano resta il bridge/Whisper o Qwen.",
+    "L'installer Inno Setup non è compilato (iscc assente); install.ps1 Windows è testato."
   ],
   "rules_respected": [
-    "Progetti utente, modelli e media intatti",
-    "Mai Ollama e ComfyUI in parallelo: vision prima della generazione, keep_alive 0",
-    "Nessun download obbligatorio",
-    "Pulizia solo di cache/artefatti rigenerabili; ricevute e prove conservate"
+    "Nessun download: usati i modelli già presenti (J:\\ZLinkdaC, suite)",
+    "Sorgenti esterne lette in sola lettura",
+    "Mai Ollama e ComfyUI insieme; vision/audio in sequenza",
+    "Progetti utente intatti; pulizia solo di cache/temp rigenerabili",
+    "Niente 'FilmCraft' nei testi visibili"
   ]
 }

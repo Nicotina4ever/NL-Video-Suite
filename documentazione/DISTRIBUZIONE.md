@@ -98,6 +98,17 @@ endpoint OpenAI-compatibili di Ollama (`http://127.0.0.1:11434/v1`).
 Il pannello **NL Settings** mostra provider, endpoint e modello in uso; **NL Workflows ▸ Diagnostica**
 e `nl.services.status` dicono se l'endpoint risponde (senza avviarlo).
 
+### Analisi timeline con LFM (vision) e audio
+
+- Avvia il server vision locale (esempio, LFM3 su llama.cpp):
+  `K:\AI\LlamaCPP\llama-server.exe -m K:\AI\LlamaCPP\Modello\LFM3\LFM3-Omni-2B-Q8_0.gguf --mmproj K:\AI\LlamaCPP\Modello\LFM3\mmproj-LFM3-Omni-2B-Q8_0.gguf -c 4096 -ngl 99 --host 127.0.0.1 --port 8080 --jinja`
+- Impostazioni ▸ NL Video Suite ▸ **Timeline analysis (vision)**: `nl.visionUrl` (default
+  `http://127.0.0.1:8080/v1`), `nl.visionModel` (vuoto = primo modello dichiarato).
+- GUI: pannello **NL Generate** → «Analyze timeline with vision»; i frame analizzati compaiono in
+  elenco e «Use analysis in prompt» li inserisce nel prompt. Con `includeAudio` (CLI) il range
+  viene trascritto con il provider ASR e aggiunto al contesto.
+- CLI: `filmcraft-cli exec nl.timeline.analyze '{"startSeconds":0,"endSeconds":60,"everySeconds":10,"maxFrames":6,"includeAudio":true}'`.
+
 ### Trascrizione (ASR)
 
 - `nl.asrProvider`: `bridge` (bridge WhisperX della suite, default) oppure

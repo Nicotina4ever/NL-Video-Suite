@@ -41,3 +41,10 @@ Questa è la versione **nuova** (`filmcraft-nl`), diversa dalla suite classica a
 I `.bat` nella radice (`Avvia_NL_Video_Suite.cmd`, `Crea_Portable.cmd`, ecc.) sono della **suite
 classica**. La versione nuova si avvia solo dai due launcher qui sopra o dal bundle in
 `distribuzione\`.
+
+## Eseguibile in radice (novità)
+
+- **`NL Video Suite.exe`** nella radice `K:\AI\NL_Video_Suite` è la copia dell'ultima release: doppio
+  clic per avviarla (usa i workflow del workspace).
+- `AVVIA-NL-Video-Suite-NUOVA.cmd` sceglie automaticamente la build più recente in `distribuzione\`.
+- Per l'analisi timeline con vision serve il server locale (vedi `DISTRIBUZIONE.md`, sezione LFM).

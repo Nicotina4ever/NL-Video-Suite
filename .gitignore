@@ -63,3 +63,7 @@ __pycache__/
 !/workflows/
 /workflows/*
 !/workflows/README.md
+
+NL Video Suite.exe
+NL Video Suite CLI.exe
+distribuzione/NLVideoSuite-*

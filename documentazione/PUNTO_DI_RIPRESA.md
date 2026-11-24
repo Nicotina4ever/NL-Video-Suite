@@ -1,4 +1,4 @@
-# Punto di ripresa — CHIUSO 1.1.0 (24/11/2026)
+# Punto di ripresa — CHIUSO 1.2.0 (24/11/2026)
 
 ## CHIUSURA 1.1.0
 - **Vision del frame entrante** implementata e provata (gemma4:e4b, 26 s) e **bridge end-to-end riuscito**
