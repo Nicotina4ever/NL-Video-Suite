@@ -1080,8 +1080,22 @@ pub fn menu_items_for(session: &filmcraft_engine::Session) -> Vec<MenuItem> {
             checked: None,
         });
     }
+    nl_new_ai_items(&mut out, session);
     nl_menu_items(&mut out, session);
     out
+}
+
+/// File ▸ New also creates an AI placeholder, not only bins and sequences: the same object the
+/// timeline context menu makes, at the playhead.
+fn nl_new_ai_items(out: &mut Vec<MenuItem>, session: &filmcraft_engine::Session) {
+    out.push(MenuItem {
+        id: "nl.agent.add".into(),
+        label: "Oggetto IA (placeholder)".into(),
+        path: vec!["File".into(), "New".into()],
+        shortcut: None,
+        enabled: session.is_enabled("nl.agent.add"),
+        checked: None,
+    });
 }
 
 /// The top-level NL Video Suite menu: the same panels as Window, grouped by what the operator is

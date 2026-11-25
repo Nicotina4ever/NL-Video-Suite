@@ -204,6 +204,7 @@ pub(super) fn nl_timeline_menu(app: &mut FilmcraftApp, ctx: &egui::Context, ui: 
             ("timeline.nlMenu.prompts", "Compila i prompt con AI", "nl.agent.prompts", json!({})),
             ("timeline.nlMenu.generate", "Genera e sostituisci gli oggetti", "nl.agent.generate", json!({"all": true})),
             ("timeline.nlMenu.collect", "Raccogli gli asset nel progetto", "nl.agent.collect", json!({})),
+            ("timeline.nlMenu.gap", "Crea ponte AI nel gap", "nl.agent.gap", json!({})),
         ];
         for (id, label, command, params) in entries {
             let enabled = command.starts_with("window.") || app.session.is_enabled(command);

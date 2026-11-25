@@ -1409,6 +1409,80 @@ fn generate_audio(s: &mut Session, p: &Value) -> Result<Value> {
     Ok(json!({"id": id, "item": item, "asset": asset, "seconds": seconds}))
 }
 
+/// `nl.agent.gap` — a placeholder in the exact gap between two clips: the bridge later uses the
+/// outgoing last frame and the incoming first frame, and the placeholder already has the gap
+/// duration, so generation has an exact target.
+fn gap_placeholder(s: &mut Session, p: &Value) -> Result<Value> {
+    let planned = s.execute("nl.bridge.plan", p.clone())?;
+    let start_ticks = planned["gapStartTicks"].as_u64().ok_or_else(|| bad_cmd("nl.agent.gap", "the bridge plan has no gap start"))?;
+    let seconds = planned["gapSeconds"].as_f64().unwrap_or(0.0);
+    if seconds < 1.0 {
+        return Err(bad_cmd("nl.agent.gap", "the gap is too short for a bridge object"));
+    }
+    let track = planned["track"].as_str().unwrap_or("V1").to_string();
+    // `nl.bridge.plan` reports the display name ("NL"); `timeline.place` resolves V1/A1 style ids.
+    let track = s
+        .active_sequence()
+        .and_then(|sequence| sequence.video_tracks.iter().position(|candidate| candidate.name == track).map(|index| format!("V{}", index + 1)))
+        .unwrap_or(track);
+    let folder = project_dir(s)?.join("nl").join("placeholders");
+    std::fs::create_dir_all(&folder).map_err(|e| bad_cmd("nl.agent.gap", format!("{}: {e}", folder.display())))?;
+    let png = folder.join(format!("bridge-gap-{}.png", start_ticks));
+    write_placeholder(&png, "Ponte AI", 0)?;
+    let imported = s.execute("file.import", json!({"paths": [png.to_string_lossy()]}))?;
+    let item = imported["items"]
+        .as_array()
+        .and_then(|items| items.first())
+        .and_then(Value::as_u64)
+        .ok_or_else(|| bad_cmd("nl.agent.gap", "the bridge placeholder was not imported"))?;
+    let placed = s.execute("timeline.place", json!({"item": item, "track": track, "time": start_ticks, "duration": Tick::from_seconds_f64(seconds).0}))?;
+    let clip = placed["clips"]
+        .as_array()
+        .and_then(|clips| clips.first())
+        .and_then(Value::as_u64)
+        .ok_or_else(|| bad_cmd("nl.agent.gap", "the bridge placeholder was not placed"))?;
+    let prompt = text(p.get("prompt"), MAX_PROMPT);
+    let mut plan = load(s);
+    let id = plan["entries"].as_array().map_or(1, Vec::len) as u64 + 1;
+    let entry = json!({
+        "id": id,
+        "title": "Ponte AI",
+        "prompt": prompt,
+        "seconds": seconds,
+        "kind": "video",
+        "source": "bridge-gap",
+        "status": "draft",
+        "clip": clip,
+        "placeholderItem": item,
+        "bridge": {
+            "outgoing": planned["outgoing"],
+            "incoming": planned["incoming"],
+            "gapStartTicks": start_ticks,
+            "gapSeconds": seconds,
+            "lastFrame": planned["lastFrame"],
+            "firstFrame": planned["firstFrame"],
+        },
+    });
+    if let Some(entries) = plan["entries"].as_array_mut() {
+        entries.push(entry.clone());
+    }
+    plan = sanitize_plan(&plan);
+    let entry_id = plan["entries"].as_array().and_then(|entries| entries.last()).map(|entry| entry["id"].as_u64().unwrap_or(id)).unwrap_or(id);
+    let details = entry.clone();
+    let _ = s.edit("NL Bridge Placeholder Details", |project, _| {
+        if let Some(project_item) = project.item_mut(ItemId(item)) {
+            project_item.metadata.insert("nl.role".into(), "agent-placeholder".into());
+            project_item.metadata.insert("nl.kind".into(), "video".into());
+            project_item.metadata.insert("nl.entry".into(), entry_id.to_string());
+            project_item.metadata.insert("nl.prompt".into(), prompt);
+            project_item.metadata.insert("nl.bridge".into(), serde_json::to_string(&details["bridge"]).unwrap_or_default());
+        }
+        Ok(())
+    });
+    save(s, &plan)?;
+    Ok(json!({"placed": clip, "item": item, "seconds": seconds, "entry": entry_id, "plan": plan, "bridge": planned}))
+}
+
 pub(crate) fn commands() -> Vec<CommandSpec> {
     let spec = |id: &'static str, label: &'static str, params: &'static str, run: fn(&mut Session, &Value) -> Result<Value>| CommandSpec {
         id,
@@ -1455,6 +1529,7 @@ pub(crate) fn commands() -> Vec<CommandSpec> {
             animate,
         ),
         spec("nl.agent.audio", "NL Generate Audio Placeholder", r#"{"id":int,"prompt":str?,"dryRun":bool?}"#, generate_audio),
+        spec("nl.agent.gap", "NL Bridge Placeholder in Gap", r#"{"outgoing":int?,"incoming":int?,"track":str?,"prompt":str?}"#, gap_placeholder),
         spec(
             "nl.agent.squad",
             "NL Production Squad",
