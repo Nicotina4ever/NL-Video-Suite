@@ -10,31 +10,90 @@
     "story": "nl.agent.chat story, media image, qualità bozza, 3 scene, place=true",
     "title": "Neon Shadows Noir",
     "entries": [
-      {"title": "Vicolo Neon", "workflow": "regista/image/image_krea2_turbo_t2i.json", "clip": 8},
-      {"title": "Primo Piano Intenso", "workflow": "regista/image/image_krea2_turbo_t2i.json", "clip": 10},
-      {"title": "Città dall Alto", "workflow": "regista/image/image_krea2_turbo_t2i.json", "clip": 12}
+      {
+        "title": "Vicolo Neon",
+        "workflow": "regista/image/image_krea2_turbo_t2i.json",
+        "clip": 8
+      },
+      {
+        "title": "Primo Piano Intenso",
+        "workflow": "regista/image/image_krea2_turbo_t2i.json",
+        "clip": 10
+      },
+      {
+        "title": "Città dall Alto",
+        "workflow": "regista/image/image_krea2_turbo_t2i.json",
+        "clip": 12
+      }
     ],
     "generated": "3/3 immagini, failed=[]; item 13/14/15"
   },
   "timeline": {
     "clips": [
-      {"clip": 8, "start": 0, "seconds": 5},
-      {"clip": 10, "start": 5, "seconds": 5},
-      {"clip": 12, "start": 10, "seconds": 7},
-      {"clip": 26, "name": "bridge-gap-4318272000000.png", "start": 17, "seconds": 3, "kind": "bridge placeholder"},
-      {"clip": 16, "start": 20, "seconds": 5},
-      {"clip": 17, "start": 25, "seconds": 5}
+      {
+        "clip": 8,
+        "start": 0,
+        "seconds": 5
+      },
+      {
+        "clip": 10,
+        "start": 5,
+        "seconds": 5
+      },
+      {
+        "clip": 12,
+        "start": 10,
+        "seconds": 7
+      },
+      {
+        "clip": 26,
+        "name": "bridge-gap-4318272000000.png",
+        "start": 17,
+        "seconds": 3,
+        "kind": "bridge placeholder"
+      },
+      {
+        "clip": 16,
+        "start": 20,
+        "seconds": 5
+      },
+      {
+        "clip": 17,
+        "start": 25,
+        "seconds": 5
+      }
     ],
     "total_seconds": 30,
     "audio": [
-      {"clip": 19, "start": 0, "seconds": 10, "file": "audio_minimax_music3_00001.mp3"},
-      {"clip": 20, "start": 10, "seconds": 10},
-      {"clip": 21, "start": 20, "seconds": 10}
+      {
+        "clip": 19,
+        "start": 0,
+        "seconds": 10,
+        "file": "audio_minimax_music3_00001.mp3"
+      },
+      {
+        "clip": 20,
+        "start": 10,
+        "seconds": 10
+      },
+      {
+        "clip": 21,
+        "start": 20,
+        "seconds": 10
+      }
     ]
   },
   "assets": {
-    "character_sheet": {"item": 22, "bin": "Footage_AI", "label": "Character Sheet · Detective", "asset": "generated/nl-22-Krea2_turbo_00008_.png"},
-    "background": {"item": 24, "asset": "Krea2_turbo_00009_.png"},
+    "character_sheet": {
+      "item": 22,
+      "bin": "Footage_AI",
+      "label": "Character Sheet · Detective",
+      "asset": "generated/nl-22-Krea2_turbo_00008_.png"
+    },
+    "background": {
+      "item": 24,
+      "asset": "Krea2_turbo_00009_.png"
+    },
     "music": "ACE Step / MiniMax Music generated mp3, 10 s, looped three times for 30 s of soundtrack"
   },
   "bridge": {
@@ -52,7 +111,10 @@
     "audio": "AAC stereo 48 kHz",
     "export_seconds": 12.4
   },
-  "gui_screenshots": ["final-30s.png", "bridge-properties-2.png"],
+  "gui_screenshots": [
+    "final-30s.png",
+    "bridge-properties-2.png"
+  ],
   "tested": [
     "progetto vuoto con sequenza verticale 30 fps",
     "agente storia: 3 scene, workflow qualità bozza, 3 immagini generate e sostituite",
@@ -64,8 +126,29 @@
   ],
   "not_tested": [
     "generazione reale del video ponte (placeholder creato, non generato)",
-    "reframe GUI completo",
     "nuova generazione musica in questa run (mp3 ACE step già generato e riusato in loop)",
-    "menu File ▸ New «Oggetto IA» a video (aggiunto nel codice)"
-  ]
+    "menu File ▸ New «Oggetto IA» a video (aggiunto nel codice)",
+    "generazione reale del video ponte: dry-run verificato (frame+workflow+durata), render non eseguito"
+  ],
+  "reframe": {
+    "command": "nl.reframe.sequence su release",
+    "item": 3,
+    "source": "3840×2160",
+    "target": "1080×1920",
+    "sequence": 70,
+    "tracking": "smooth",
+    "samples": 39,
+    "version": "camera-cpu-v3",
+    "result": "ok"
+  },
+  "bridge_dry_run": {
+    "workflow": "calliope/video_minimax_h3_r2v_2ref_API.json",
+    "frames": [
+      "outgoing-last-frame.png",
+      "incoming-first-frame.png"
+    ],
+    "duration_seconds": 3,
+    "placement": "V3 at 17s",
+    "file": "bridge-dry-run.json"
+  }
 }

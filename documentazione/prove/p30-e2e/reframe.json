@@ -1,0 +1,43 @@
+{
+  "clip": 72,
+  "endSeconds": 10.0,
+  "name": "Reframe test",
+  "reframe": {
+    "advice": "Crop non certificato: movimento, perdita volto o ambiguità. Rivedi il reframe; il fit resta cover.",
+    "behavior": "composed",
+    "coverage": 0.631578947368421,
+    "faceCentre": [
+      0.76796875,
+      0.426388888888889
+    ],
+    "focus": "auto",
+    "keyframes": 2,
+    "maximumGapMs": 1866.0,
+    "offset": [
+      -914.6666666666665,
+      0.0
+    ],
+    "points": 2,
+    "preferredFit": "blur",
+    "samples": 39,
+    "scale": 88.88888888888889,
+    "sceneCuts": 0,
+    "shots": 1,
+    "tracking": "smooth",
+    "version": "camera-cpu-v3"
+  },
+  "sequence": 70,
+  "source": {
+    "height": 2160,
+    "width": 3840
+  },
+  "startSeconds": 0.0,
+  "subtitles": {
+    "count": 0,
+    "skipped": true
+  },
+  "target": {
+    "height": 1920,
+    "width": 1080
+  }
+}
