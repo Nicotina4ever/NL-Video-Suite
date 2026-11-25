@@ -119,6 +119,52 @@ fn model_value(key: &str, value: &Value) -> Option<String> {
     None
 }
 
+/// A content-derived category, independent of the folder the user saved the JSON in. It reads the
+/// save node, the reference loaders and the model families, so a new workflow dropped anywhere in
+/// `workflows/` lands in the right menu group without renaming or moving it.
+pub fn category(workflow: &Value, relative: &Path) -> &'static str {
+    let caps = capabilities(workflow);
+    let images = caps["imageRefs"].as_array().map_or(0, Vec::len);
+    let videos = caps["videoInputs"].as_array().map_or(0, Vec::len);
+    let mut save_image = false;
+    let mut save_video = false;
+    let mut save_audio = false;
+    let mut character_sheet = relative.file_stem().and_then(|s| s.to_str()).is_some_and(|s| s.to_ascii_lowercase().contains("character_sheet"));
+    for node in workflow.as_object().into_iter().flat_map(|nodes| nodes.values()) {
+        let class = node.get("class_type").and_then(Value::as_str).unwrap_or_default().to_ascii_lowercase();
+        let title = node.get("_meta").and_then(|m| m.get("title")).and_then(Value::as_str).unwrap_or_default().to_ascii_lowercase();
+        save_image |= class.contains("saveimage");
+        save_video |= class.contains("savevideo") || class.contains("videocombine") || class.contains("vhsvideocombine");
+        save_audio |= class.contains("saveaudio");
+        character_sheet |= title.contains("character sheet") || title.contains("character_sheet");
+    }
+    if character_sheet {
+        return "character-sheet";
+    }
+    if save_audio {
+        return "music";
+    }
+    if save_video {
+        if videos > 0 {
+            return "video-edit";
+        }
+        return if images > 0 { "reference-to-video" } else { "text-to-video" };
+    }
+    if save_image {
+        return if images > 0 { "image-reference" } else { "text-to-image" };
+    }
+    // A workflow can expose its output through a custom save node the class check misses; the
+    // filename/model family is the fallback, so it still lands in a useful group.
+    let stem = relative.file_stem().and_then(|s| s.to_str()).unwrap_or_default().to_ascii_lowercase();
+    if stem.contains("video") || stem.contains("i2v") || stem.contains("t2v") {
+        return if images > 0 { "reference-to-video" } else { "text-to-video" };
+    }
+    if stem.contains("image") || stem.contains("flux") || stem.contains("qwen") || stem.contains("krea") || stem.contains("z-image") {
+        return if images > 0 { "image-reference" } else { "text-to-image" };
+    }
+    "other"
+}
+
 /// Every runnable workflow, sorted by kind then path, with its path (relative to the root), kind
 /// and capabilities. An unreadable file is listed with an `error` instead of being dropped.
 pub fn workflows(s: &Session, kind: &str) -> Result<Vec<Value>, String> {
@@ -142,6 +188,7 @@ pub fn workflows(s: &Session, kind: &str) -> Result<Vec<Value>, String> {
                     "path": relative.to_string_lossy().replace('\\', "/"),
                     "name": relative.file_stem().map(|n| n.to_string_lossy().to_string()).unwrap_or_default(),
                     "kind": workflow_kind_of,
+                    "category": category(&workflow, &relative),
                     "bytes": bytes,
                     "capabilities": capabilities(&workflow),
                 })
@@ -156,8 +203,11 @@ pub fn workflows(s: &Session, kind: &str) -> Result<Vec<Value>, String> {
         list.push(entry);
     }
     list.sort_by(|a, b| {
-        (a["kind"].as_str().unwrap_or_default(), a["path"].as_str().unwrap_or_default())
-            .cmp(&(b["kind"].as_str().unwrap_or_default(), b["path"].as_str().unwrap_or_default()))
+        (a["category"].as_str().unwrap_or_default(), a["name"].as_str().unwrap_or_default(), a["path"].as_str().unwrap_or_default()).cmp(&(
+            b["category"].as_str().unwrap_or_default(),
+            b["name"].as_str().unwrap_or_default(),
+            b["path"].as_str().unwrap_or_default(),
+        ))
     });
     Ok(list)
 }

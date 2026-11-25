@@ -74,6 +74,8 @@ pub const PANEL_COMMANDS: &[(PanelKind, &[&str])] = &[
             "nl.agent.characterSheet",
             "nl.agent.animate",
             "nl.agent.audio",
+            "nl.agent.gap",
+            "nl.agent.update",
             "nl.agent.squad",
         ],
     ),
@@ -91,7 +93,10 @@ pub const PANEL_COMMANDS: &[(PanelKind, &[&str])] = &[
     ),
     (PanelKind::NlMusic, &["nl.models.workflows", "audio.generateMusic"]),
     (PanelKind::NlAsr, &["nl.asr.models", "transcript.transcribeNl", "captions.import", "nl.translate.captions", "nl.longform.analyze"]),
-    (PanelKind::NlClipping, &["nl.clipping.propose", "nl.clipping.render", "nl.clipping.sequences", "nl.reframe.sequence", "nl.subtitles.srt"]),
+    (
+        PanelKind::NlClipping,
+        &["nl.clipping.propose", "nl.clipping.render", "nl.clipping.sequences", "nl.reframe.sequence", "nl.reframe.active", "nl.subtitles.srt"],
+    ),
     (PanelKind::NlSgrossa, &["nl.sgrossa.analyze", "nl.sgrossa.apply", "nl.sgrossa.report"]),
     (PanelKind::NlAnalyze, &["nl.longform.analyze", "nl.search.index", "nl.search.query", "nl.translate.captions", "nl.assistant.ask"]),
     (PanelKind::NlTranscript, &["transcript.transcribeNl", "captions.import", "transcript.createCaptions", "nl.translate.captions", "nl.longform.analyze"]),
@@ -290,7 +295,12 @@ fn workflow_options(app: &mut FilmcraftApp, ui: &egui::Ui, kind: &str) -> Vec<(S
                     .map(|w| {
                         (
                             w["path"].as_str().unwrap_or_default().to_string(),
-                            format!("{} · {}", w["kind"].as_str().unwrap_or(""), w["name"].as_str().unwrap_or("workflow")),
+                            format!(
+                                "{} · {} · {}",
+                                w["category"].as_str().unwrap_or("other"),
+                                w["kind"].as_str().unwrap_or(""),
+                                w["name"].as_str().unwrap_or("workflow")
+                            ),
                         )
                     })
                     .collect::<Vec<_>>()
@@ -327,6 +337,11 @@ fn generate_params(d: &GenerateDraft, kind: &str, options: &[(String, String)]) 
     });
     if let Some((path, _)) = options.get(d.workflow) {
         params["workflow"] = json!(path);
+    }
+    if kind == "video" {
+        params["videoScale"] = json!("1/3");
+    } else {
+        params["imageScale"] = json!(if d.scale == 1 { "2x" } else { "1x" });
     }
     if !d.negative.trim().is_empty() {
         params["negative"] = json!(d.negative.trim());
@@ -887,8 +902,9 @@ fn generate_body(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         ui.label(RichText::new("(NL Workflows → Show parameters → Avanzate)").size(10.0).color(app.tokens.text_faint));
     });
     let scale = if kind == "video" {
-        let options = [("2/3", "Two thirds (a third smaller)"), ("1/2", "Half")];
-        let mut i = if app.session.prefs.nl.video_scale == "1/2" { 1 } else { 0 };
+        // Video output is one third of the sequence, preserving its aspect ratio.
+        let options = [("1/3", "One third of the sequence")];
+        let mut i = 0;
         ui.horizontal(|ui| {
             for (j, (_, label)) in options.iter().enumerate() {
                 ui.selectable_value(&mut i, j, *label);
@@ -2223,6 +2239,21 @@ fn clipping(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
             params["response"] = json!(d.response.trim().parse::<f64>().unwrap_or(65.0) / 100.0);
         }
         run(app, ui, "nl.reframe.sequence", params);
+    }
+    if button(app, ui, "clipping.reframe_active", "Reframe intera sequenza (16:9 → 9:16)") {
+        let mut params = json!({
+            "title": "Sequenza reframed",
+            "target": targets[d.target.min(1)].0,
+            "focus": selected_focus,
+            "tracking": if d.tracking == 0 { "smooth" } else { "static" },
+            "behavior": if d.behavior == 0 { "composed" } else { "legacy" },
+            "subtitles": d.subtitles,
+        });
+        if selected_focus == "auto" {
+            params["stability"] = json!(d.stability.trim().parse::<f64>().unwrap_or(65.0) / 100.0);
+            params["response"] = json!(d.response.trim().parse::<f64>().unwrap_or(65.0) / 100.0);
+        }
+        run(app, ui, "nl.reframe.active", params);
     }
     if button(app, ui, "clipping.analyze", "Find candidates") {
         let mut params = json!({"mode": modes[d.mode.min(modes.len() - 1)].0});

@@ -35,15 +35,23 @@ pub fn round_to(value: f64, step: u32) -> u32 {
 }
 
 /// The generated size for a sequence of `width` × `height`, or `None` when the sequence is empty.
+/// The aspect ratio is preserved: the width is rounded to the model grid, the height is derived
+/// from it, and a square sequence stays square. Images can be 1× or 2×; video is 1/3 of the
+/// sequence, never a guessed 16:9 default.
 pub fn from_sequence(width: u32, height: u32, mode: Mode, image_multiplier: f64, video_divisor: f64, step: u32) -> Option<(u32, u32)> {
     if width == 0 || height == 0 {
         return None;
     }
-    let (w, h) = match mode {
-        Mode::Image => (width as f64 * image_multiplier, height as f64 * image_multiplier),
-        Mode::Video => (width as f64 / video_divisor, height as f64 / video_divisor),
+    let scale = match mode {
+        Mode::Image => image_multiplier.max(1.0),
+        Mode::Video => 1.0 / video_divisor.max(1.0),
     };
-    Some((round_to(w, step), round_to(h, step)))
+    let w = round_to(width as f64 * scale, step);
+    if width == height {
+        return Some((w, w));
+    }
+    let h = round_to(w as f64 * height as f64 / width as f64, step);
+    Some((w, h))
 }
 
 /// The size for the current sequence, with command parameters overriding the NL preferences.

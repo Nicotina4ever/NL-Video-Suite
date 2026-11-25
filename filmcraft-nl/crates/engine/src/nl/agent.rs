@@ -762,8 +762,8 @@ fn move_to_project(source: &Path, generated_dir: &Path, id: u64) -> Result<PathB
     let name = source.file_name().and_then(|n| n.to_str()).unwrap_or("generated.bin");
     let safe: String = name.chars().map(|c| if c.is_alphanumeric() || matches!(c, '.' | '-' | '_') { c } else { '_' }).collect();
     let dest = generated_dir.join(format!("nl-{id:02}-{safe}"));
-    if source == dest {
-        return Ok(dest);
+    if source.parent() == Some(generated_dir) {
+        return Ok(source.to_path_buf());
     }
     if dest.exists() {
         std::fs::remove_file(&dest).map_err(|e| bad_cmd("nl.agent.generate", format!("{}: {e}", dest.display())))?;
@@ -1409,6 +1409,57 @@ fn generate_audio(s: &mut Session, p: &Value) -> Result<Value> {
     Ok(json!({"id": id, "item": item, "asset": asset, "seconds": seconds}))
 }
 
+/// `nl.agent.update` — edit a placeholder's own properties (kind, prompt, seconds, quality,
+/// workflow) before it is generated.
+fn update(s: &mut Session, p: &Value) -> Result<Value> {
+    let id = p.get("id").and_then(Value::as_u64).ok_or_else(|| bad_cmd("nl.agent.update", "serve `id`"))?;
+    let mut plan = load(s);
+    let index = plan["entries"]
+        .as_array()
+        .and_then(|entries| entries.iter().position(|entry| entry["id"].as_u64() == Some(id)))
+        .ok_or_else(|| bad_cmd("nl.agent.update", format!("no object {id} in the plan")))?;
+    if let Some(title) = p.get("title").and_then(Value::as_str).map(str::trim).filter(|title| !title.is_empty()) {
+        plan["entries"][index]["title"] = json!(title);
+    }
+    if let Some(prompt) = p.get("prompt").and_then(Value::as_str) {
+        plan["entries"][index]["prompt"] = json!(prompt.trim());
+    }
+    if let Some(kind) = p.get("kind").and_then(Value::as_str) {
+        if !matches!(kind, "image" | "video" | "audio") {
+            return Err(bad_cmd("nl.agent.update", "`kind` must be image, video or audio"));
+        }
+        plan["entries"][index]["kind"] = json!(kind);
+    }
+    if let Some(seconds) = p.get("seconds").and_then(Value::as_f64).filter(|seconds| seconds.is_finite()) {
+        plan["entries"][index]["seconds"] = json!(seconds.clamp(1.0, MAX_SECONDS));
+    }
+    if let Some(quality) = p.get("quality").and_then(Value::as_str) {
+        plan["quality"] = json!(QUALITY_TIERS[quality_index(quality)]);
+        plan["entries"][index].as_object_mut().map(|entry| entry.remove("workflow"));
+    }
+    if let Some(workflow) = p.get("workflow").and_then(Value::as_str).filter(|workflow| !workflow.trim().is_empty()) {
+        plan["entries"][index]["workflow"] = json!(workflow.trim());
+    }
+    let quality = plan["quality"].as_str().unwrap_or("standard").to_string();
+    assign_workflows(s, &mut plan, &quality);
+    save(s, &plan)?;
+    if let Some(item) = plan["entries"][index]["placeholderItem"].as_u64() {
+        let details = plan["entries"][index].clone();
+        let _ = s.edit("NL Placeholder Properties", |project, _| {
+            if let Some(project_item) = project.item_mut(ItemId(item)) {
+                project_item.metadata.insert("nl.kind".into(), details["kind"].as_str().unwrap_or("image").into());
+                project_item.metadata.insert("nl.prompt".into(), details["prompt"].as_str().unwrap_or("").into());
+                project_item.metadata.insert("nl.workflow".into(), details["workflow"].as_str().unwrap_or("").into());
+                project_item.metadata.insert("nl.quality".into(), details["workflowQuality"].as_str().unwrap_or("").into());
+                project_item.metadata.insert("nl.entry".into(), id.to_string());
+            }
+            Ok(())
+        });
+    }
+    s.nl.results.insert("agent.plan", plan.clone());
+    Ok(json!({"id": id, "plan": plan, "entry": plan["entries"][index].clone()}))
+}
+
 /// `nl.agent.gap` — a placeholder in the exact gap between two clips: the bridge later uses the
 /// outgoing last frame and the incoming first frame, and the placeholder already has the gap
 /// duration, so generation has an exact target.
@@ -1530,6 +1581,12 @@ pub(crate) fn commands() -> Vec<CommandSpec> {
         ),
         spec("nl.agent.audio", "NL Generate Audio Placeholder", r#"{"id":int,"prompt":str?,"dryRun":bool?}"#, generate_audio),
         spec("nl.agent.gap", "NL Bridge Placeholder in Gap", r#"{"outgoing":int?,"incoming":int?,"track":str?,"prompt":str?}"#, gap_placeholder),
+        spec(
+            "nl.agent.update",
+            "NL Placeholder Properties",
+            r#"{"id":int,"title":str?,"prompt":str?,"kind":"image|video|audio"?,"seconds":f?,"quality":str?,"workflow":str?}"#,
+            update,
+        ),
         spec(
             "nl.agent.squad",
             "NL Production Squad",

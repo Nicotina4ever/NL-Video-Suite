@@ -110,8 +110,18 @@ fn generate(s: &mut Session, p: &Value) -> Result<Value> {
     let seed = p.get("seed").and_then(Value::as_u64).unwrap_or_else(random_seed);
     let negative = p.get("negative").and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty());
     let lyrics = p.get("lyrics").and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty());
-    let replaced = replace_tokens(&mut workflow, &prompt, negative, lyrics, seed);
-    let filled = fill_prompt(&mut workflow, &prompt, negative, lyrics);
+    // A character-sheet workflow ships its own carefully written prompt chain (apex H3). Keep
+    // those defaults: replacing them with the caller's brief is what produced the martini glass
+    // in every unrelated image. Other workflows get their prompts replaced as usual.
+    let keep_default_prompts =
+        workflow_path.file_stem().and_then(|stem| stem.to_str()).is_some_and(|stem| stem.to_ascii_lowercase().contains("character_sheet"));
+    let (replaced, filled) = if keep_default_prompts {
+        (false, true)
+    } else {
+        let replaced = replace_tokens(&mut workflow, &prompt, negative, lyrics, seed);
+        let filled = fill_prompt(&mut workflow, &prompt, negative, lyrics);
+        (replaced, filled)
+    };
     if !replaced && !filled {
         return Err(bad("the workflow has no prompt slot: add the literal {{prompt}} to a text input or title a CLIPTextEncode node \"Positive Prompt\""));
     }
@@ -208,6 +218,34 @@ fn generate(s: &mut Session, p: &Value) -> Result<Value> {
     )
 }
 
+/// Move one imported file into the active project's `generated/` folder and relink it. This is the
+/// common post-import step for every workflow (Generate, music, cover, agents): the AppData cache
+/// is only a download folder, never the place a project asset lives.
+fn adopt_into_project(s: &mut Session, item: filmcraft_project::ItemId, source: &str) -> String {
+    let Some(project) = s.path.as_deref() else { return source.to_string() };
+    let Some(folder) = std::path::Path::new(project).parent().map(|parent| parent.join("generated")) else { return source.to_string() };
+    if std::fs::create_dir_all(&folder).is_err() {
+        return source.to_string();
+    }
+    let source_path = std::path::Path::new(source);
+    if source_path.parent() == Some(folder.as_path()) {
+        return source.to_string();
+    }
+    let Some(name) = source_path.file_name().and_then(|n| n.to_str()) else { return source.to_string() };
+    let safe: String = name.chars().map(|c| if c.is_alphanumeric() || matches!(c, '.' | '-' | '_') { c } else { '_' }).collect();
+    let dest = folder.join(format!("nl-{}-{safe}", item.0));
+    if dest.exists() && std::fs::remove_file(&dest).is_err() {
+        return source.to_string();
+    }
+    let moved = std::fs::rename(source_path, &dest).or_else(|_| std::fs::copy(source_path, &dest).map(|_| ()).and_then(|_| std::fs::remove_file(source_path)));
+    if moved.is_err() {
+        return source.to_string();
+    }
+    let path = dest.to_string_lossy().to_string();
+    let _ = s.execute("media.relink", json!({"item": item.0, "path": path, "force": true}));
+    path
+}
+
 /// Import finished jobs; failures are reported without touching the project's media.
 pub(crate) fn poll(s: &mut Session) {
     let mut i = 0;
@@ -234,7 +272,7 @@ pub(crate) fn poll(s: &mut Session) {
                 let mut errors = Vec::new();
                 for path in paths {
                     match crate::commands::import_streamed(s, &path, None) {
-                        Ok(id) => imported.push((id, path)),
+                        Ok(id) => imported.push((id, adopt_into_project(s, id, &path))),
                         Err(e) => errors.push(format!("{path}: {e}")),
                     }
                 }
@@ -420,6 +458,9 @@ fn fill_prompt(workflow: &mut Value, prompt: &str, negative: Option<&str>, lyric
             lyrics_filled = true;
         }
         let is_negative = title.contains("negative");
+        if title.contains("system prompt") || title.contains("system message") {
+            continue;
+        }
         if is_negative {
             if let Some(negative) = negative {
                 for key in ["text", "value"] {
@@ -431,6 +472,18 @@ fn fill_prompt(workflow: &mut Value, prompt: &str, negative: Option<&str>, lyric
             }
             continue;
         }
+        // Prompt-expander workflows keep the operator's text in a "User Prompt" primitive and
+        // expand it through their own system prompt. Fill that node and leave the system prompt
+        // alone: filling the system node is how the martini default survived every generation.
+        if title.contains("user prompt") {
+            for key in ["value", "text", "prompt"] {
+                if let Some(Value::String(text)) = inputs.get_mut(key) {
+                    *text = prompt.to_string();
+                    positive = true;
+                    break;
+                }
+            }
+        }
         // MiniMax H3 (t2v / flf2v) keeps the prompt as a widget on its own node, not in a
         // CLIPTextEncode: a string there is the positive prompt.
         let is_h3_widget_prompt = (class.contains("MiniMaxH3") || class.contains("MinimaxH3")) && inputs.get("prompt").is_some_and(Value::is_string);
@@ -439,7 +492,7 @@ fn fill_prompt(workflow: &mut Value, prompt: &str, negative: Option<&str>, lyric
             || (is_text_encode && !is_negative)
             || is_string_prompt
             || is_h3_widget_prompt;
-        if !is_positive || positive {
+        if !is_positive {
             continue;
         }
         for key in ["text", "tags", "caption", "value", "prompt"] {
@@ -911,7 +964,10 @@ fn set_size(workflow: &mut Value, width: u32, height: u32) {
     for node in nodes.values_mut() {
         let class = node.get("class_type").and_then(Value::as_str).unwrap_or_default().to_string();
         let Some(inputs) = node.get_mut("inputs").and_then(Value::as_object_mut) else { continue };
-        if class.contains("Latent") && inputs.get("width").is_some_and(Value::is_number) && inputs.get("height").is_some_and(Value::is_number) {
+        // A latent node may take width/height as *links* to a ResolutionSelector (Krea2/Z-image
+        // workflows do). Replace the links with the sequence numbers: otherwise ComfyUI keeps the
+        // selector's 16:9 default and a vertical project gets a landscape image.
+        if inputs.contains_key("width") && inputs.contains_key("height") && (class.contains("Latent") || class.contains("Empty")) {
             inputs.insert("width".into(), json!(width));
             inputs.insert("height".into(), json!(height));
         }
@@ -1172,6 +1228,29 @@ mod tests {
         assert!(fill_prompt(&mut workflow, "a new shot", Some("blurry"), None));
         assert_eq!(workflow["1"]["inputs"]["text"], "a new shot");
         assert_eq!(workflow["2"]["inputs"]["text"], "blurry");
+    }
+
+    #[test]
+    fn a_prompt_expander_keeps_its_system_node_and_replaces_the_user_prompt() {
+        let mut workflow = json!({
+            "1": {"class_type": "PrimitiveStringMultiline", "_meta": {"title": "Text String (System Prompt)"}, "inputs": {"value": "expand the prompt"}},
+            "2": {"class_type": "PrimitiveStringMultiline", "_meta": {"title": "Text String (User Prompt)"}, "inputs": {"value": "a martini glass"}},
+            "3": {"class_type": "CLIPTextEncode", "_meta": {"title": "CLIP Text Encode (Prompt)"}, "inputs": {"text": ["4", 0]}}
+        });
+        assert!(fill_prompt(&mut workflow, "detective in neon rain", None, None));
+        assert_eq!(workflow["1"]["inputs"]["value"], "expand the prompt");
+        assert_eq!(workflow["2"]["inputs"]["value"], "detective in neon rain");
+    }
+
+    #[test]
+    fn a_linked_latent_size_follows_the_sequence() {
+        let mut workflow = json!({
+            "1": {"class_type": "EmptyLatentImage", "inputs": {"width": ["2", 0], "height": ["2", 1], "batch_size": 1}},
+            "2": {"class_type": "ResolutionSelector", "inputs": {"aspect_ratio": "16:9 (Widescreen)", "megapixels": 1}}
+        });
+        set_size(&mut workflow, 1080, 1920);
+        assert_eq!(workflow["1"]["inputs"]["width"], 1080);
+        assert_eq!(workflow["1"]["inputs"]["height"], 1920);
     }
 
     #[test]

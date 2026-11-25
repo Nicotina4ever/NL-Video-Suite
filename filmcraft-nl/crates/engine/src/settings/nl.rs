@@ -135,7 +135,7 @@ impl Default for NlPrefs {
             asr_cache: true,
             asr_cache_dir: String::new(),
             image_scale: "1x".into(),
-            video_scale: "2/3".into(),
+            video_scale: "1/3".into(),
             size_multiple: "8".into(),
             gpu_first: true,
             queue_timeout_sec: 1800,
@@ -256,7 +256,11 @@ impl NlPrefs {
 
     /// Video divisor from the sequence: 1.5 (2/3) or 2.0 (1/2).
     pub fn video_divisor(&self) -> f64 {
-        if self.video_scale == "1/2" { 2.0 } else { 1.5 }
+        match self.video_scale.as_str() {
+            "1/2" => 2.0,
+            "2/3" => 1.5,
+            _ => 3.0,
+        }
     }
 
     /// Rounding granularity of generated sizes (8 or 16 pixels).

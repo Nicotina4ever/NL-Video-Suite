@@ -1152,19 +1152,44 @@ pub fn properties_panel(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
         let entry = item.metadata.get("nl.entry").and_then(|v| v.parse::<u64>().ok()).unwrap_or(0);
         let kind = item.metadata.get("nl.kind").cloned().unwrap_or_else(|| "image".into());
         let prompt = item.metadata.get("nl.prompt").cloned().unwrap_or_default();
+        let mut edited_kind = kind.clone();
+        let mut edited_prompt = prompt.clone();
         bui.add_space(2.0);
-        bui.label(egui::RichText::new(format!("NL placeholder · {kind} · oggetto {entry}")).size(11.0).color(t.text_dim));
-        if !prompt.is_empty() {
-            bui.label(egui::RichText::new(prompt).size(10.0).color(t.text_faint));
+        bui.horizontal_wrapped(|ui| {
+            ui.label(egui::RichText::new(format!("NL placeholder · oggetto {entry}")).size(11.0).color(t.text_dim));
+            craft_ui::ComboBox::from_id_salt(("props-nl-kind", entry)).selected_text(&edited_kind).show_ui(ui, |ui| {
+                for option in ["image", "video", "audio"] {
+                    ui.selectable_value(&mut edited_kind, option.to_string(), option);
+                }
+            });
+        });
+        let response = bui.add(
+            egui::TextEdit::multiline(&mut edited_prompt)
+                .desired_rows(2)
+                .desired_width(f32::INFINITY)
+                .id_salt(("props-nl-prompt", entry))
+                .hint_text("Cosa deve diventare questo oggetto"),
+        );
+        let changed = edited_kind != kind || edited_prompt != prompt;
+        if changed && response.changed() {
+            // The text field dirty state is enough; the save button commits.
         }
         bui.horizontal_wrapped(|ui| {
+            if ui.add_enabled(changed, egui::Button::new("Salva proprietà")).clicked() {
+                let command = "nl.agent.update";
+                if let Err(error) =
+                    crate::menus::invoke(app, &ui.ctx().clone(), command, json!({"id": entry, "kind": edited_kind, "prompt": edited_prompt.trim()}))
+                {
+                    app.ui.status = error;
+                }
+            }
             if ui.button("Genera e sostituisci").clicked() {
-                let command = if kind == "audio" { "nl.agent.audio" } else { "nl.agent.generate" };
+                let command = if edited_kind == "audio" { "nl.agent.audio" } else { "nl.agent.generate" };
                 if let Err(error) = crate::menus::invoke(app, &ui.ctx().clone(), command, json!({"id": entry})) {
                     app.ui.status = error;
                 }
             }
-            if kind != "audio" && ui.button("Anima in video (i2v)").clicked() {
+            if edited_kind != "audio" && ui.button("Anima in video (i2v)").clicked() {
                 if let Err(error) = crate::menus::invoke(app, &ui.ctx().clone(), "nl.agent.animate", json!({"id": entry})) {
                     app.ui.status = error;
                 }

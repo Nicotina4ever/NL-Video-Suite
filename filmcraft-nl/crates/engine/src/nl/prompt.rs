@@ -40,14 +40,64 @@ fn workflow_guide(workflow: &str) -> &'static str {
     }
 }
 
-fn system_prompt(kind: &str, workflow: &str) -> String {
+/// Optional operator guide for one workflow: `<workflow>.md`, `<workflow>.guide.md`, or
+/// `guides/<workflow>.md` next to the JSON. The file is data for the model, never instructions to
+/// the app; it is bounded and ignored when missing.
+fn read_workflow_guide(s: &Session, workflow: &str) -> Option<String> {
+    if workflow.trim().is_empty() {
+        return None;
+    }
+    let file = super::models::find(s, workflow)?;
+    let stem = file.file_stem()?.to_string_lossy().to_string();
+    let parent = file.parent()?;
+    for candidate in [parent.join(format!("{stem}.md")), parent.join(format!("{stem}.guide.md")), parent.join("guides").join(format!("{stem}.md"))] {
+        if let Ok(text) = std::fs::read_to_string(&candidate) {
+            let text = text.trim();
+            if !text.is_empty() {
+                return Some(text.chars().take(12_000).collect());
+            }
+        }
+    }
+    // ComfyUI's own tutorial bundle in workflows/docs, matched by the model family in the file
+    // name. The operator can add or replace these guides without moving a JSON.
+    let name = workflow.to_ascii_lowercase();
+    let relative = if name.contains("minimax") && name.contains("h3") {
+        Some("video/minimax/minimax-h3-prompt-guide.mdx")
+    } else if name.contains("minimax") || name.contains("music") {
+        Some("audio/minimax/minimax-music-3.mdx")
+    } else if name.contains("krea") {
+        Some("image/krea/krea-2.mdx")
+    } else if name.contains("flux2") || name.contains("flux-2") {
+        Some("flux/flux-2-dev.mdx")
+    } else if name.contains("ideogram") {
+        Some("image/ideogram/ideogram-v4.mdx")
+    } else if name.contains("qwen") {
+        Some("image/qwen/qwen-image.mdx")
+    } else if name.contains("z-image") || name.contains("z_image") {
+        Some("image/z-image/z-image-turbo.mdx")
+    } else if name.contains("ace") {
+        Some("audio/ace-step/ace-step-v1-5.mdx")
+    } else if name.contains("wan") {
+        Some("video/wan/wan2_2.mdx")
+    } else {
+        None
+    };
+    let relative = relative?;
+    let path = super::suite_root()?.join("workflows").join("docs").join("tutorials").join(relative);
+    let text = std::fs::read_to_string(path).ok()?;
+    let text = text.split("---").nth(2).unwrap_or(&text).trim();
+    (!text.is_empty()).then(|| text.chars().take(8_000).collect())
+}
+
+fn system_prompt(kind: &str, workflow: &str, guide: Option<&str>) -> String {
     let medium = match kind {
         "video" | "v2v" => "video (descrivi soggetto, azione, movimento di camera e ambiente in inglese)",
         "music" => "musica (genere, strumenti, atmosfera e ritmo in inglese)",
         _ => "immagine (descrivi soggetto, azione, ambiente, luce e inquadratura in inglese)",
     };
+    let extra = guide.map(|guide| format!("\nGuida dell'operatore per questo workflow:\n{guide}\n")).unwrap_or_default();
     format!(
-        "Sei un prompt engineer per una generazione di {medium}. {}\
+        "Sei un prompt engineer per una generazione di {medium}. {}{extra}\
 Rispondi SOLO con un oggetto JSON valido: {{\"prompt\": string, \"variants\": [string, ...]}} (massimo {MAX_VARIANTS} varianti). \
 Il prompt deve essere concreto e visivo, massimo {MAX_PROMPT} caratteri, senza testo attorno. \
 NON citare nomi di modelli, risoluzioni, durate, aspect ratio, node id, link o class_type. \
@@ -117,9 +167,17 @@ fn clean(value: &Value) -> std::result::Result<Value, String> {
     Ok(json!({"prompt": prompt, "variants": variants}))
 }
 
-fn call(llm: &super::llm::LlmConfig, brief: &str, kind: &str, language: &str, workflow: &str, timeout: Duration) -> std::result::Result<Value, String> {
+fn call(
+    llm: &super::llm::LlmConfig,
+    brief: &str,
+    kind: &str,
+    language: &str,
+    workflow: &str,
+    guide: Option<&str>,
+    timeout: Duration,
+) -> std::result::Result<Value, String> {
     let prompt = format!("Brief dell'operatore (lingua: {language}): {brief}\nScrivi il prompt di generazione.");
-    let value = llm.auto_json(&system_prompt(kind, workflow), &prompt, timeout, Some("0"))?;
+    let value = llm.auto_json(&system_prompt(kind, workflow, guide), &prompt, timeout, Some("0"))?;
     clean(&value)
 }
 
@@ -141,14 +199,17 @@ fn enhance(s: &mut Session, p: &Value) -> Result<Value> {
     }
     let language = p.get("language").and_then(Value::as_str).unwrap_or("it").to_string();
     let workflow = p.get("workflow").and_then(Value::as_str).unwrap_or("").to_string();
+    let guide = read_workflow_guide(s, &workflow);
     let llm = super::llm::LlmConfig::for_session(s, p.get("model").and_then(Value::as_str));
     let wait = p.get("wait").and_then(Value::as_bool).unwrap_or(false);
     if wait {
-        let answer = call(&llm, &brief, &kind, &language, &workflow, Duration::from_secs(180)).map_err(|e| bad_cmd("nl.prompt.enhance", e))?;
+        let answer =
+            call(&llm, &brief, &kind, &language, &workflow, guide.as_deref(), Duration::from_secs(180)).map_err(|e| bad_cmd("nl.prompt.enhance", e))?;
         let mut result = answer;
         result["model"] = json!(llm.model);
         result["kind"] = json!(kind);
         result["workflow"] = json!(workflow);
+        result["guide"] = json!(guide.is_some());
         return Ok(result);
     }
     let result: Arc<Mutex<Option<std::result::Result<Value, String>>>> = Arc::default();
@@ -160,13 +221,14 @@ fn enhance(s: &mut Session, p: &Value) -> Result<Value> {
     let kind_run = kind.clone();
     let language_run = language.clone();
     let workflow_run = workflow.clone();
+    let guide_run = guide.clone();
     s.jobs.push(job);
     s.nl.prompt_pending = Some(PendingPrompt { job: id, result, epoch: s.document_epoch, key: "prompt" });
     std::thread::Builder::new()
         .name("filmcraft-nl-prompt".into())
         .spawn(move || {
             *progress.status.lock().unwrap_or_else(|e| e.into_inner()) = format!("NL prompt: writing with {}", llm_run.model);
-            let value = call(&llm_run, &brief, &kind_run, &language_run, &workflow_run, Duration::from_secs(180));
+            let value = call(&llm_run, &brief, &kind_run, &language_run, &workflow_run, guide_run.as_deref(), Duration::from_secs(180));
             *out.lock().unwrap_or_else(|e| e.into_inner()) = Some(value);
             progress.finished.store(true, std::sync::atomic::Ordering::Relaxed);
         })

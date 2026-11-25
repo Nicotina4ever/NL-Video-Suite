@@ -401,6 +401,36 @@ pub(crate) fn create_sequence(s: &mut Session, spec: &ReframeSpec<'_>) -> Result
     }))
 }
 
+/// `nl.reframe.active` — reframe the whole active sequence (or every distinct source it uses).
+fn reframe_active(s: &mut Session, p: &Value) -> Result<Value> {
+    let sequence = s.active_sequence().ok_or(EngineError::NoSequence)?.settings.clone();
+    let clips: Vec<(u64, f64)> = s
+        .active_sequence()
+        .into_iter()
+        .flat_map(|q| q.video_tracks.iter())
+        .flat_map(|track| track.items.iter())
+        .filter(|clip| clip.enabled)
+        .map(|clip| (clip.item.0, clip.duration.0 as f64 / filmcraft_time::TICKS_PER_SECOND as f64))
+        .collect();
+    let mut seen = std::collections::BTreeSet::new();
+    let mut sequences = Vec::new();
+    for (item, duration) in clips {
+        if !seen.insert(item) {
+            continue;
+        }
+        let mut params = p.clone();
+        params["item"] = json!(item);
+        params["startSeconds"] = json!(0.0);
+        params["endSeconds"] = json!(duration);
+        let result = reframe_sequence(s, &params)?;
+        sequences.push(result);
+    }
+    if sequences.is_empty() {
+        return Err(bad_cmd("no enabled video clip in the active sequence"));
+    }
+    Ok(json!({"sequences": sequences, "source": {"width": sequence.width, "height": sequence.height}, "count": sequences.len()}))
+}
+
 /// `nl.reframe.sequence` — one candidate to a new reframed sequence with optional captions.
 fn reframe_sequence(s: &mut Session, p: &Value) -> Result<Value> {
     let media = if let Some(item) = p.get("item").and_then(Value::as_u64) {
@@ -489,6 +519,12 @@ pub(crate) fn commands() -> Vec<crate::CommandSpec> {
             "NL Reframe Candidate",
             r#"{"item":id?,"startSeconds":f,"endSeconds":f,"title":str?,"target":"vertical|horizontal"?,"focus":"auto|center|left|right|top|bottom"?,"tracking":"static|smooth"?,"stability":f?,"response":f?,"behavior":"composed|legacy"?,"subtitles":bool?,"words":[obj]?}"#,
             reframe_sequence,
+        ),
+        spec(
+            "nl.reframe.active",
+            "NL Reframe Whole Sequence",
+            r#"{"title":str?,"target":"vertical|horizontal"?,"focus":str?,"tracking":str?,"stability":f?,"response":f?,"behavior":str?,"subtitles":bool?"#,
+            reframe_active,
         ),
         spec(
             "nl.clipping.sequences",

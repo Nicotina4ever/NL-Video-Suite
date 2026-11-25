@@ -1265,7 +1265,7 @@ fn nl_settings_are_persisted_and_validated() {
     assert_eq!(s.prefs.nl.comfy_url(), "http://127.0.0.1:8188");
     assert_eq!(s.prefs.nl.ollama_url(), "http://127.0.0.1:11434");
     assert_eq!(s.prefs.nl.image_scale, "1x");
-    assert_eq!(s.prefs.nl.video_scale, "2/3");
+    assert_eq!(s.prefs.nl.video_scale, "1/3");
 
     // Every value goes through the same schema as the Settings dialog.
     set(&mut s, "nl.comfyUrl", json!("http://127.0.0.1:8188"));
