@@ -1,21 +1,15 @@
 {
   "date": "2026-11-25",
-  "removed_build_cache_mb": 21216.6,
-  "moved_old_proofs_to": "da_eliminare/2026-11-25-finale",
-  "moved": [
-    "p27-gui",
-    "p28-gui",
-    "p29-gui",
-    "p31-gui-latest"
-  ],
-  "optimized": "p32 screenshots",
-  "free_gb": 87.74,
+  "build_cache_moved_mb": 1991.7,
+  "da_eliminare_mb": 2147.0,
+  "proofs_remaining_mb": 91.6,
+  "free_gb": 88.98,
   "kept": [
-    "release + bundle",
-    "progetti",
+    "release+bundle",
     "fixture f4-shorts",
-    "prove p30/p32",
-    "workflows/docs",
-    "runtime/models"
-  ]
+    "p30/p32 evidence",
+    "projects",
+    "runtime/models/workflows"
+  ],
+  "moved_to": "da_eliminare/2026-11-25-finale"
 }

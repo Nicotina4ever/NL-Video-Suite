@@ -217,6 +217,19 @@ pub(super) fn nl_timeline_menu(app: &mut FilmcraftApp, ctx: &egui::Context, ui: 
                 ui.close();
             }
         }
+        if let Some(clip) = app.session.state.selection.first().map(|clip| clip.0)
+            && ui.button("Anima l'oggetto selezionato (i2v)").clicked()
+        {
+            if let Err(e) = crate::menus::invoke(
+                app,
+                ctx,
+                "nl.agent.animate",
+                json!({"clip": clip, "prompt": "subtle cinematic motion, camera movement, same subject", "quality": "standard"}),
+            ) {
+                app.ui.status = e;
+            }
+            ui.close();
+        }
     });
     app.auto.add("timeline.nlMenu.open", submenu.response.rect, "NL Video Suite");
 }

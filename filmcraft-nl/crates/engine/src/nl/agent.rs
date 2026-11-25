@@ -1207,6 +1207,9 @@ fn character_sheet(s: &mut Session, p: &Value) -> Result<Value> {
 /// replaces the plan object's placeholder in place.
 fn animate(s: &mut Session, p: &Value) -> Result<Value> {
     let entry_id = p.get("id").and_then(Value::as_u64);
+    let target_clip = p.get("clip").and_then(Value::as_u64);
+    let clip_item = target_clip
+        .and_then(|clip| s.active_sequence().and_then(|sequence| sequence.find_item(filmcraft_project::ClipId(clip)).map(|(_, item)| item.item.0)));
     let mut plan = load(s);
     let entry = entry_id.and_then(|id| plan["entries"].as_array().and_then(|entries| entries.iter().find(|entry| entry["id"].as_u64() == Some(id))).cloned());
     let prompt = text(p.get("prompt").or_else(|| entry.as_ref().and_then(|entry| entry.get("prompt"))), MAX_PROMPT);
@@ -1220,6 +1223,7 @@ fn animate(s: &mut Session, p: &Value) -> Result<Value> {
         .or_else(|| entry.as_ref().and_then(|entry| entry["asset"].as_str()).map(str::to_string))
         .or_else(|| entry.as_ref().and_then(|entry| entry["generatedItem"].as_u64()).and_then(|item| media_path(s, item)))
         .or_else(|| p.get("item").and_then(Value::as_u64).and_then(|item| media_path(s, item)))
+        .or_else(|| clip_item.and_then(|item| media_path(s, item)))
         .ok_or_else(|| bad_cmd("nl.agent.animate", "serve `image`, `item` (Footage_AI), o un oggetto con asset generato"))?;
     let quality = p.get("quality").and_then(Value::as_str).unwrap_or("standard");
     let workflow = match p.get("workflow").and_then(Value::as_str) {
@@ -1257,6 +1261,13 @@ fn animate(s: &mut Session, p: &Value) -> Result<Value> {
             plan["entries"][index]["workflow"] = json!(path);
             save(s, &plan)?;
         }
+    }
+    if !replaced
+        && let Some(clip) = target_clip
+    {
+        s.execute("clip.replaceFromBin", json!({"clips": [clip], "item": item, "keepSourceIn": false}))?;
+        let _ = s.execute("clip.rename", json!({"clips": [clip], "name": "NL · animazione AI"}));
+        replaced = true;
     }
     result["replaced"] = json!(replaced);
     result["workflow"] = json!(path);
@@ -1463,8 +1474,38 @@ fn update(s: &mut Session, p: &Value) -> Result<Value> {
 /// `nl.agent.gap` — a placeholder in the exact gap between two clips: the bridge later uses the
 /// outgoing last frame and the incoming first frame, and the placeholder already has the gap
 /// duration, so generation has an exact target.
+/// The closest gap between two enabled clips of the active sequence, used when the playhead is
+/// not exactly in a hole: right-clicking a gap should create the bridge there, not fail.
+fn nearest_gap(s: &Session) -> Option<(u64, u64)> {
+    let playhead = s.playhead().0;
+    let mut best: Option<(u64, u64, u64)> = None;
+    for track in s.active_sequence()?.video_tracks.iter() {
+        let mut clips: Vec<&filmcraft_project::TrackItem> = track.items.iter().filter(|clip| clip.enabled).collect();
+        clips.sort_by_key(|clip| clip.start.0);
+        for pair in clips.windows(2) {
+            let end = pair[0].start.0 + pair[0].duration.0;
+            let start = pair[1].start.0;
+            if start <= end {
+                continue;
+            }
+            let distance = playhead.abs_diff(end.min(start));
+            if best.is_none_or(|(best_distance, _, _)| distance < best_distance) {
+                best = Some((distance, pair[0].id.0, pair[1].id.0));
+            }
+        }
+    }
+    best.map(|(_, outgoing, incoming)| (outgoing, incoming))
+}
+
 fn gap_placeholder(s: &mut Session, p: &Value) -> Result<Value> {
-    let planned = s.execute("nl.bridge.plan", p.clone())?;
+    let mut plan_params = p.clone();
+    if plan_params.get("outgoing").and_then(Value::as_u64).is_none()
+        && let Some((outgoing, incoming)) = nearest_gap(s)
+    {
+        plan_params["outgoing"] = json!(outgoing);
+        plan_params["incoming"] = json!(incoming);
+    }
+    let planned = s.execute("nl.bridge.plan", plan_params)?;
     let start_ticks = planned["gapStartTicks"].as_u64().ok_or_else(|| bad_cmd("nl.agent.gap", "the bridge plan has no gap start"))?;
     let seconds = planned["gapSeconds"].as_f64().unwrap_or(0.0);
     if seconds < 1.0 {
@@ -1576,7 +1617,7 @@ pub(crate) fn commands() -> Vec<CommandSpec> {
         spec(
             "nl.agent.animate",
             "NL Animate Still to Video",
-            r#"{"id":int?,"item":id?,"image":str?,"prompt":str?,"workflow":str?,"quality":str?,"seconds":int?,"dryRun":bool?}"#,
+            r#"{"id":int?,"clip":id?,"item":id?,"image":str?,"prompt":str?,"workflow":str?,"quality":str?,"seconds":int?,"dryRun":bool?}"#,
             animate,
         ),
         spec("nl.agent.audio", "NL Generate Audio Placeholder", r#"{"id":int,"prompt":str?,"dryRun":bool?}"#, generate_audio),
