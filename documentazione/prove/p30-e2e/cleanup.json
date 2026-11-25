@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-25",
+  "cleanup": {
+    "old_target_removed_mb": 21558.0,
+    "target_moved_mb": 20963.0,
+    "target_location": "da_eliminare/2026-11-25-ottimizzazione/filmcraft-nl_target_p30",
+    "da_eliminare_total_mb": 21069.5,
+    "free_gb_after": 74.15,
+    "free_after_empty_gb_estimate": 95.2,
+    "proofs_optimized": "p25/p27/p28/p29/p30/p19 screenshots resized+compressed: ~210 MB -> ~20 MB"
+  },
+  "release": {
+    "exe": "NL Video Suite.exe",
+    "exe_bytes": 86586880,
+    "cli_bytes": 55088640,
+    "bundle": "distribuzione/NLVideoSuite-2.0.0-windows-x64",
+    "zip_bytes": 235656508,
+    "subsystem": "GUI (2) — no console on double click"
+  },
+  "audio_context": {
+    "existing": "nl.timeline.analyze includeAudio=true transcribes the audio range and adds '- Audio: ...' to the analysis context; NL Generate can apply that context to the prompt",
+    "graphics": "nl.graphics.add creates rectangle/ellipse/text graphics; no automatic transcript->infographic layout yet"
+  }
+}
