@@ -1254,11 +1254,7 @@ fn animate(s: &mut Session, p: &Value) -> Result<Value> {
         && let Some(description) = motion_prompt_for_image(s, &image, p)
     {
         let user = prompt.trim();
-        prompt = if user.len() > 15 && !user.to_ascii_lowercase().starts_with("nl ") {
-            format!("{user}. {description}")
-        } else {
-            description
-        };
+        prompt = if user.len() > 15 && !user.to_ascii_lowercase().starts_with("nl ") { format!("{user}. {description}") } else { description };
     }
     if prompt.is_empty() {
         return Err(bad_cmd("nl.agent.animate", "serve `prompt` o un oggetto del piano con prompt"));

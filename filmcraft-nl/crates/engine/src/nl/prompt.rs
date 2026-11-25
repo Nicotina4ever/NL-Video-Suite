@@ -626,6 +626,30 @@ fn from_object(s: &mut Session, p: &Value) -> Result<Value> {
     Ok(json!({"prompt": prompt, "vision": description, "spoken": spoken.trim(), "model": used_model, "asset": path}))
 }
 
+/// `nl.prompt.ideogram` — build the structured JSON prompt Ideogram4 expects, from an Italian or
+/// English brief. The model must return the schema, never prose.
+fn ideogram(s: &mut Session, p: &Value) -> std::result::Result<Value, crate::EngineError> {
+    let brief = p.get("brief").and_then(Value::as_str).map(str::trim).unwrap_or("").to_string();
+    if brief.is_empty() {
+        return Err(bad_cmd("nl.prompt.ideogram", "serve `brief`"));
+    }
+    let aspect = p.get("aspect").and_then(Value::as_str).unwrap_or("9:16");
+    let system = "Sei un art director per Ideogram 4. Rispondi SOLO con JSON valido con questa forma: \
+{\"aspect_ratio\":\"9:16\"|\"1:1\"|\"16:9\",\"high_level_description\":string,\
+\"compositional_deconstruction\":{\"background\":string,\"elements\":[{\"type\":\"text\",\"bbox\":[x1,y1,x2,y2],\"text\":string,\"desc\":string},{\"type\":\"obj\",\"bbox\":[x1,y1,x2,y2],\"desc\":string}]}}. \
+bbox sono interi 0-1000. Massimo 6 elementi. Ogni testo visibile deve essere nel campo text, nella lingua richiesta, senza inventare altre scritte. Non includere markdown, commenti o testo fuori dal JSON.";
+    let prompt = format!("Brief: {brief}\nAspect ratio richiesto: {aspect}. Crea una card infografica pulita con testi leggibili.");
+    let llm = super::llm::LlmConfig::for_session(s, p.get("model").and_then(Value::as_str));
+    let value = llm.auto_json(system, &prompt, Duration::from_secs(240), Some("0")).map_err(|e| bad_cmd("nl.prompt.ideogram", e))?;
+    if value.get("aspect_ratio").and_then(Value::as_str).is_none()
+        || value.pointer("/compositional_deconstruction/elements").and_then(Value::as_array).is_none()
+    {
+        return Err(bad_cmd("nl.prompt.ideogram", "the model did not return the Ideogram JSON schema"));
+    }
+    let compact = serde_json::to_string(&value).map_err(|e| bad_cmd("nl.prompt.ideogram", e))?;
+    Ok(json!({"prompt": compact, "json": value, "model": llm.model}))
+}
+
 pub(crate) fn commands() -> Vec<CommandSpec> {
     vec![
         CommandSpec {
@@ -658,6 +682,17 @@ pub(crate) fn commands() -> Vec<CommandSpec> {
             params: r#"{"clip":id,"visionModel":str?}"#,
             enabled: always,
             run: from_object,
+            journal: false,
+            named: crate::commands::NamedKeys::NONE,
+        },
+        CommandSpec {
+            id: "nl.prompt.ideogram",
+            label: "NL Ideogram JSON Prompt",
+            menu: &[],
+            shortcut: None,
+            params: r#"{"brief":str,"aspect":str?,"model":str?}"#,
+            enabled: always,
+            run: ideogram,
             journal: false,
             named: crate::commands::NamedKeys::NONE,
         },

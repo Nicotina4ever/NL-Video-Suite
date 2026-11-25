@@ -793,10 +793,7 @@ fn generate_body(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     let _ = &kind_label;
     let kind = kinds[d.kind.min(kinds.len() - 1)].0;
     let options = workflow_options(app, ui, kind);
-    if d.workflow >= options.len()
-        || (d.params_workflow.is_empty()
-            && options.get(d.workflow).is_some_and(|(_, label)| label.contains("character-sheet")))
-    {
+    if d.workflow >= options.len() || (d.params_workflow.is_empty() && options.get(d.workflow).is_some_and(|(_, label)| label.contains("character-sheet"))) {
         d.workflow = default_workflow(&options, app, kind);
     }
     combo(app, ui, "generate.workflow", "Workflow", &mut d.workflow, &options);
