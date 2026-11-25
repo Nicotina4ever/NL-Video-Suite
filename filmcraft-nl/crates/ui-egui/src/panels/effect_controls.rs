@@ -1144,6 +1144,35 @@ pub fn properties_panel(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     let lc = app.session.prefs.labels.rgb(it.label);
     bui.painter().rect_filled(sw, 2.0, Color32::from_rgb(lc[0], lc[1], lc[2]));
     bui.painter().text(pos2(hr.min.x + 22.0, hr.center().y), Align2::LEFT_CENTER, &it.name, Tokens::semibold(12.5), t.text);
+    // An NL placeholder is an object with a job: show what it has to become and let the operator
+    // generate/replace it from the clip's own Properties, not only from the NL Agent panel.
+    if let Some(item) = app.session.project.item(it.item)
+        && item.metadata.get("nl.role").is_some_and(|role| role == "agent-placeholder")
+    {
+        let entry = item.metadata.get("nl.entry").and_then(|v| v.parse::<u64>().ok()).unwrap_or(0);
+        let kind = item.metadata.get("nl.kind").cloned().unwrap_or_else(|| "image".into());
+        let prompt = item.metadata.get("nl.prompt").cloned().unwrap_or_default();
+        bui.add_space(2.0);
+        bui.label(egui::RichText::new(format!("NL placeholder · {kind} · oggetto {entry}")).size(11.0).color(t.text_dim));
+        if !prompt.is_empty() {
+            bui.label(egui::RichText::new(prompt).size(10.0).color(t.text_faint));
+        }
+        bui.horizontal_wrapped(|ui| {
+            if ui.button("Genera e sostituisci").clicked() {
+                let command = if kind == "audio" { "nl.agent.audio" } else { "nl.agent.generate" };
+                if let Err(error) = crate::menus::invoke(app, &ui.ctx().clone(), command, json!({"id": entry})) {
+                    app.ui.status = error;
+                }
+            }
+            if kind != "audio" && ui.button("Anima in video (i2v)").clicked() {
+                if let Err(error) = crate::menus::invoke(app, &ui.ctx().clone(), "nl.agent.animate", json!({"id": entry})) {
+                    app.ui.status = error;
+                }
+            }
+        });
+        app.auto.add("properties.nl.generate", bui.max_rect(), "Genera e sostituisci il placeholder");
+        bui.add_space(4.0);
+    }
     let row = |ui: &mut egui::Ui, label: &str| -> Rect {
         let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), 32.0), Sense::hover());
         ui.painter().text(pos2(r.min.x + 18.0, r.center().y), Align2::LEFT_CENTER, label, Tokens::ui(12.0), t.text_dim);

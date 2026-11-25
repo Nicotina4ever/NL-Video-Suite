@@ -195,7 +195,7 @@ pub(super) fn ruler_menu(app: &mut FilmcraftApp, ctx: &egui::Context, ui: &mut e
 /// The NL Video Suite entries of the timeline context menu: create a generation object here,
 /// sketch the whole timeline from a subject, fill the prompts, generate and replace, collect the
 /// assets into the project folder.
-fn nl_timeline_menu(app: &mut FilmcraftApp, ctx: &egui::Context, ui: &mut egui::Ui) {
+pub(super) fn nl_timeline_menu(app: &mut FilmcraftApp, ctx: &egui::Context, ui: &mut egui::Ui) {
     ui.separator();
     let submenu = ui.menu_button("NL Video Suite", |ui| {
         let entries = [

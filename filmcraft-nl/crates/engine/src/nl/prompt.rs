@@ -24,18 +24,35 @@ fn bad_cmd(cmd: &str, msg: impl ToString) -> crate::EngineError {
     bad(cmd, msg.to_string())
 }
 
-fn system_prompt(kind: &str) -> String {
+fn workflow_guide(workflow: &str) -> &'static str {
+    let name = workflow.to_ascii_lowercase();
+    if name.contains("minimax") || name.contains("h3") {
+        "Guida MiniMax H3: scrivi un prompt per un video con reference. Descrivi movimento, camera, performance e atmosfera; \
+         non descrivere staticamente l'immagine. Se il brief nomina reference, usa i tag <Picture 1>, <Picture 2>… nello stesso ordine dei file."
+    } else if name.contains("wan") {
+        "Guida Wan i2v: l'immagine è l'ancora visiva; descrivi solo movimento, camera e ciò che cambia, non riscrivere l'immagine."
+    } else if name.contains("flux") || name.contains("ideogram") || name.contains("krea") || name.contains("z-image") || name.contains("z_image") {
+        "Guida immagine cinematografica: soggetto, espressione, costume, ambiente, luce, composizione e obiettivo; una sola immagine, dettagli concreti."
+    } else if name.contains("music") || name.contains("ace_step") || name.contains("audio") {
+        "Guida musica: genere, strumenti, atmosfera, energia, tempo/BPM e struttura; niente testo parlato se non richiesto."
+    } else {
+        "Guida generica: prompt visivo concreto, senza nomi di modello, risoluzioni o parametri tecnici."
+    }
+}
+
+fn system_prompt(kind: &str, workflow: &str) -> String {
     let medium = match kind {
         "video" | "v2v" => "video (descrivi soggetto, azione, movimento di camera e ambiente in inglese)",
         "music" => "musica (genere, strumenti, atmosfera e ritmo in inglese)",
         _ => "immagine (descrivi soggetto, azione, ambiente, luce e inquadratura in inglese)",
     };
     format!(
-        "Sei un prompt engineer per una generazione di {medium}. \
+        "Sei un prompt engineer per una generazione di {medium}. {}\
 Rispondi SOLO con un oggetto JSON valido: {{\"prompt\": string, \"variants\": [string, ...]}} (massimo {MAX_VARIANTS} varianti). \
 Il prompt deve essere concreto e visivo, massimo {MAX_PROMPT} caratteri, senza testo attorno. \
 NON citare nomi di modelli, risoluzioni, durate, aspect ratio, node id, link o class_type. \
-Mantieni la lingua inglese per il prompt, qualunque sia la lingua del brief."
+Mantieni la lingua inglese per il prompt, qualunque sia la lingua del brief.",
+        workflow_guide(workflow)
     )
 }
 
@@ -100,9 +117,9 @@ fn clean(value: &Value) -> std::result::Result<Value, String> {
     Ok(json!({"prompt": prompt, "variants": variants}))
 }
 
-fn call(llm: &super::llm::LlmConfig, brief: &str, kind: &str, language: &str, timeout: Duration) -> std::result::Result<Value, String> {
+fn call(llm: &super::llm::LlmConfig, brief: &str, kind: &str, language: &str, workflow: &str, timeout: Duration) -> std::result::Result<Value, String> {
     let prompt = format!("Brief dell'operatore (lingua: {language}): {brief}\nScrivi il prompt di generazione.");
-    let value = llm.auto_json(&system_prompt(kind), &prompt, timeout, Some("0"))?;
+    let value = llm.auto_json(&system_prompt(kind, workflow), &prompt, timeout, Some("0"))?;
     clean(&value)
 }
 
@@ -123,13 +140,15 @@ fn enhance(s: &mut Session, p: &Value) -> Result<Value> {
         return Err(bad_cmd("nl.prompt.enhance", "`kind` must be image, video, v2v or music"));
     }
     let language = p.get("language").and_then(Value::as_str).unwrap_or("it").to_string();
+    let workflow = p.get("workflow").and_then(Value::as_str).unwrap_or("").to_string();
     let llm = super::llm::LlmConfig::for_session(s, p.get("model").and_then(Value::as_str));
     let wait = p.get("wait").and_then(Value::as_bool).unwrap_or(false);
     if wait {
-        let answer = call(&llm, &brief, &kind, &language, Duration::from_secs(180)).map_err(|e| bad_cmd("nl.prompt.enhance", e))?;
+        let answer = call(&llm, &brief, &kind, &language, &workflow, Duration::from_secs(180)).map_err(|e| bad_cmd("nl.prompt.enhance", e))?;
         let mut result = answer;
         result["model"] = json!(llm.model);
         result["kind"] = json!(kind);
+        result["workflow"] = json!(workflow);
         return Ok(result);
     }
     let result: Arc<Mutex<Option<std::result::Result<Value, String>>>> = Arc::default();
@@ -140,13 +159,14 @@ fn enhance(s: &mut Session, p: &Value) -> Result<Value> {
     let llm_run = llm.clone();
     let kind_run = kind.clone();
     let language_run = language.clone();
+    let workflow_run = workflow.clone();
     s.jobs.push(job);
     s.nl.prompt_pending = Some(PendingPrompt { job: id, result, epoch: s.document_epoch, key: "prompt" });
     std::thread::Builder::new()
         .name("filmcraft-nl-prompt".into())
         .spawn(move || {
             *progress.status.lock().unwrap_or_else(|e| e.into_inner()) = format!("NL prompt: writing with {}", llm_run.model);
-            let value = call(&llm_run, &brief, &kind_run, &language_run, Duration::from_secs(180));
+            let value = call(&llm_run, &brief, &kind_run, &language_run, &workflow_run, Duration::from_secs(180));
             *out.lock().unwrap_or_else(|e| e.into_inner()) = Some(value);
             progress.finished.store(true, std::sync::atomic::Ordering::Relaxed);
         })
@@ -453,7 +473,7 @@ pub(crate) fn commands() -> Vec<CommandSpec> {
             label: "NL Prompt AI",
             menu: &[],
             shortcut: None,
-            params: r#"{"brief":str,"kind":"image|video|v2v|music"?,"language":str?,"model":str?,"wait":bool?}"#,
+            params: r#"{"brief":str,"kind":"image|video|v2v|music"?,"workflow":str?,"language":str?,"model":str?,"wait":bool?}"#,
             enabled: always,
             run: enhance,
             journal: false,

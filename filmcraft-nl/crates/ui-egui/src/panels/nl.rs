@@ -73,6 +73,7 @@ pub const PANEL_COMMANDS: &[(PanelKind, &[&str])] = &[
             "nl.agent.place",
             "nl.agent.characterSheet",
             "nl.agent.animate",
+            "nl.agent.audio",
             "nl.agent.squad",
         ],
     ),
@@ -302,6 +303,17 @@ fn workflow_options(app: &mut FilmcraftApp, ui: &egui::Ui, kind: &str) -> Vec<(S
     };
     ui.data_mut(|d| d.insert_temp(id, (now, list.clone())));
     list
+}
+
+/// Ask the local LLM for a workflow-specific prompt. This is the guided step: the engine chooses
+/// the model guide from the workflow name (MiniMax H3, Flux2/Krea/Z-image, Wan, music) and returns
+/// one validated prompt, which the panel writes back into the field.
+fn auto_prompt(app: &mut FilmcraftApp, idea: &str, kind: &str, workflow: &str) -> std::result::Result<String, String> {
+    let result = app
+        .session
+        .execute("nl.prompt.enhance", json!({"brief": idea, "kind": kind, "workflow": workflow, "language": "it", "wait": true}))
+        .map_err(|e| e.to_string())?;
+    result["prompt"].as_str().map(str::to_string).ok_or_else(|| "the model returned no prompt".to_string())
 }
 
 /// The parameters a Generate click sends. The compact action row is above the long advanced
@@ -645,6 +657,7 @@ struct GenerateDraft {
     workflow: usize,
     scale: usize,
     overrides: String,
+    auto_prompt: bool,
     param_overrides: std::collections::BTreeMap<String, Value>,
     params_workflow: String,
     character: String,
@@ -733,11 +746,24 @@ fn generate_body(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     );
     app.auto.add("nl.generate.prompt", r.rect, "Prompt");
     d.prompt = prompt;
+    let auto = ui.checkbox(&mut d.auto_prompt, "Prompt automatico per questo modello (LLM)");
+    app.auto.add("nl.generate.auto_prompt", auto.rect, "Prompt automatico per questo modello");
     let top_params = generate_params(&d, kind, &options);
     ui.horizontal_wrapped(|ui| {
         if button(app, ui, "generate.run", "Generate") {
             if d.prompt.trim().is_empty() {
                 app.ui.status = "Write a prompt first.".into();
+            } else if d.auto_prompt {
+                let workflow = options.get(d.workflow).map(|(path, _)| path.clone()).unwrap_or_default();
+                match auto_prompt(app, d.prompt.trim(), kind, &workflow) {
+                    Ok(text) => {
+                        d.prompt = text.clone();
+                        let mut params = generate_params(&d, kind, &options);
+                        params["prompt"] = json!(text);
+                        run(app, ui, "graphics.generateComfy", params);
+                    }
+                    Err(error) => app.ui.status = format!("Prompt AI: {error}"),
+                }
             } else {
                 run(app, ui, "graphics.generateComfy", top_params.clone());
             }
@@ -1408,6 +1434,9 @@ fn agent_body(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         }
         if button(app, ui, "agent.add", "Aggiungi oggetto qui") {
             run(app, ui, "nl.agent.add", json!({"seconds": 4, "quality": quality, "startSeconds": app.session.playhead().seconds()}));
+        }
+        if button(app, ui, "agent.add_audio", "Aggiungi audio placeholder") {
+            run(app, ui, "nl.agent.add", json!({"seconds": 10, "kind": "audio", "startSeconds": app.session.playhead().seconds()}));
         }
         if button(app, ui, "agent.prompts", "Compila prompt con AI") {
             run(app, ui, "nl.agent.prompts", json!({}));

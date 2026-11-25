@@ -236,6 +236,7 @@ pub fn sanitize_plan(value: &Value) -> Value {
         let seconds = get("seconds").and_then(Value::as_f64).filter(|s| s.is_finite()).unwrap_or(DEFAULT_SECONDS).clamp(1.0, MAX_SECONDS);
         let kind = match get("kind").and_then(Value::as_str).unwrap_or("image") {
             "video" => "video",
+            "audio" => "audio",
             _ => "image",
         };
         let status = match get("status").and_then(Value::as_str).unwrap_or("draft") {
@@ -418,6 +419,43 @@ fn place_plan(s: &mut Session, plan: &mut Value, start: Tick) -> Result<usize> {
         }
         let title = entry["title"].as_str().unwrap_or("Oggetto");
         let seconds = entry["seconds"].as_f64().unwrap_or(DEFAULT_SECONDS).clamp(1.0, MAX_SECONDS);
+        let kind = entry["kind"].as_str().unwrap_or("image");
+        if kind == "audio" {
+            let wav = folder.join(format!("placeholder-{:02}.wav", index + 1));
+            write_silent_wav(&wav, seconds)?;
+            let imported = s.execute("file.import", json!({"paths": [wav.to_string_lossy()]}))?;
+            let item = imported["items"]
+                .as_array()
+                .and_then(|items| items.first())
+                .and_then(Value::as_u64)
+                .ok_or_else(|| bad_cmd("nl.agent.sketch", "the audio placeholder was not imported"))?;
+            let details = entry.clone();
+            let _ = s.edit("NL Audio Placeholder Details", |project, _| {
+                if let Some(project_item) = project.item_mut(ItemId(item)) {
+                    project_item.metadata.insert("nl.role".into(), "agent-placeholder".into());
+                    project_item.metadata.insert("nl.entry".into(), details["id"].as_u64().unwrap_or(0).to_string());
+                    project_item.metadata.insert("nl.kind".into(), "audio".into());
+                    project_item.metadata.insert("nl.prompt".into(), details["prompt"].as_str().unwrap_or("").to_string());
+                }
+                Ok(())
+            });
+            let name = format!("NL · {title} · audio");
+            let _ = s.execute("clip.rename", json!({"item": item, "name": name}));
+            let track = ensure_audio_track(s)?;
+            let placed_result =
+                s.execute("timeline.place", json!({"item": item, "track": track, "time": cursor.0, "duration": Tick::from_seconds_f64(seconds).0}))?;
+            let clip = placed_result["clips"]
+                .as_array()
+                .and_then(|clips| clips.first())
+                .and_then(Value::as_u64)
+                .ok_or_else(|| bad_cmd("nl.agent.sketch", "the audio placeholder was not placed on the timeline"))?;
+            let _ = s.execute("clip.rename", json!({"clips": [clip], "name": name}));
+            plan["entries"][index]["placeholderItem"] = json!(item);
+            plan["entries"][index]["clip"] = json!(clip);
+            cursor = Tick(cursor.0 + Tick::from_seconds_f64(seconds).0);
+            placed += 1;
+            continue;
+        }
         let png = folder.join(format!("placeholder-{:02}.png", index + 1));
         write_placeholder(&png, title, index)?;
         let imported = s.execute("file.import", json!({"paths": [png.to_string_lossy()]}))?;
@@ -432,6 +470,7 @@ fn place_plan(s: &mut Session, plan: &mut Value, start: Tick) -> Result<usize> {
         let _ = s.edit("NL Placeholder Details", |project, _| {
             if let Some(project_item) = project.item_mut(ItemId(item)) {
                 project_item.metadata.insert("nl.role".into(), "agent-placeholder".into());
+                project_item.metadata.insert("nl.entry".into(), details["id"].as_u64().unwrap_or(0).to_string());
                 project_item.metadata.insert("nl.title".into(), title.to_string());
                 project_item.metadata.insert("nl.prompt".into(), details["prompt"].as_str().unwrap_or("").to_string());
                 project_item.metadata.insert("nl.workflow".into(), details["workflow"].as_str().unwrap_or("").to_string());
@@ -464,6 +503,43 @@ fn place_plan(s: &mut Session, plan: &mut Value, start: Tick) -> Result<usize> {
         placed += 1;
     }
     Ok(placed)
+}
+
+fn ensure_audio_track(s: &mut Session) -> Result<String> {
+    if let Some(index) = s.active_sequence().and_then(|sequence| sequence.audio_tracks.iter().rposition(|track| track.name == "NL Audio")) {
+        return Ok(format!("A{}", index + 1));
+    }
+    s.execute("sequence.addTracks", json!({"audio": 1}))?;
+    let count = s
+        .active_sequence()
+        .map(|sequence| sequence.audio_tracks.len())
+        .ok_or_else(|| bad_cmd("nl.agent.sketch", "serve una sequenza con una traccia audio"))?;
+    let name = format!("A{count}");
+    let _ = s.execute("timeline.setTrack", json!({"track": name, "name": "NL Audio"}));
+    Ok(name)
+}
+
+/// A silent PCM WAV placeholder so an audio object exists on the timeline before the real music
+/// or voice is generated. 48 kHz, mono, 16-bit; the import and the timeline use the real duration.
+fn write_silent_wav(path: &Path, seconds: f64) -> Result<()> {
+    let rate = 48_000u32;
+    let samples = (seconds.clamp(1.0, 300.0) * rate as f64).round() as u32;
+    let data_len = samples * 2;
+    let mut bytes = Vec::with_capacity(44 + data_len as usize);
+    bytes.extend_from_slice(b"RIFF");
+    bytes.extend_from_slice(&(36 + data_len).to_le_bytes());
+    bytes.extend_from_slice(b"WAVEfmt ");
+    bytes.extend_from_slice(&16u32.to_le_bytes());
+    bytes.extend_from_slice(&1u16.to_le_bytes());
+    bytes.extend_from_slice(&1u16.to_le_bytes());
+    bytes.extend_from_slice(&rate.to_le_bytes());
+    bytes.extend_from_slice(&(rate * 2).to_le_bytes());
+    bytes.extend_from_slice(&2u16.to_le_bytes());
+    bytes.extend_from_slice(&16u16.to_le_bytes());
+    bytes.extend_from_slice(b"data");
+    bytes.extend_from_slice(&data_len.to_le_bytes());
+    bytes.resize(44 + data_len as usize, 0);
+    std::fs::write(path, bytes).map_err(|e| bad_cmd("nl.agent.sketch", format!("{}: {e}", path.display())))
 }
 
 fn ensure_track(s: &mut Session) -> Result<String> {
@@ -1296,6 +1372,43 @@ fn squad(s: &mut Session, p: &Value) -> Result<Value> {
     Ok(json!({"action": "status", "stages": plan["stages"], "entries": plan["entries"]}))
 }
 
+/// `nl.agent.audio` — generate the audio for an audio placeholder and replace it in place.
+fn generate_audio(s: &mut Session, p: &Value) -> Result<Value> {
+    let id = p.get("id").and_then(Value::as_u64).ok_or_else(|| bad_cmd("nl.agent.audio", "serve `id` dell'oggetto audio"))?;
+    let mut plan = load(s);
+    let entry = plan["entries"]
+        .as_array()
+        .and_then(|entries| entries.iter().find(|entry| entry["id"].as_u64() == Some(id)))
+        .cloned()
+        .ok_or_else(|| bad_cmd("nl.agent.audio", format!("no object {id} in the plan")))?;
+    if entry["kind"] != "audio" {
+        return Err(bad_cmd("nl.agent.audio", "this object is not an audio placeholder"));
+    }
+    let prompt = text(p.get("prompt").or_else(|| entry.get("prompt")), MAX_PROMPT);
+    if prompt.is_empty() {
+        return Err(bad_cmd("nl.agent.audio", "serve un prompt audio"));
+    }
+    let seconds = entry["seconds"].as_f64().unwrap_or(10.0).round() as u64;
+    if p.get("dryRun").and_then(Value::as_bool).unwrap_or(false) {
+        return Ok(json!({"dryRun": true, "prompt": prompt, "seconds": seconds}));
+    }
+    s.execute("audio.generateMusic", json!({"prompt": prompt, "seconds": seconds, "wait": true}))?;
+    let (item, source) = last_comfy(s).ok_or_else(|| bad_cmd("nl.agent.audio", "ComfyUI returned no audio"))?;
+    let asset = adopt_generated(s, item, &source)?;
+    if let Some(clip) = entry["clip"].as_u64() {
+        s.execute("clip.replaceFromBin", json!({"clips": [clip], "item": item, "keepSourceIn": false}))?;
+        let title = entry["title"].as_str().unwrap_or("Audio");
+        let _ = s.execute("clip.rename", json!({"clips": [clip], "name": format!("NL · {title} · audio")}));
+    }
+    if let Some(index) = plan["entries"].as_array().and_then(|entries| entries.iter().position(|entry| entry["id"].as_u64() == Some(id))) {
+        plan["entries"][index]["status"] = json!("generated");
+        plan["entries"][index]["asset"] = json!(asset);
+        plan["entries"][index]["generatedItem"] = json!(item);
+        save(s, &plan)?;
+    }
+    Ok(json!({"id": id, "item": item, "asset": asset, "seconds": seconds}))
+}
+
 pub(crate) fn commands() -> Vec<CommandSpec> {
     let spec = |id: &'static str, label: &'static str, params: &'static str, run: fn(&mut Session, &Value) -> Result<Value>| CommandSpec {
         id,
@@ -1341,6 +1454,7 @@ pub(crate) fn commands() -> Vec<CommandSpec> {
             r#"{"id":int?,"item":id?,"image":str?,"prompt":str?,"workflow":str?,"quality":str?,"seconds":int?,"dryRun":bool?}"#,
             animate,
         ),
+        spec("nl.agent.audio", "NL Generate Audio Placeholder", r#"{"id":int,"prompt":str?,"dryRun":bool?}"#, generate_audio),
         spec(
             "nl.agent.squad",
             "NL Production Squad",
