@@ -528,6 +528,104 @@ fn compose_h3(instruction: &Option<String>, text: String, mode: &str, model: &st
     json!({"prompt": prompt, "mode": mode, "model": model, "seconds": seconds})
 }
 
+/// `nl.prompt.fromObject` — read the selected frame with the vision model, read the spoken text
+/// under it, and build the prompt from that context instead of from an empty brief.
+fn from_object(s: &mut Session, p: &Value) -> Result<Value> {
+    let clip = p.get("clip").and_then(Value::as_u64).ok_or_else(|| bad_cmd("nl.prompt.fromObject", "serve `clip`"))?;
+    let (_, item) = s
+        .active_sequence()
+        .and_then(|sequence| sequence.find_item(filmcraft_project::ClipId(clip)))
+        .ok_or_else(|| bad_cmd("nl.prompt.fromObject", "clip not found"))?;
+    let item_id = item.item.0;
+    let path = super::agent::media_path(s, item_id).ok_or_else(|| bad_cmd("nl.prompt.fromObject", "the clip has no media file"))?;
+    let mut endpoint = super::analysis::vision_endpoint(s, p);
+    let mut model = p
+        .get("visionModel")
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .or_else(|| (!s.prefs.nl.vision_model.trim().is_empty()).then(|| s.prefs.nl.vision_model.clone()))
+        .or_else(|| super::analysis::first_model(&endpoint).ok());
+    // Ollama exposes its vision models on the OpenAI-compatible endpoint too; when the configured
+    // llama.cpp endpoint is empty, use it instead of refusing to analyse the frame.
+    if model.is_none() {
+        endpoint = "http://127.0.0.1:11434/v1".to_string();
+        for candidate in ["gemma4:e4b", "gemma4:latest", "qwen3.5:9b"] {
+            if super::analysis::ask_vision(&endpoint, candidate, &[], "ping").is_ok() || super::analysis::first_model(&endpoint).is_ok() {
+                model = Some(candidate.to_string());
+                break;
+            }
+        }
+    }
+    let model = model.ok_or_else(|| bad_cmd("nl.prompt.fromObject", "no vision model: set the NL vision model in Settings"))?;
+    let bytes = std::fs::read(&path).map_err(|e| bad_cmd("nl.prompt.fromObject", format!("{path}: {e}")))?;
+    let describe = "Analizza il frame: soggetto, identita, abbigliamento, ambiente, luce, camera, stile. Rispondi in inglese, concreto, massimo 4 frasi.";
+    let mut used_model = model.clone();
+    let mut description = match super::analysis::ask_vision(&endpoint, &model, &bytes, describe) {
+        Ok(text) => text,
+        Err(_) => {
+            // The configured endpoint may be llama.cpp (default :8080) and refuse or drop the
+            // request. Ollama on :11434 exposes vision models on the same OpenAI-compatible API:
+            // retry there before giving up, using a reasoning-capable vision model.
+            let ollama = "http://127.0.0.1:11434/v1".to_string();
+            let mut text = String::new();
+            for candidate in ["gemma4:e4b", "gemma4:latest", "qwen3.5:9b"] {
+                if let Ok(value) = super::analysis::ask_vision(&ollama, candidate, &bytes, describe)
+                    && !value.trim().is_empty()
+                {
+                    used_model = candidate.to_string();
+                    text = value;
+                    break;
+                }
+            }
+            text
+        }
+    };
+    if description.trim().is_empty() {
+        description = String::new();
+    }
+    let start = item.start.0 as f64 / 254_016_000_000.0;
+    let end = (item.start.0 + item.duration.0) as f64 / 254_016_000_000.0;
+    let mut spoken = String::new();
+    if let Ok(transcript) = s.execute("transcript.inspect", json!({}))
+        && let Some(paragraphs) = transcript["paragraphs"].as_array()
+    {
+        for paragraph in paragraphs {
+            let from = paragraph["start"].as_f64().unwrap_or(0.0) / 254_016_000_000.0;
+            let to = paragraph["end"].as_f64().unwrap_or(0.0) / 254_016_000_000.0;
+            if to > start && from < end {
+                spoken.push_str(paragraph["text"].as_str().unwrap_or(""));
+                spoken.push(' ');
+            }
+        }
+    }
+    let brief = format!(
+        "Frame analizzato: {description}\nParlato sotto la clip ({start:.1}s-{end:.1}s): {}\nScrivi il prompt di generazione coerente con questo contenuto, senza inventare elementi assenti.",
+        if spoken.is_empty() { "nessuna trascrizione disponibile" } else { spoken.trim() }
+    );
+    let prompt = match s.execute("nl.prompt.enhance", json!({"brief": brief, "kind": "image", "wait": true})) {
+        Ok(enhanced) => enhanced["prompt"].as_str().unwrap_or("").trim().to_string(),
+        // A prompt model that echoes workflow internals is rejected by the enhance guard; the
+        // frame description and the spoken line are still a usable, grounded prompt.
+        Err(_) => format!("{description} Context: {}", if spoken.is_empty() { "no speech transcript available" } else { spoken.trim() }),
+    };
+    if prompt.is_empty() {
+        return Err(bad_cmd("nl.prompt.fromObject", "the model returned an empty prompt"));
+    }
+    if let Some(entry) = s.project.item(filmcraft_project::ItemId(item_id)).and_then(|item| item.metadata.get("nl.entry")).and_then(|id| id.parse::<u64>().ok())
+    {
+        let _ = s.execute("nl.agent.update", json!({"id": entry, "prompt": prompt}));
+    }
+    let _ = s.edit("NL Prompt from Frame", |project, _| {
+        if let Some(item) = project.item_mut(filmcraft_project::ItemId(item_id)) {
+            item.metadata.insert("nl.prompt".into(), prompt.clone());
+            item.metadata.insert("nl.vision".into(), description.clone());
+            item.metadata.insert("nl.spoken".into(), spoken.trim().to_string());
+        }
+        Ok(())
+    });
+    Ok(json!({"prompt": prompt, "vision": description, "spoken": spoken.trim(), "model": used_model, "asset": path}))
+}
+
 pub(crate) fn commands() -> Vec<CommandSpec> {
     vec![
         CommandSpec {
@@ -549,6 +647,17 @@ pub(crate) fn commands() -> Vec<CommandSpec> {
             params: r#"{"brief":str,"mode":"t2va|i2va|fl2va|l2va|ref"?,"dialogue":str?,"seconds":f?,"finalShot":int?,"references":[obj]?,"language":str?,"model":str?,"wait":bool?}"#,
             enabled: always,
             run: h3,
+            journal: false,
+            named: crate::commands::NamedKeys::NONE,
+        },
+        CommandSpec {
+            id: "nl.prompt.fromObject",
+            label: "NL Prompt from Frame and Speech",
+            menu: &[],
+            shortcut: None,
+            params: r#"{"clip":id,"visionModel":str?}"#,
+            enabled: always,
+            run: from_object,
             journal: false,
             named: crate::commands::NamedKeys::NONE,
         },

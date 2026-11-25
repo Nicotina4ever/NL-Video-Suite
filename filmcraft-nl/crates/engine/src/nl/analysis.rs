@@ -40,7 +40,7 @@ fn frame_times(start: f64, end: f64, every: f64, max_frames: usize) -> Vec<f64> 
 }
 
 /// Ask an OpenAI-compatible vision model about one PNG.
-fn ask_vision(endpoint: &str, model: &str, png: &[u8], prompt: &str) -> std::result::Result<String, String> {
+pub(crate) fn ask_vision(endpoint: &str, model: &str, png: &[u8], prompt: &str) -> std::result::Result<String, String> {
     let image = super::vision::base64(png);
     let body = json!({
         "model": model,
@@ -51,7 +51,7 @@ fn ask_vision(endpoint: &str, model: &str, png: &[u8], prompt: &str) -> std::res
                 {"type": "image_url", "image_url": {"url": format!("data:image/png;base64,{image}")}}
             ]
         }],
-        "max_tokens": 280,
+        "max_tokens": 900,
         "temperature": 0.2,
     })
     .to_string();
@@ -67,11 +67,19 @@ fn ask_vision(endpoint: &str, model: &str, png: &[u8], prompt: &str) -> std::res
             return Ok(text.trim().to_string());
         }
     }
+    // Reasoning models (gemma4) put the visible analysis in `reasoning` and may leave `content`
+    // empty when the token budget ends inside the thinking block.
+    if let Some(reasoning) = value["choices"][0]["message"]["reasoning"].as_str() {
+        let text = reasoning.trim();
+        if !text.is_empty() {
+            return Ok(text.chars().take(1200).collect());
+        }
+    }
     Err(format!("{endpoint}: the vision answer has no content"))
 }
 
 /// The model the endpoint declares, when the preference is empty.
-fn first_model(endpoint: &str) -> std::result::Result<String, String> {
+pub(crate) fn first_model(endpoint: &str) -> std::result::Result<String, String> {
     let base = endpoint.trim_end_matches('/').trim_end_matches("/chat/completions");
     let value = super::http::get_json(base, "models", Duration::from_secs(20))?;
     value["data"]
@@ -82,7 +90,7 @@ fn first_model(endpoint: &str) -> std::result::Result<String, String> {
         .ok_or_else(|| format!("{base}: no model declared"))
 }
 
-fn vision_endpoint(s: &Session, p: &Value) -> String {
+pub(crate) fn vision_endpoint(s: &Session, p: &Value) -> String {
     let base =
         p.get("visionUrl").and_then(Value::as_str).map(str::trim).filter(|url| !url.is_empty()).map(str::to_string).unwrap_or_else(|| s.prefs.nl.vision_url());
     let base = base.trim_end_matches('/').to_string();

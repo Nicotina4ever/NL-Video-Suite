@@ -416,11 +416,11 @@ fn defaults(app: &mut FilmcraftApp, cmd: &str, id: &str, bin: Option<Option<u64>
             (json!({"item": id.0, "color": filmcraft_color::to_hex(color)}), Value::Null)
         }
         "graphics.generateComfy" => (
-            json!({"prompt": "", "negative": "", "workflow": "workflows/regista/image/z-image-turbo.json", "resolutionMode": "image", "imageScale": 1, "wait": false}),
+            json!({"prompt": "", "negative": "", "workflow": "workflows/image/text-to-image/z-image-turbo.json", "resolutionMode": "image", "imageScale": 1, "wait": false}),
             Value::Null,
         ),
         "audio.generateMusic" => (
-            json!({"prompt": "", "lyrics": "", "workflow": "workflows/regista/audio/audio_ace_step1_5_xl_sft.json", "seconds": 30, "wait": false}),
+            json!({"prompt": "", "lyrics": "", "workflow": "workflows/audio/music/audio_ace_step1_5_xl_sft.json", "seconds": 30, "wait": false}),
             Value::Null,
         ),
         "transcript.transcribeNl" => (json!({"language": "it", "device": "auto", "wait": false}), Value::Null),

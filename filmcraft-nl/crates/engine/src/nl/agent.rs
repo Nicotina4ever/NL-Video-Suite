@@ -1027,7 +1027,7 @@ fn place(s: &mut Session, p: &Value) -> Result<Value> {
     Ok(json!({"placed": placed, "plan": plan}))
 }
 
-fn media_path(s: &Session, id: u64) -> Option<String> {
+pub(crate) fn media_path(s: &Session, id: u64) -> Option<String> {
     let item = s.project.item(ItemId(id))?;
     let ItemKind::Media(clip) = &item.kind else { return None };
     let MediaRef::File { path } = &clip.media else { return None };
@@ -1146,7 +1146,9 @@ fn choose_i2v_workflow(s: &mut Session, quality: &str) -> Option<Value> {
         let name = workflow["name"].as_str().unwrap_or("");
         let path = workflow["path"].as_str().unwrap_or("");
         let images = workflow["capabilities"]["imageRefs"].as_array().map_or(0, Vec::len);
-        if name.is_empty() || path.is_empty() || images == 0 || workflow.get("error").is_some() {
+        let prompts = workflow["capabilities"]["promptSlots"].as_array().map_or(0, Vec::len);
+        let lower_name = name.to_ascii_lowercase();
+        if name.is_empty() || path.is_empty() || images == 0 || (prompts == 0 && !lower_name.contains("nanobanana")) || workflow.get("error").is_some() {
             continue;
         }
         if !workflow_models_available(s, path) {
@@ -1192,7 +1194,7 @@ fn character_sheet(s: &mut Session, p: &Value) -> Result<Value> {
         "Character reference sheet, four views on a clean white background: front full body, side full body, back full body, and close-up headshot. \
          {description}. Same costume and proportions in every view, sharp focus, professional character design sheet."
     );
-    let mut result = generate_asset(s, &prompt, path, "image", json!({"resolutionMode": "image"}))?;
+    let mut result = generate_asset(s, &prompt, path, "image", json!({"resolutionMode": "image", "loras": p.get("loras").cloned().unwrap_or(json!([]))}))?;
     let item = result["item"].as_u64().ok_or_else(|| bad_cmd("nl.agent.characterSheet", "no item"))?;
     let label = if name.is_empty() { "Character Sheet".to_string() } else { format!("Character Sheet · {name}") };
     let bin = into_footage_ai(s, item, &label)?;
@@ -1205,17 +1207,39 @@ fn character_sheet(s: &mut Session, p: &Value) -> Result<Value> {
 
 /// `nl.agent.animate` — a still (Footage_AI item or path) becomes a video with an i2v workflow and
 /// replaces the plan object's placeholder in place.
+fn motion_prompt_for_image(s: &Session, image: &str, p: &Value) -> Option<String> {
+    let bytes = std::fs::read(image).ok()?;
+    let describe = "Describe the image (subject, environment, light, style) and propose a natural 3-second motion: subject action, camera movement and atmosphere. English, one paragraph, concrete, no text overlays.";
+    let endpoint = super::analysis::vision_endpoint(s, p);
+    let model = p
+        .get("visionModel")
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .or_else(|| (!s.prefs.nl.vision_model.trim().is_empty()).then(|| s.prefs.nl.vision_model.clone()))
+        .or_else(|| super::analysis::first_model(&endpoint).ok());
+    if let Some(model) = model
+        && let Ok(text) = super::analysis::ask_vision(&endpoint, &model, &bytes, describe)
+        && !text.trim().is_empty()
+    {
+        return Some(text.trim().to_string());
+    }
+    for model in ["gemma4:e4b", "gemma4:latest", "qwen3.5:9b"] {
+        if let Ok(text) = super::analysis::ask_vision("http://127.0.0.1:11434/v1", model, &bytes, describe)
+            && !text.trim().is_empty()
+        {
+            return Some(text.trim().to_string());
+        }
+    }
+    None
+}
+
 fn animate(s: &mut Session, p: &Value) -> Result<Value> {
     let entry_id = p.get("id").and_then(Value::as_u64);
     let target_clip = p.get("clip").and_then(Value::as_u64);
-    let clip_item = target_clip
-        .and_then(|clip| s.active_sequence().and_then(|sequence| sequence.find_item(filmcraft_project::ClipId(clip)).map(|(_, item)| item.item.0)));
+    let clip_item =
+        target_clip.and_then(|clip| s.active_sequence().and_then(|sequence| sequence.find_item(filmcraft_project::ClipId(clip)).map(|(_, item)| item.item.0)));
     let mut plan = load(s);
     let entry = entry_id.and_then(|id| plan["entries"].as_array().and_then(|entries| entries.iter().find(|entry| entry["id"].as_u64() == Some(id))).cloned());
-    let prompt = text(p.get("prompt").or_else(|| entry.as_ref().and_then(|entry| entry.get("prompt"))), MAX_PROMPT);
-    if prompt.is_empty() {
-        return Err(bad_cmd("nl.agent.animate", "serve `prompt` o un oggetto del piano con prompt"));
-    }
     let image = p
         .get("image")
         .and_then(Value::as_str)
@@ -1225,10 +1249,42 @@ fn animate(s: &mut Session, p: &Value) -> Result<Value> {
         .or_else(|| p.get("item").and_then(Value::as_u64).and_then(|item| media_path(s, item)))
         .or_else(|| clip_item.and_then(|item| media_path(s, item)))
         .ok_or_else(|| bad_cmd("nl.agent.animate", "serve `image`, `item` (Footage_AI), o un oggetto con asset generato"))?;
+    let mut prompt = text(p.get("prompt").or_else(|| entry.as_ref().and_then(|entry| entry.get("prompt"))), MAX_PROMPT);
+    if p.get("analyze").and_then(Value::as_bool).unwrap_or(false)
+        && let Some(description) = motion_prompt_for_image(s, &image, p)
+    {
+        let user = prompt.trim();
+        prompt = if user.len() > 15 && !user.to_ascii_lowercase().starts_with("nl ") {
+            format!("{user}. {description}")
+        } else {
+            description
+        };
+    }
+    if prompt.is_empty() {
+        return Err(bad_cmd("nl.agent.animate", "serve `prompt` o un oggetto del piano con prompt"));
+    }
     let quality = p.get("quality").and_then(Value::as_str).unwrap_or("standard");
     let workflow = match p.get("workflow").and_then(Value::as_str) {
         Some(path) => json!({"path": path, "name": path}),
-        None => choose_i2v_workflow(s, quality).ok_or_else(|| bad_cmd("nl.agent.animate", "no image-to-video workflow found"))?,
+        None => choose_i2v_workflow(s, quality)
+            .or_else(|| {
+                let list = super::models::workflows(s, "video").ok()?;
+                let single = list.iter().find(|workflow| {
+                    let name = workflow["name"].as_str().unwrap_or("").to_ascii_lowercase();
+                    workflow.get("error").is_none()
+                        && name.contains("minimax_h3_video_reference")
+                        && workflow["capabilities"]["imageRefs"].as_array().is_some_and(|refs| !refs.is_empty())
+                });
+                single.cloned().or_else(|| {
+                    list.into_iter().find(|workflow| {
+                        let name = workflow["name"].as_str().unwrap_or("").to_ascii_lowercase();
+                        workflow.get("error").is_none()
+                            && name.contains("video_minimax_h3_r2v")
+                            && workflow["capabilities"]["imageRefs"].as_array().is_some_and(|refs| !refs.is_empty())
+                    })
+                })
+            })
+            .ok_or_else(|| bad_cmd("nl.agent.animate", "no image-to-video workflow found"))?,
     };
     let path = workflow["path"].as_str().unwrap_or("");
     let seconds = p
@@ -1236,14 +1292,32 @@ fn animate(s: &mut Session, p: &Value) -> Result<Value> {
         .and_then(Value::as_u64)
         .or_else(|| entry.as_ref().and_then(|entry| entry["seconds"].as_f64()).map(|seconds| seconds.round() as u64))
         .unwrap_or(4);
+    let image_refs = super::models::find(s, path)
+        .and_then(|file| std::fs::read_to_string(file).ok())
+        .and_then(|text| serde_json::from_str::<Value>(&text).ok())
+        .map(|graph| {
+            graph
+                .as_object()
+                .map(|nodes| nodes.values().filter(|node| node.get("class_type").and_then(Value::as_str) == Some("LoadImage")).count())
+                .unwrap_or(0)
+        })
+        .unwrap_or(1)
+        .max(1);
+    let images = json!(vec![image.clone(); image_refs]);
     if p.get("dryRun").and_then(Value::as_bool).unwrap_or(false) {
         let dry = s.execute(
             "graphics.generateComfy",
-            json!({"prompt": prompt, "workflow": path, "kind": "video", "image": image, "seconds": seconds, "dryRun": true}),
+            json!({"prompt": prompt, "workflow": path, "kind": "video", "images": images, "seconds": seconds, "resolutionMode": "video", "dryRun": true, "loras": p.get("loras").cloned().unwrap_or(json!([])), "audio": p.get("audio").cloned().unwrap_or(Value::Null)}),
         )?;
         return Ok(json!({"dryRun": true, "workflow": path, "generated": dry}));
     }
-    let mut result = generate_asset(s, &prompt, path, "video", json!({"image": image, "seconds": seconds}))?;
+    let mut result = generate_asset(
+        s,
+        &prompt,
+        path,
+        "video",
+        json!({"images": images, "seconds": seconds, "resolutionMode": "video", "loras": p.get("loras").cloned().unwrap_or(json!([])), "audio": p.get("audio").cloned().unwrap_or(Value::Null)}),
+    )?;
     let item = result["item"].as_u64().ok_or_else(|| bad_cmd("nl.agent.animate", "no item"))?;
     let mut replaced = false;
     if let Some(entry) = entry {
@@ -1262,9 +1336,7 @@ fn animate(s: &mut Session, p: &Value) -> Result<Value> {
             save(s, &plan)?;
         }
     }
-    if !replaced
-        && let Some(clip) = target_clip
-    {
+    if !replaced && let Some(clip) = target_clip {
         s.execute("clip.replaceFromBin", json!({"clips": [clip], "item": item, "keepSourceIn": false}))?;
         let _ = s.execute("clip.rename", json!({"clips": [clip], "name": "NL · animazione AI"}));
         replaced = true;
@@ -1533,7 +1605,30 @@ fn gap_placeholder(s: &mut Session, p: &Value) -> Result<Value> {
         .and_then(|clips| clips.first())
         .and_then(Value::as_u64)
         .ok_or_else(|| bad_cmd("nl.agent.gap", "the bridge placeholder was not placed"))?;
-    let prompt = text(p.get("prompt"), MAX_PROMPT);
+    let mut prompt = text(p.get("prompt"), MAX_PROMPT);
+    if prompt.is_empty()
+        && let (Some(last), Some(first)) = (planned["lastFrame"].as_str(), planned["firstFrame"].as_str())
+    {
+        let endpoint = super::analysis::vision_endpoint(s, p);
+        let model =
+            p.get("visionModel").and_then(Value::as_str).map(str::to_string).or_else(|| super::analysis::first_model(&endpoint).ok()).unwrap_or_default();
+        if !model.is_empty() {
+            let describe = "Descrivi in inglese questa immagine: soggetto, ambiente, luce, camera e stile. Massimo 2 frasi, concreto.";
+            let read = |path: &str| std::fs::read(path).ok();
+            let last_text = read(last).and_then(|bytes| super::analysis::ask_vision(&endpoint, &model, &bytes, describe).ok());
+            let first_text = read(first).and_then(|bytes| super::analysis::ask_vision(&endpoint, &model, &bytes, describe).ok());
+            if let (Some(last_text), Some(first_text)) = (last_text, first_text) {
+                prompt = format!(
+                    "Continue seamlessly between these two frames. Previous frame: {last_text} Next frame: {first_text} Keep subject, light, camera and style continuous; natural motion without a cut, no text or overlays."
+                );
+            }
+        }
+    }
+    let prompt = if prompt.is_empty() {
+        "Continue seamlessly from the first frame to the last frame: natural continuous motion, consistent lighting, camera, colour and style; the action flows without a cut. No text, subtitles, logos or overlays.".to_string()
+    } else {
+        prompt
+    };
     let mut plan = load(s);
     let id = plan["entries"].as_array().map_or(1, Vec::len) as u64 + 1;
     let entry = json!({
@@ -1573,6 +1668,104 @@ fn gap_placeholder(s: &mut Session, p: &Value) -> Result<Value> {
     });
     save(s, &plan)?;
     Ok(json!({"placed": clip, "item": item, "seconds": seconds, "entry": entry_id, "plan": plan, "bridge": planned}))
+}
+
+/// An image workflow that accepts a reference image, for edit/alternative passes.
+fn choose_image_edit_workflow(s: &Session, quality: &str) -> Option<Value> {
+    let target = quality_index(quality);
+    let list = super::models::workflows(s, "image").ok()?;
+    let mut best: Option<(i32, Value)> = None;
+    for workflow in list {
+        let name = workflow["name"].as_str().unwrap_or("");
+        let path = workflow["path"].as_str().unwrap_or("");
+        let images = workflow["capabilities"]["imageRefs"].as_array().map_or(0, Vec::len);
+        let prompts = workflow["capabilities"]["promptSlots"].as_array().map_or(0, Vec::len);
+        let lower_name = name.to_ascii_lowercase();
+        if name.is_empty() || path.is_empty() || images == 0 || (prompts == 0 && !lower_name.contains("nanobanana")) || workflow.get("error").is_some() {
+            continue;
+        }
+        let mut score = workflow_score(name, "image", target) + if images == 1 { 60 } else { 0 };
+        if images > 1 {
+            score -= 100;
+        }
+        let n = name.to_ascii_lowercase();
+        // z-image edit is the verified fast path; nanoBanana remains selectable explicitly.
+        if n.contains("z-image-edit") {
+            return Some(json!({"path": path, "name": name, "imageInputs": images, "score": 999}));
+        }
+        if n.contains("edit") || n.contains("reference") || n.contains("img2img") {
+            score += 40;
+        }
+        let candidate = json!({"path": path, "name": name, "imageInputs": images, "score": score});
+        if best.as_ref().is_none_or(|(best_score, _)| score > *best_score) {
+            best = Some((score, candidate));
+        }
+    }
+    best.map(|(_, value)| value)
+}
+
+/// `nl.agent.editImage` — image-to-image edit of the selected clip's image, keeping its place.
+fn edit_image(s: &mut Session, p: &Value) -> Result<Value> {
+    let clip = p.get("clip").and_then(Value::as_u64);
+    let image_item = p.get("item").and_then(Value::as_u64).or_else(|| {
+        clip.and_then(|clip| s.active_sequence().and_then(|sequence| sequence.find_item(filmcraft_project::ClipId(clip)).map(|(_, item)| item.item.0)))
+    });
+    let image = image_item
+        .and_then(|item| media_path(s, item))
+        .or_else(|| p.get("image").and_then(Value::as_str).map(str::to_string))
+        .ok_or_else(|| bad_cmd("nl.agent.editImage", "serve `clip`, `item` o `image`"))?;
+    let prompt = text(p.get("prompt"), MAX_PROMPT);
+    if prompt.is_empty() {
+        return Err(bad_cmd("nl.agent.editImage", "serve un'istruzione di modifica"));
+    }
+    let quality = p.get("quality").and_then(Value::as_str).unwrap_or("standard");
+    let workflow = match p.get("workflow").and_then(Value::as_str) {
+        Some(path) => json!({"path": path}),
+        None => choose_image_edit_workflow(s, quality).ok_or_else(|| bad_cmd("nl.agent.editImage", "no image edit workflow found"))?,
+    };
+    let path = workflow["path"].as_str().unwrap_or("");
+    if p.get("dryRun").and_then(Value::as_bool).unwrap_or(false) {
+        let dry = s.execute(
+            "graphics.generateComfy",
+            json!({"prompt": prompt, "workflow": path, "kind": "image", "image": image, "resolutionMode": "image", "dryRun": true, "loras": p.get("loras").cloned().unwrap_or(json!([]))}),
+        )?;
+        return Ok(json!({"dryRun": true, "workflow": path, "image": image, "generated": dry}));
+    }
+    let result =
+        generate_asset(s, &prompt, path, "image", json!({"image": image, "resolutionMode": "image", "loras": p.get("loras").cloned().unwrap_or(json!([]))}))?;
+    let item = result["item"].as_u64().ok_or_else(|| bad_cmd("nl.agent.editImage", "no item"))?;
+    if let Some(clip) = clip {
+        s.execute("clip.replaceFromBin", json!({"clips": [clip], "item": item, "keepSourceIn": false}))?;
+        let _ = s.execute("clip.rename", json!({"clips": [clip], "name": "NL · immagine modificata"}));
+    }
+    Ok(json!({"item": item, "asset": result["asset"], "workflow": path, "replaced": clip.is_some()}))
+}
+
+/// `nl.agent.regenerate` — a fresh take on a selected image/graphic, replacing that clip.
+fn regenerate(s: &mut Session, p: &Value) -> Result<Value> {
+    let clip = p.get("clip").and_then(Value::as_u64).ok_or_else(|| bad_cmd("nl.agent.regenerate", "serve `clip`"))?;
+    let item = s
+        .active_sequence()
+        .and_then(|sequence| sequence.find_item(filmcraft_project::ClipId(clip)).map(|(_, item)| item.item.0))
+        .ok_or_else(|| bad_cmd("nl.agent.regenerate", "clip not found"))?;
+    let prompt = text(p.get("prompt"), MAX_PROMPT);
+    if prompt.is_empty() {
+        return Err(bad_cmd("nl.agent.regenerate", "serve `prompt`"));
+    }
+    let quality = p.get("quality").and_then(Value::as_str).unwrap_or("bozza");
+    let path = match p.get("workflow").and_then(Value::as_str) {
+        Some(path) => path.to_string(),
+        None => choose_workflow(s, "image", quality).ok_or_else(|| bad_cmd("nl.agent.regenerate", "no image workflow found"))?["path"]
+            .as_str()
+            .unwrap_or("")
+            .to_string(),
+    };
+    let _ = item;
+    let result = generate_asset(s, &prompt, &path, "image", json!({"resolutionMode": "image", "loras": p.get("loras").cloned().unwrap_or(json!([]))}))?;
+    let new_item = result["item"].as_u64().ok_or_else(|| bad_cmd("nl.agent.regenerate", "no item"))?;
+    s.execute("clip.replaceFromBin", json!({"clips": [clip], "item": new_item, "keepSourceIn": false}))?;
+    let _ = s.execute("clip.rename", json!({"clips": [clip], "name": "NL · grafica rigenerata"}));
+    Ok(json!({"item": new_item, "asset": result["asset"], "workflow": path, "replaced": true}))
 }
 
 pub(crate) fn commands() -> Vec<CommandSpec> {
@@ -1621,6 +1814,8 @@ pub(crate) fn commands() -> Vec<CommandSpec> {
             animate,
         ),
         spec("nl.agent.audio", "NL Generate Audio Placeholder", r#"{"id":int,"prompt":str?,"dryRun":bool?}"#, generate_audio),
+        spec("nl.agent.editImage", "NL Edit Image AI", r#"{"clip":id?,"item":id?,"image":str?,"prompt":str,"workflow":str?,"quality":str?}"#, edit_image),
+        spec("nl.agent.regenerate", "NL Regenerate Graphic", r#"{"clip":id,"prompt":str,"workflow":str?,"quality":str?}"#, regenerate),
         spec("nl.agent.gap", "NL Bridge Placeholder in Gap", r#"{"outgoing":int?,"incoming":int?,"track":str?,"prompt":str?}"#, gap_placeholder),
         spec(
             "nl.agent.update",

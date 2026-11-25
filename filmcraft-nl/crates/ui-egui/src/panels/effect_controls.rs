@@ -3,7 +3,7 @@
 //! keyframe lane on the right. Also hosts the Color Grading panel body (same editor, grouped).
 
 use egui::{Align2, Color32, Pos2, Rect, Sense, Stroke, pos2, vec2};
-use filmcraft_project::{ClipId, EffectInstance, ParamKind, ParamValue, TrackItem, TrackKind};
+use filmcraft_project::{ClipId, EffectInstance, ItemKind, MediaRef, ParamKind, ParamValue, TrackItem, TrackKind};
 use filmcraft_time::Tick;
 use serde_json::{Value, json};
 
@@ -1128,6 +1128,7 @@ pub fn lumetri_panel(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
 
 /// Properties panel (Premiere 26): a compact inspector for the selected clip.
 pub fn properties_panel(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
+    draw_object_action(app, &ui.ctx().clone());
     let t = app.tokens;
     let clips = selected_clips(app);
     let Some((clip, it, kind)) = clips.first().cloned() else {
@@ -1171,8 +1172,15 @@ pub fn properties_panel(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
                 .hint_text("Cosa deve diventare questo oggetto"),
         );
         let changed = edited_kind != kind || edited_prompt != prompt;
-        if changed && response.changed() {
-            // The text field dirty state is enough; the save button commits.
+        app.auto.add("properties.nl.prompt", response.rect, "Cosa deve diventare questo oggetto");
+        if changed && (response.changed() || edited_kind != kind) {
+            // Save as the user types: a local draft would be reset by the next frame, which made
+            // this field look read-only.
+            if let Err(error) =
+                crate::menus::invoke(app, &ui.ctx().clone(), "nl.agent.update", json!({"id": entry, "kind": edited_kind, "prompt": edited_prompt.trim()}))
+            {
+                app.ui.status = error;
+            }
         }
         bui.horizontal_wrapped(|ui| {
             if ui.add_enabled(changed, egui::Button::new("Salva proprietà")).clicked() {
@@ -2431,5 +2439,375 @@ mod uniform_scale_tests {
         for ((case, it), render) in variants(transform).into_iter().zip([true, false, false]) {
             assert_eq!(ignored_by_uniform_scale(&it, &it.effects[transform], "scale_width", mt), render, "transform ({case})");
         }
+    }
+}
+#[derive(Clone, Default)]
+pub(crate) struct NlObjectAction {
+    pub clip: u64,
+    pub prompt: String,
+    pub bridge: Option<(u64, u64)>,
+    pub start: f64,
+    pub end: f64,
+    pub kind: String,
+    pub workflows: Vec<(String, String)>,
+    pub workflow: String,
+    pub loras: Vec<(u64, String, f64, bool)>,
+    pub lora_names: Vec<String>,
+    pub new_lora: String,
+    pub audio: Option<String>,
+    pub loaded: bool,
+    pub scheme: Option<Value>,
+    pub vision_models: Vec<String>,
+    pub vision_model: String,
+    pub vision_url: String,
+    pub confirm_delete: bool,
+}
+
+fn nl_action_id() -> egui::Id {
+    egui::Id::new("nl-object-action")
+}
+
+pub(crate) fn open_object_action(app: &FilmcraftApp, ctx: &egui::Context, clip: u64) {
+    let mut state = NlObjectAction { clip, vision_url: "http://127.0.0.1:11434/v1".into(), vision_model: "gemma4:e4b".into(), ..Default::default() };
+    if let Some((_, item)) = app.session.active_sequence().and_then(|sequence| sequence.find_item(filmcraft_project::ClipId(clip))) {
+        state.start = item.start.0 as f64 / 254_016_000_000.0;
+        state.end = (item.start.0 + item.duration.0) as f64 / 254_016_000_000.0;
+        state.prompt = item.name.clone();
+        if let Some(project_item) = app.session.project.item(item.item) {
+            if let Some(prompt) = project_item.metadata.get("nl.prompt") {
+                state.prompt = prompt.clone();
+            }
+            if let Some(bridge) = project_item.metadata.get("nl.bridge").and_then(|raw| serde_json::from_str::<Value>(raw).ok()) {
+                state.bridge = bridge["outgoing"].as_u64().zip(bridge["incoming"].as_u64());
+            }
+            state.kind = project_item.metadata.get("nl.kind").cloned().unwrap_or_else(|| "image".into());
+        }
+        let start_ticks = (state.start * 254_016_000_000.0) as i64;
+        if let Some(sequence) = app.session.active_sequence() {
+            'tracks: for track in sequence.audio_tracks.iter() {
+                for item in track.items.iter() {
+                    if item.enabled
+                        && item.start.0 <= start_ticks
+                        && item.start.0 + item.duration.0 > start_ticks
+                        && let Some(project_item) = app.session.project.item(item.item)
+                        && let ItemKind::Media(media) = &project_item.kind
+                        && let MediaRef::File { path } = &media.media
+                    {
+                        state.audio = Some(path.clone());
+                        break 'tracks;
+                    }
+                }
+            }
+        }
+    }
+    ctx.data_mut(|data| data.insert_temp(nl_action_id(), state));
+}
+
+/// Fetch every compatible workflow and the live schema of the selected one. This is the dynamic
+/// part the object panel was missing: parameters, references and LoRA names come from /object_info.
+fn nl_refresh_object_schema(app: &mut FilmcraftApp, state: &mut NlObjectAction) {
+    if state.workflow.is_empty() {
+        return;
+    }
+    let Ok(result) = app.session.execute("nl.workflows.schema", json!({"workflow": state.workflow, "api": true})) else {
+        return;
+    };
+    state.loras = result["loras"]
+        .as_array()
+        .map(|rows| {
+            rows.iter()
+                .filter_map(|row| {
+                    Some((
+                        row["node"].as_str()?.parse::<u64>().ok()?,
+                        row["name"].as_str()?.to_string(),
+                        row["strength"].as_f64().unwrap_or(1.0),
+                        row["enabled"].as_bool().unwrap_or(true),
+                    ))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    state.lora_names = result["loraNames"].as_array().map(|names| names.iter().filter_map(|n| n.as_str().map(str::to_string)).collect()).unwrap_or_default();
+    state.scheme = Some(result);
+}
+
+fn nl_load_object_workflows(app: &mut FilmcraftApp, state: &mut NlObjectAction) {
+    let kind = if state.kind == "audio" { "audio" } else { state.kind.as_str() };
+    let Ok(list) = app.session.execute("nl.models.workflows", json!({"kind": kind})) else {
+        state.loaded = true;
+        return;
+    };
+    let wanted = |category: &str| -> bool {
+        match kind {
+            "video" => category.contains("video"),
+            "audio" => category.contains("music") || category.contains("audio"),
+            _ => category.contains("image") || category.contains("character-sheet"),
+        }
+    };
+    state.workflows = list["workflows"]
+        .as_array()
+        .map(|rows| {
+            rows.iter()
+                .filter_map(|row| {
+                    let category = row["category"].as_str().unwrap_or("other");
+                    if !wanted(category) {
+                        return None;
+                    }
+                    Some((row["path"].as_str()?.to_string(), format!("{} · {}", category, row["name"].as_str().unwrap_or("workflow"))))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let priority = |label: &str| -> u8 {
+        if label.contains("image-edit") {
+            0
+        } else if label.contains("image-reference") {
+            1
+        } else if label.contains("text-to-image") {
+            2
+        } else if label.contains("reference-to-video") || label.contains("image-to-video") {
+            0
+        } else if label.contains("text-to-video") {
+            1
+        } else {
+            9
+        }
+    };
+    state.workflows.sort_by(|a, b| priority(&a.1).cmp(&priority(&b.1)).then_with(|| a.1.cmp(&b.1)));
+    if state.workflow.is_empty() || !state.workflows.iter().any(|(path, _)| path == &state.workflow) {
+        state.workflow = state.workflows.first().map(|(path, _)| path.clone()).unwrap_or_default();
+    }
+    state.loaded = true;
+    if let Ok(models) = app.session.execute("nl.models.ollama", json!({})) {
+        state.vision_models =
+            models["models"].as_array().map(|rows| rows.iter().filter_map(|row| row["name"].as_str().map(str::to_string)).collect()).unwrap_or_default();
+    }
+    nl_refresh_object_schema(app, state);
+}
+
+fn draw_object_action(app: &mut FilmcraftApp, ctx: &egui::Context) {
+    let Some(mut state) = ctx.data(|data| data.get_temp::<NlObjectAction>(nl_action_id())) else { return };
+    if !state.loaded {
+        nl_load_object_workflows(app, &mut state);
+    }
+    let mut open = true;
+    let mut close = false;
+    egui::Window::new("Azioni AI sull'oggetto").collapsible(false).resizable(true).default_width(520.0).open(&mut open).show(ctx, |ui| {
+        ui.label(egui::RichText::new(format!("Clip {} · {:.1}s–{:.1}s", state.clip, state.start, state.end)).strong());
+        let mut workflow_changed = false;
+        if !state.workflows.is_empty() {
+            let current_label = state.workflows.iter().find(|(path, _)| path == &state.workflow).map(|(_, label)| label.as_str()).unwrap_or("workflow");
+            craft_ui::ComboBox::from_id_salt("nl-object-workflow").selected_text(current_label).width(400.0).show_ui(ui, |ui| {
+                for (path, label) in &state.workflows {
+                    if ui.selectable_value(&mut state.workflow, path.clone(), label).changed() {
+                        workflow_changed = true;
+                    }
+                }
+            });
+            if ui.button("Aggiorna API workflow").clicked() {
+                workflow_changed = true;
+            }
+        }
+        ui.horizontal_wrapped(|ui| {
+            ui.label("Vision");
+            if state.vision_models.is_empty() {
+                ui.label(&state.vision_model);
+            } else {
+                craft_ui::ComboBox::from_id_salt("nl-object-vision").selected_text(&state.vision_model).width(220.0).show_ui(ui, |ui| {
+                    for model in &state.vision_models {
+                        ui.selectable_value(&mut state.vision_model, model.clone(), model);
+                    }
+                });
+            }
+            if !state.workflow.is_empty() {
+                if state.confirm_delete {
+                    if ui.button("Conferma elimina workflow").clicked() {
+                        match app.session.execute("nl.workflows.delete", serde_json::json!({"workflow": state.workflow})) {
+                            Ok(_) => {
+                                state.loaded = false;
+                                state.workflow.clear();
+                                state.confirm_delete = false;
+                                app.ui.status = "Workflow spostato in da_eliminare/workflows".into();
+                            }
+                            Err(error) => app.ui.status = error.to_string(),
+                        }
+                    }
+                    if ui.button("Annulla").clicked() {
+                        state.confirm_delete = false;
+                    }
+                } else if ui.button("Elimina workflow").clicked() {
+                    state.confirm_delete = true;
+                }
+            }
+        });
+        if workflow_changed {
+            nl_refresh_object_schema(app, &mut state);
+        }
+        if let Some(scheme) = &state.scheme {
+            let missing = scheme["missingClasses"].as_array().map_or(0, Vec::len);
+            if missing > 0 {
+                ui.colored_label(egui::Color32::from_rgb(220, 120, 60), format!("{missing} nodi non installati"));
+            }
+            let slots = &scheme["slotCounts"];
+            ui.label(
+                egui::RichText::new(format!(
+                    "Reference: {} immagini · {} video · {} audio · {} audio video",
+                    slots["image"], slots["video"], slots["audio"], slots["videoAudio"]
+                ))
+                .size(10.0),
+            );
+        }
+        ui.separator();
+        ui.label("Cosa deve diventare / come va modificato:");
+        ui.add(egui::TextEdit::multiline(&mut state.prompt).desired_rows(3).desired_width(f32::INFINITY));
+
+        if !state.loras.is_empty() || !state.lora_names.is_empty() {
+            ui.separator();
+            ui.label(egui::RichText::new("LoRA del workflow / aggiungi").strong());
+            let lora_names = state.lora_names.clone();
+            for (index, (node, name, strength, enabled)) in state.loras.iter_mut().enumerate() {
+                ui.push_id(("nl-object-lora-row", index), |ui| {
+                    ui.horizontal(|ui| {
+                        let mut on = *enabled;
+                        if ui.checkbox(&mut on, "").changed() {
+                            *enabled = on;
+                            if !on {
+                                *strength = 0.0;
+                            } else if *strength == 0.0 {
+                                *strength = 1.0;
+                            }
+                        }
+                        let label = name.rsplit(['\\', '/']).next().unwrap_or(name).to_string();
+                        if !lora_names.is_empty() {
+                            craft_ui::ComboBox::from_id_salt("nl-object-lora-name")
+                                .selected_text(label)
+                                .width(200.0)
+                                .show_ui(ui, |ui| {
+                                    for choice in &lora_names {
+                                        let short = choice.rsplit(['\\', '/']).next().unwrap_or(choice);
+                                        ui.selectable_value(name, choice.clone(), short);
+                                    }
+                                });
+                        } else {
+                            ui.label(label);
+                        }
+                        ui.add(egui::DragValue::new(strength).range(0.0..=2.0).speed(0.01).prefix("forza "));
+                        if *node == 0 && ui.small_button("rimuovi").clicked() {
+                            *enabled = false;
+                        }
+                    });
+                });
+            }
+            ui.horizontal_wrapped(|ui| {
+                if !state.lora_names.is_empty() {
+                    craft_ui::ComboBox::from_id_salt("nl-new-lora")
+                        .selected_text(if state.new_lora.is_empty() { "Scegli LoRA…" } else { state.new_lora.as_str() })
+                        .width(260.0)
+                        .show_ui(ui, |ui| {
+                            for name in &state.lora_names {
+                                let short = name.rsplit(['\\', '/']).next().unwrap_or(name);
+                                ui.selectable_value(&mut state.new_lora, name.clone(), short);
+                            }
+                        });
+                    if !state.new_lora.is_empty() && ui.button("Aggiungi LoRA").clicked() {
+                        let name = state.new_lora.clone();
+                        if !state.loras.iter().any(|(_, existing, _, _)| existing == &name) {
+                            state.loras.push((0, name.clone(), 1.0, true));
+                        }
+                        state.new_lora.clear();
+                    }
+                }
+                if ui.button("Suggerisci LoRA AI").clicked() {
+                    match app.session.execute("nl.workflows.suggestLora", serde_json::json!({"prompt": state.prompt})) {
+                        Ok(result) => {
+                            if let Some(rows) = result["loras"].as_array() {
+                                for row in rows {
+                                    if let Some(name) = row.as_str()
+                                        && !state.loras.iter().any(|(_, existing, _, _)| existing == name)
+                                    {
+                                        state.loras.push((0, name.to_string(), 1.0, true));
+                                    }
+                                }
+                            }
+                            app.ui.status = "LoRA suggerite dall'AI".into();
+                        }
+                        Err(error) => app.ui.status = error.to_string(),
+                    }
+                }
+            });
+        }
+        let loras = state
+            .loras
+            .iter()
+            .filter(|(_, _, _, enabled)| *enabled)
+            .map(|(node, name, strength, _)| serde_json::json!({"node": node.to_string(), "name": name, "strength": strength}))
+            .collect::<Vec<_>>();
+        let loras = serde_json::Value::Array(loras);
+        ui.horizontal_wrapped(|ui| {
+            if ui.button("Compila prompt da frame + audio").clicked() {
+                match app
+                    .session
+                    .execute("nl.prompt.fromObject", serde_json::json!({"clip": state.clip, "visionModel": state.vision_model, "visionUrl": state.vision_url}))
+                {
+                    Ok(result) => {
+                        if let Some(prompt) = result["prompt"].as_str() {
+                            state.prompt = prompt.to_string();
+                        }
+                        app.ui.status = "Prompt costruito dal frame e dal parlato".into();
+                    }
+                    Err(error) => app.ui.status = error.to_string(),
+                }
+            }
+            if state.kind != "video" && ui.button("Modifica immagine").clicked() {
+                if let Err(error) = crate::menus::invoke(
+                    app,
+                    ctx,
+                    "nl.agent.editImage",
+                    serde_json::json!({"clip": state.clip, "prompt": state.prompt, "quality": "standard", "workflow": state.workflow, "loras": loras}),
+                ) {
+                    app.ui.status = error;
+                }
+                close = true;
+            }
+            if state.kind != "audio" && ui.button("Anima in video (i2v)").clicked() {
+                let mut params = serde_json::json!({"clip": state.clip, "prompt": state.prompt, "quality": "bozza", "loras": loras, "analyze": true, "visionModel": state.vision_model, "visionUrl": state.vision_url});
+                if let Some(audio) = &state.audio {
+                    params["audio"] = serde_json::json!(audio);
+                }
+                if let Err(error) = crate::menus::invoke(app, ctx, "nl.agent.animate", params) {
+                    app.ui.status = error;
+                }
+                close = true;
+            }
+            if state.kind != "video" && ui.button("Rigenera immagine").clicked() {
+                if let Err(error) = crate::menus::invoke(
+                    app,
+                    ctx,
+                    "nl.agent.regenerate",
+                    serde_json::json!({"clip": state.clip, "prompt": state.prompt, "quality": "bozza", "workflow": state.workflow, "loras": loras}),
+                ) {
+                    app.ui.status = error;
+                }
+                close = true;
+            }
+            if let Some((outgoing, incoming)) = state.bridge
+                && ui.button("Genera ponte video").clicked()
+            {
+                if let Err(error) = crate::menus::invoke(
+                    app,
+                    ctx,
+                    "nl.bridge.generate",
+                    serde_json::json!({"outgoing": outgoing, "incoming": incoming, "prompt": state.prompt, "loras": loras}),
+                ) {
+                    app.ui.status = error;
+                }
+                close = true;
+            }
+        });
+    });
+    if open && !close {
+        ctx.data_mut(|data| data.insert_temp(nl_action_id(), state));
+    } else {
+        ctx.data_mut(|data| data.remove::<NlObjectAction>(nl_action_id()));
     }
 }

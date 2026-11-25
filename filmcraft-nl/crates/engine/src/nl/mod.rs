@@ -33,6 +33,7 @@ pub mod titles;
 pub mod translate;
 pub mod versions;
 pub mod vision;
+pub mod workflow_schema;
 pub mod workflows;
 
 use std::path::PathBuf;
@@ -656,6 +657,7 @@ pub fn commands() -> Vec<CommandSpec> {
     .chain(versions::commands())
     .chain(montage::commands())
     .chain(agent::commands())
+    .chain(workflow_schema::commands())
     .collect()
 }
 
@@ -677,7 +679,7 @@ pub(crate) fn suite_root() -> Option<std::path::PathBuf> {
     }
     for start in starts {
         for ancestor in start.ancestors() {
-            if ancestor.join("workflows/regista").is_dir() || ancestor.join("runtime/python").is_dir() {
+            if ancestor.join("workflows/image").is_dir() || ancestor.join("runtime/python").is_dir() {
                 return Some(ancestor.to_path_buf());
             }
         }

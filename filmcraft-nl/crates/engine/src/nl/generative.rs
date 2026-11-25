@@ -23,10 +23,10 @@ use crate::{EngineError, Result, Session};
 /// `last_frame` inputs, which the bridge fills with the two timeline frames.
 const TEXT_WORKFLOW: &str = "workflows/video_minimax_h3_t2v.json";
 /// Fallback bridge workflows when the text/flf one is unavailable.
-const R2V_WORKFLOW: &str = "workflows/calliope/video_minimax_h3_r2v_2ref_API.json";
+const R2V_WORKFLOW: &str = "workflows/video/reference-to-video/video_minimax_h3_r2v (2).json";
 /// Extend workflow: video + two reference frames, used by the v2v extension.
-const EXTEND_WORKFLOW: &str = "workflows/calliope/MiniMax-H3-Turbo-R2V-Extend-2Refs1Vid_API.json";
-const I2V_WORKFLOW: &str = "workflows/calliope/minimax_h3-Turbo_Image2Video_20260813_API.json";
+const EXTEND_WORKFLOW: &str = "workflows/video/edit/MiniMax-H3_-_V2V_Extend_Any_Video_latent_masking.json";
+const I2V_WORKFLOW: &str = "workflows/video/text-to-video/video_minimax_h3_t2v.json";
 /// A bridge shorter than this is not worth a generation.
 const MIN_GAP: f64 = 0.25;
 

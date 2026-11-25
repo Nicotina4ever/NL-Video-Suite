@@ -275,6 +275,36 @@ fn job_line(app: &mut FilmcraftApp, ui: &mut egui::Ui, prefix: &str) {
     ui.label(RichText::new(line).size(12.0).color(app.tokens.text_dim));
 }
 
+/// “Elimina workflow” beside the selector: first click asks confirmation, the second moves the
+/// JSON to `da_eliminare/workflows` (never deletes it outright).
+fn delete_workflow_button(app: &mut FilmcraftApp, ui: &mut egui::Ui, kind: &str, path: &str) {
+    if path.is_empty() {
+        return;
+    }
+    let id = egui::Id::new(("nl-delete-workflow", path));
+    let armed = ui.data(|data| data.get_temp::<bool>(id)).unwrap_or(false);
+    let label = if armed { "Conferma eliminazione" } else { "Elimina workflow" };
+    if ui.button(label).clicked() {
+        if !armed {
+            ui.data_mut(|data| data.insert_temp(id, true));
+            return;
+        }
+        match app.session.execute("nl.workflows.delete", json!({"workflow": path})) {
+            Ok(_) => {
+                ui.data_mut(|data| {
+                    data.remove::<bool>(id);
+                    data.remove::<(f64, Vec<(String, String)>)>(egui::Id::unique(("nl-workflows", kind)));
+                });
+                app.ui.status = "Workflow spostato in da_eliminare/workflows".into();
+            }
+            Err(error) => {
+                ui.data_mut(|data| data.remove::<bool>(id));
+                app.ui.status = error.to_string();
+            }
+        }
+    }
+}
+
 /// Workflows for a kind, read from the engine and refreshed when empty or older than a few
 /// seconds; `select` is the draft's index into the list.
 fn workflow_options(app: &mut FilmcraftApp, ui: &egui::Ui, kind: &str) -> Vec<(String, String)> {
@@ -634,12 +664,30 @@ fn default_workflow(options: &[(String, String)], app: &FilmcraftApp, kind: &str
         "audio" => nl.comfy_music_workflow.as_str(),
         _ => nl.comfy_image_workflow.as_str(),
     };
-    if !wanted.is_empty()
-        && let Some(i) = options.iter().position(|(path, _)| path == wanted)
-    {
-        return i;
+    let wanted_is_sheet = wanted.to_ascii_lowercase().contains("character_sheet");
+    if !wanted.is_empty() && !wanted_is_sheet {
+        if let Some(i) = options.iter().position(|(path, _)| path == wanted) {
+            return i;
+        }
+        // The workflow library is reorganised into category folders; the preference still names
+        // the old relative path. Match the file name instead of falling back to a character sheet.
+        let wanted_name = std::path::Path::new(wanted).file_name().and_then(|n| n.to_str());
+        if let Some(name) = wanted_name
+            && let Some(i) = options.iter().position(|(path, _)| std::path::Path::new(path).file_name().and_then(|n| n.to_str()) == Some(name))
+        {
+            return i;
+        }
     }
-    0
+    let preferred = match kind {
+        "video" => "reference-to-video",
+        "audio" => "music",
+        _ => "text-to-image",
+    };
+    options
+        .iter()
+        .position(|(_, label)| label.contains(preferred) && !label.contains("character-sheet"))
+        .or_else(|| options.iter().position(|(_, label)| !label.contains("character-sheet")))
+        .unwrap_or(0)
 }
 
 /// The size a generation will use, read from the engine so the panel shows the real number.
@@ -745,10 +793,15 @@ fn generate_body(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     let _ = &kind_label;
     let kind = kinds[d.kind.min(kinds.len() - 1)].0;
     let options = workflow_options(app, ui, kind);
-    if d.workflow >= options.len() {
+    if d.workflow >= options.len()
+        || (d.params_workflow.is_empty()
+            && options.get(d.workflow).is_some_and(|(_, label)| label.contains("character-sheet")))
+    {
         d.workflow = default_workflow(&options, app, kind);
     }
     combo(app, ui, "generate.workflow", "Workflow", &mut d.workflow, &options);
+    let selected_workflow = options.get(d.workflow).map(|(path, _)| path.clone()).unwrap_or_default();
+    delete_workflow_button(app, ui, kind, &selected_workflow);
     if let Some((path, _)) = options.get(d.workflow).cloned() {
         model_parameter_section(app, ui, &path, &mut d);
     }
@@ -964,6 +1017,8 @@ fn music(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         d.seconds = 30;
     }
     combo(app, ui, "music.workflow", "Workflow", &mut d.workflow, &options);
+    let selected_workflow = options.get(d.workflow).map(|(path, _)| path.clone()).unwrap_or_default();
+    delete_workflow_button(app, ui, "audio", &selected_workflow);
     let mut caption = d.caption.clone();
     ui.label(RichText::new("Style or subject").size(12.0).color(app.tokens.text_dim));
     let r = ui.add(egui::TextEdit::multiline(&mut caption).desired_rows(3).desired_width(f32::INFINITY).id_salt("nl-music-caption"));
@@ -2465,6 +2520,8 @@ fn cover(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     let seconds = time.0 as f64 / filmcraft_time::TICKS_PER_SECOND as f64;
     ui.label(RichText::new(format!("Frame at {}", time_range(seconds, seconds))).size(12.0).color(app.tokens.text_dim));
     combo(app, ui, "cover.workflow", "Workflow (needs an image input)", &mut d.workflow, &options);
+    let selected_workflow = options.get(d.workflow).map(|(path, _)| path.clone()).unwrap_or_default();
+    delete_workflow_button(app, ui, "image", &selected_workflow);
     let mut prompt = d.prompt.clone();
     ui.label(RichText::new("Description (empty = taken from the speech near the frame)").size(12.0).color(app.tokens.text_dim));
     let r = ui.add(egui::TextEdit::multiline(&mut prompt).desired_rows(3).desired_width(f32::INFINITY).id_salt("nl-cover-prompt"));

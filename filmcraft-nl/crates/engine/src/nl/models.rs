@@ -181,14 +181,17 @@ pub fn workflows(s: &Session, kind: &str) -> Result<Vec<Value>, String> {
         let entry = match serde_json::from_str::<Value>(&text) {
             Ok(workflow) if workflow.is_object() => {
                 let workflow_kind_of = workflow_kind(&workflow, &relative);
-                if kind != "all" && kind != workflow_kind_of {
+                let workflow_category = category(&workflow, &relative);
+                // A character sheet may save a video (Apex H3) but it is used as an image edit /
+                // sheet workflow; keep it visible in the image list.
+                if kind != "all" && kind != workflow_kind_of && !(kind == "image" && workflow_category == "character-sheet") {
                     continue;
                 }
                 json!({
                     "path": relative.to_string_lossy().replace('\\', "/"),
                     "name": relative.file_stem().map(|n| n.to_string_lossy().to_string()).unwrap_or_default(),
                     "kind": workflow_kind_of,
-                    "category": category(&workflow, &relative),
+                    "category": workflow_category,
                     "bytes": bytes,
                     "capabilities": capabilities(&workflow),
                 })
@@ -256,7 +259,46 @@ pub fn find(s: &Session, path: &str) -> Option<PathBuf> {
             candidates.push(parent.join(&candidate));
         }
     }
-    candidates.into_iter().find(|p| p.is_file())
+    if let Some(found) = candidates.into_iter().find(|p| p.is_file()) {
+        return Some(found);
+    }
+    // The library may have been reorganised into category folders: a settings entry or a saved
+    // plan still names the old relative path. Fall back to the unique file name.
+    let name = candidate.file_name()?.to_os_string();
+    let mut roots = Vec::new();
+    if let Some(suite) = super::suite_root() {
+        roots.push(suite.join("workflows"));
+    }
+    if let Some(root) = root(s) {
+        roots.push(root.clone());
+        if let Some(parent) = root.parent() {
+            roots.push(parent.to_path_buf());
+        }
+    }
+    for root in roots {
+        if let Some(found) = find_named(&root, &name, 0) {
+            return Some(found);
+        }
+    }
+    None
+}
+
+fn find_named(dir: &Path, name: &std::ffi::OsStr, depth: usize) -> Option<PathBuf> {
+    if depth > 5 {
+        return None;
+    }
+    let entries = std::fs::read_dir(dir).ok()?;
+    let mut dirs = Vec::new();
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_file() && path.file_name() == Some(name) {
+            return Some(path);
+        }
+        if path.is_dir() {
+            dirs.push(path);
+        }
+    }
+    dirs.into_iter().find_map(|dir| find_named(&dir, name, depth + 1))
 }
 
 /// The workflows the NL preferences select, for the settings and panel summaries.

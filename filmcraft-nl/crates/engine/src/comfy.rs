@@ -17,9 +17,12 @@ use serde_json::{Value, json};
 
 use crate::{EngineError, Result, Session};
 
-const DEFAULT_WORKFLOWS: &[&str] =
-    &["workflows/regista/image/z-image-turbo.json", "workflows/regista/image/image_z_image.json", "workflows/regista/image/image_flux2_text_to_image_9b.json"];
-const DEFAULT_MUSIC_WORKFLOW: &str = "workflows/regista/audio/audio_ace_step1_5_xl_sft.json";
+const DEFAULT_WORKFLOWS: &[&str] = &[
+    "workflows/image/text-to-image/z-image-turbo.json",
+    "workflows/image/text-to-image/image_z_image.json",
+    "workflows/image/text-to-image/image_flux2_text_to_image_9b.json",
+];
+const DEFAULT_MUSIC_WORKFLOW: &str = "workflows/audio/music/audio_ace_step1_5_xl_sft.json";
 const MEDIA_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "webp", "wav", "flac", "mp3", "ogg", "mp4", "webm", "mov"];
 
 fn bad(e: impl ToString) -> EngineError {
@@ -350,7 +353,7 @@ fn resolve_workflow(s: &Session, p: &Value) -> std::result::Result<PathBuf, Engi
                     return Ok(path);
                 }
             }
-            Err(bad("no default image workflow found under workflows/regista/image; pass `workflow`"))
+            Err(bad("no default image workflow found under workflows/image; pass `workflow`"))
         }
     }
 }
@@ -498,6 +501,25 @@ fn fill_prompt(workflow: &mut Value, prompt: &str, negative: Option<&str>, lyric
         for key in ["text", "tags", "caption", "value", "prompt"] {
             if let Some(Value::String(text)) = inputs.get_mut(key) {
                 *text = prompt.to_string();
+                positive = true;
+                break;
+            }
+        }
+    }
+    if !positive {
+        // NanoBanana/Qwen edit graphs keep the operator instruction in a generic multiline
+        // primitive with no "prompt" title. Fill that default, never a system instruction.
+        for node in nodes.values_mut() {
+            let class = node.get("class_type").and_then(Value::as_str).unwrap_or_default();
+            let title = node.get("_meta").and_then(|m| m.get("title")).and_then(Value::as_str).unwrap_or_default().to_ascii_lowercase();
+            if !class.contains("PrimitiveString") || title.contains("system") {
+                continue;
+            }
+            if let Some(Value::String(value)) = node.get_mut("inputs").and_then(Value::as_object_mut).and_then(|inputs| inputs.get_mut("value")) {
+                if value.trim_start().to_ascii_lowercase().starts_with("you are") {
+                    continue;
+                }
+                *value = prompt.to_string();
                 positive = true;
                 break;
             }
@@ -867,23 +889,55 @@ fn stage_references(url: &str, p: &Value, workflow: &mut Value) -> Result<Vec<Va
             let Some(name) = lora.get("name").and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty()) else { continue };
             let strength = lora.get("strength").and_then(Value::as_f64).unwrap_or(1.0);
             let wanted_node = lora.get("node").and_then(Value::as_str);
+            let add_new = wanted_node == Some("0");
             let Some(nodes) = workflow.as_object_mut() else { break };
-            let target = nodes.iter_mut().find(|(id, node)| {
-                let class = node.get("class_type").and_then(Value::as_str).unwrap_or_default().to_ascii_lowercase();
-                class.contains("lora") && wanted_node.is_none_or(|wanted| wanted == *id)
-            });
-            let Some((id, node)) = target else {
-                return Err(bad(format!("no LoRA node in this workflow for `{name}`: pick a workflow with LoraLoader or set the widget override")));
+            let target = if add_new {
+                None
+            } else {
+                nodes.iter_mut().find(|(id, node)| {
+                    let class = node.get("class_type").and_then(Value::as_str).unwrap_or_default().to_ascii_lowercase();
+                    class.contains("lora") && wanted_node.is_none_or(|wanted| wanted == *id)
+                })
             };
-            let inputs = node.get_mut("inputs").and_then(Value::as_object_mut).ok_or_else(|| bad("the LoRA node has no inputs"))?;
-            inputs.insert("lora_name".into(), json!(name));
-            if inputs.contains_key("strength_model") {
-                inputs.insert("strength_model".into(), json!(strength));
+            if let Some((id, node)) = target {
+                let inputs = node.get_mut("inputs").and_then(Value::as_object_mut).ok_or_else(|| bad("the LoRA node has no inputs"))?;
+                inputs.insert("lora_name".into(), json!(name));
+                if inputs.contains_key("strength_model") {
+                    inputs.insert("strength_model".into(), json!(strength));
+                }
+                if inputs.contains_key("strength_clip") {
+                    inputs.insert("strength_clip".into(), json!(strength));
+                }
+                changed.push(json!({"node": id, "name": name, "strength": strength}));
+                continue;
             }
-            if inputs.contains_key("strength_clip") {
-                inputs.insert("strength_clip".into(), json!(strength));
+            if wanted_node.is_some() && !add_new {
+                return Err(bad(format!("no LoRA node `{}` in this workflow", wanted_node.unwrap_or_default())));
             }
-            changed.push(json!({"node": id, "name": name, "strength": strength}));
+            // The workflow has no free LoRA slot: insert a model-only LoRA between a MODEL
+            // consumer and its source, in memory, for this run only.
+            let Some((consumer_id, source)) = nodes.iter().find_map(|(id, node)| {
+                let class = node.get("class_type").and_then(Value::as_str).unwrap_or_default().to_ascii_lowercase();
+                if class.contains("lora") {
+                    return None;
+                }
+                let link = node.get("inputs").and_then(Value::as_object).and_then(|inputs| inputs.get("model")).and_then(Value::as_array)?;
+                (link.len() == 2 && link[0].is_string()).then(|| (id.clone(), link.clone()))
+            }) else {
+                return Err(bad(format!("no MODEL link to attach LoRA `{name}` in this workflow")));
+            };
+            let next = nodes.keys().filter_map(|key| key.rsplit(':').next().and_then(|part| part.parse::<u64>().ok())).max().unwrap_or(0) + 1;
+            let new_id = next.to_string();
+            nodes.insert(
+                new_id.clone(),
+                json!({"class_type": "LoraLoaderModelOnly", "inputs": {"model": source, "lora_name": name, "strength_model": strength}, "_meta": {"title": "LoRA (NL)"}}),
+            );
+            if let Some(consumer) = nodes.get_mut(&consumer_id)
+                && let Some(inputs) = consumer.get_mut("inputs").and_then(Value::as_object_mut)
+            {
+                inputs.insert("model".into(), json!([new_id, 0]));
+            }
+            changed.push(json!({"node": new_id, "name": name, "strength": strength, "added": true}));
         }
         if !changed.is_empty() {
             staged.push(json!({"role": "lora", "items": changed}));
