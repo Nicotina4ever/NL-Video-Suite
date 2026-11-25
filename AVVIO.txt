@@ -1,0 +1,18 @@
+NL VIDEO SUITE - AVVIO
+
+Doppio clic su "Avvia NL Video Suite.lnk" (o sul collegamento "NL Video Suite" sul Desktop).
+Non si apre nessuna console: parte direttamente la finestra dell'app.
+
+DATI E CARTELLE
+Questa copia e' in modalita' portable: i dati (cache, recovery, impostazioni locali, download) stanno in:
+  K:\AI\NL_Video_Suite\data
+
+Per riportarla in modalita' normale (AppData), basta eliminare "portable.txt".
+Per spostare i dati: chiudi l'app e sposta/rinomina la cartella "data".
+
+PROGETTI
+I progetti .fcproj restano dove li salvi tu; gli asset generati dagli agenti vengono messi in <progetto>/generated.
+
+RELEASE
+Exe: NL Video Suite.exe
+Bundle: distribuzione\NLVideoSuite-2.0.0-windows-x64\
