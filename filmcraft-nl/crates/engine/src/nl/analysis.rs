@@ -117,8 +117,19 @@ pub(crate) fn first_model(endpoint: &str) -> std::result::Result<String, String>
 }
 
 pub(crate) fn vision_endpoint(s: &Session, p: &Value) -> String {
-    let base =
-        p.get("visionUrl").and_then(Value::as_str).map(str::trim).filter(|url| !url.is_empty()).map(str::to_string).unwrap_or_else(|| s.prefs.nl.vision_url());
+    let base = p
+        .get("visionUrl")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|url| !url.is_empty())
+        .map(str::to_string)
+        .unwrap_or_else(|| {
+            if s.prefs.nl.vision_url.trim().is_empty() {
+                format!("{}/v1", s.prefs.nl.ollama_url().trim_end_matches('/'))
+            } else {
+                s.prefs.nl.vision_url()
+            }
+        });
     let base = base.trim_end_matches('/').to_string();
     if base.ends_with("/chat/completions") { base } else { format!("{base}/chat/completions") }
 }

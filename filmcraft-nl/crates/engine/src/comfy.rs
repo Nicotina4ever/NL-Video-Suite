@@ -293,6 +293,15 @@ pub(crate) fn poll(s: &mut Session) {
                     params["item"] = json!(id.0);
                     match s.execute("timeline.place", params) {
                         Ok(mut result) => {
+                            // A generated bridge can come back smaller than the sequence (the H3
+                            // profile renders 640x352): fit it to the frame before transitions.
+                            let fit = pending.place.as_ref().and_then(|place| place.get("fit")).and_then(Value::as_str) == Some("frame");
+                            if fit {
+                                if let Some(clip) = result["clips"].as_array().and_then(|clips| clips.first()).and_then(Value::as_u64) {
+                                    let _ = s.execute("timeline.select", json!({"clips": [clip]}));
+                                    let _ = s.execute("clip.fillFrame", json!({"clips": [clip]}));
+                                }
+                            }
                             if let Some(transition) = pending.place.as_ref().and_then(|place| place.get("transition")).and_then(Value::as_str) {
                                 let applied = crate::nl::generative::apply_place_transitions(s, &result, transition);
                                 result["transitions"] = json!(applied);

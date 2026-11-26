@@ -11,7 +11,7 @@
 //! clip's end, trimmed to the gap length.
 
 use std::path::{Path, PathBuf};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use filmcraft_time::Tick;
 use serde_json::{Value, json};
@@ -23,7 +23,7 @@ use crate::{EngineError, Result, Session};
 /// `last_frame` inputs, which the bridge fills with the two timeline frames.
 const TEXT_WORKFLOW: &str = "workflows/video_minimax_h3_t2v.json";
 /// Fallback bridge workflows when the text/flf one is unavailable.
-const R2V_WORKFLOW: &str = "workflows/video/reference-to-video/video_minimax_h3_r2v (2).json";
+const R2V_WORKFLOW: &str = "workflows/video/reference-to-video/minimax_h3_video_reference.json";
 /// Extend workflow: video + two reference frames, used by the v2v extension.
 const EXTEND_WORKFLOW: &str = "workflows/video/edit/MiniMax-H3_-_V2V_Extend_Any_Video_latent_masking.json";
 const I2V_WORKFLOW: &str = "workflows/video/text-to-video/video_minimax_h3_t2v.json";
@@ -219,8 +219,45 @@ fn export_frame(s: &mut Session, path: &Path, time: Tick) -> Result<Value> {
     s.execute("file.exportFrame", json!({"target": "program", "format": "png", "path": path.to_string_lossy(), "time": time.0}))
 }
 
-/// The two frames of a bridge, exported under the suite data folder and kept for the receipt.
-fn export_bridge_frames(s: &mut Session, gap: &Gap) -> Result<(PathBuf, PathBuf)> {
+/// A short visual description of one exported bridge frame, used to build the default prompt.
+/// Best effort: a missing vision model leaves the structured fallback text in place.
+fn describe_bridge_frame(s: &mut Session, p: &Value, path: &Path) -> Option<String> {
+    let png = std::fs::read(path).ok()?;
+    let endpoint = super::analysis::vision_endpoint(s, p);
+    let first = p
+        .get("visionModel")
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .filter(|model| !model.trim().is_empty())
+        .or_else(|| Some(s.prefs.nl.vision_model.trim().to_string()).filter(|model| !model.is_empty()))
+        .or_else(|| Some(s.prefs.nl.ollama_model_vision()).filter(|model| !model.trim().is_empty()))?;
+    let mut candidates = vec![first];
+    if let Ok(declared) = super::analysis::first_model(&endpoint) {
+        if !candidates.iter().any(|model| model == &declared) {
+            candidates.push(declared);
+        }
+    }
+    if !candidates.iter().any(|model| model.starts_with("lfm3")) {
+        candidates.push("lfm3-omni:latest".into());
+    }
+    for model in candidates {
+        match super::analysis::ask_vision(
+            &endpoint,
+            &model,
+            &png,
+            "Describe this video frame for a continuity transition: subject, pose, action, environment, lighting, camera and colour. One concise English sentence, no guesses.",
+        ) {
+            Ok(text) if !text.trim().is_empty() => return Some(text.trim().trim_end_matches([',', '.', '!', '?']).chars().take(500).collect()),
+            Ok(_) => {}
+            Err(error) => eprintln!("bridge vision failed: endpoint={endpoint} model={model} error={error}"),
+        }
+    }
+    None
+}
+
+/// The two frames of a bridge, plus the outgoing audio tail (audio reference when the workflow
+/// supports it), exported under the suite data folder and kept for the receipt.
+fn export_bridge_frames(s: &mut Session, gap: &Gap) -> Result<(PathBuf, PathBuf, Option<PathBuf>)> {
     let stamp = SystemTime::now().duration_since(UNIX_EPOCH).map(|elapsed| elapsed.as_millis()).unwrap_or(0);
     let dir = data_dir().join("nl").join("bridge").join(format!("{stamp}"));
     std::fs::create_dir_all(&dir).map_err(|e| bad_cmd("nl.bridge.plan", format!("{}: {e}", dir.display())))?;
@@ -229,7 +266,16 @@ fn export_bridge_frames(s: &mut Session, gap: &Gap) -> Result<(PathBuf, PathBuf)
     let first = dir.join("incoming-first-frame.png");
     export_frame(s, &last, Tick(gap.outgoing_end.0.saturating_sub(one_frame).max(0)))?;
     export_frame(s, &first, gap.incoming_start)?;
-    Ok((last, first))
+    // Last two seconds before the gap: this is the sound the bridge has to continue.
+    let audio = dir.join("outgoing-audio.wav");
+    let end = gap.start.0 as f64 / 254_016_000_000.0;
+    let start = (end - 2.0).max(0.0);
+    let exported = s.execute(
+        "file.exportMedia",
+        json!({"path": audio.to_string_lossy(), "format": "wav", "range": "custom", "startSeconds": start, "endSeconds": end, "audio": true, "wait": true}),
+    );
+    let audio = exported.is_ok().then_some(audio).filter(|path| path.is_file());
+    Ok((last, first, audio))
 }
 
 /// The first/last-frame workflow: the text-to-video graph plus two LoadImage nodes wired to the H3
@@ -263,22 +309,59 @@ fn bridge_transition(p: &Value) -> String {
     p.get("transition").and_then(Value::as_str).map(str::to_ascii_lowercase).filter(|transition| transition == "dissolve").unwrap_or_else(|| "cut".into())
 }
 
-/// The prompt of a bridge: the operator's, or a safe deterministic description of the transition.
-fn bridge_prompt(p: &Value, mode: &str) -> String {
-    let base = p.get("prompt").and_then(Value::as_str).map(str::trim).filter(|prompt| !prompt.is_empty());
-    match base {
-        Some(prompt) => prompt.to_string(),
-        None => {
-            let hint = if mode == "flf" {
-                "Continue seamlessly from the first frame to the last frame"
-            } else {
-                "Transition smoothly from the last frame of the outgoing shot to the first frame of the incoming shot"
-            };
-            format!(
-                "{hint}: natural continuous motion, consistent lighting, camera, colour and style; the action flows without a cut. No text, subtitles, logos or overlays."
-            )
-        }
+/// A MiniMax H3-aligned bridge prompt built from the real frames. FL2VA/I2VA use the base
+/// three-field schema; the reference workflow uses the full-reference six-section schema so the
+/// two frames and the outgoing audio are explicitly labelled.
+fn bridge_prompt(p: &Value, mode: &str, seconds: f64, last_desc: Option<&str>, first_desc: Option<&str>, has_audio: bool) -> String {
+    if let Some(prompt) = p.get("prompt").and_then(Value::as_str).map(str::trim).filter(|prompt| !prompt.is_empty()) {
+        return prompt.to_string();
     }
+    let last = last_desc.unwrap_or("the outgoing shot's final composition, pose and lighting");
+    let first = first_desc.unwrap_or("the incoming shot's opening composition, pose and lighting");
+    if mode == "i2v" {
+        return format!(
+            "I2VA: For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.\n\n\
+             integrated_multimodal_description: [Shot 1] Begin exactly on {last}. The subject continues its current action with natural, continuous motion; the camera holds or moves slightly as the action resolves into {first}. Preserve identity, wardrobe, colours, environment, lighting and lens character from the reference frame.\n\n\
+             overall_soundscape: Natural diegetic room tone and the subject's breathing and cloth movement continue across the shot, with no sudden audio cut.\n\n\
+             non_diegetic_music: N/A"
+        );
+    }
+    if mode == "flf" {
+        return format!(
+            "FL2VA: How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 1) aligns with the {seconds:.2}-second mark of the target video.\n\n\
+             integrated_multimodal_description: [Shot 1] One continuous shot. Begin exactly on {last}; the subject continues its action with natural, continuous motion while the camera holds or makes a restrained push. The motion resolves smoothly and lands exactly on {first} at the end, with identity, wardrobe, environment, lighting and colour preserved.\n\n\
+             overall_soundscape: The outgoing ambience and physical sounds continue without a cut, matching the visual action and fading naturally into the incoming room tone.\n\n\
+             non_diegetic_music: N/A"
+        );
+    }
+    let audio_def = if has_audio {
+        "\n<Audio 1> is the outgoing audio tail: ambience, voice and physical sounds from the last seconds before the gap."
+    } else {
+        ""
+    };
+    let audio_retention = if has_audio {
+        "\n<Audio 1>: reference — Continue the outgoing sound texture across the bridge without inventing new dialogue."
+    } else {
+        ""
+    };
+    let audio_sound = if has_audio {
+        "Continue <Audio 1>'s ambience and physical sounds without a cut, then blend into the incoming room tone."
+    } else {
+        "The outgoing ambience and physical sounds continue without a cut and blend into the incoming room tone."
+    };
+    format!(
+        "subject_definitions:\n\
+         <Picture 1> is the outgoing shot's last frame: {last}.\n\
+         <Picture 2> is the incoming shot's first frame: {first}.{audio_def}\n\n\
+         summary: [reference generation] The target video is a continuous bridge that starts on <Picture 1>, develops the outgoing action, and lands exactly on <Picture 2> after {seconds:.2} seconds.\n\n\
+         retention_analysis:\n\
+         <Picture 1>: fully_preserved — The opening frame matches <Picture 1> exactly.\n\
+         <Picture 2>: fully_preserved — The final frame matches <Picture 2> exactly.{audio_retention}\n\n\
+         detailed_description:\n\
+         [Shot 1] Begin exactly on <Picture 1>; the subject continues the current action with natural, continuous motion, keeping identity, wardrobe, environment, lighting and lens character. The camera remains steady or makes a restrained push as the action resolves. Land exactly on <Picture 2> at the end; no cut, no text, no logos, no overlays.\n\n\
+         overall_soundscape: {audio_sound}\n\n\
+         non_diegetic_music: N/A"
+    )
 }
 
 /// A video clip on the timeline, with the track name used by `timeline.place`.
@@ -435,7 +518,7 @@ pub(crate) fn apply_place_transitions(s: &mut Session, placement: &Value, transi
 /// generating anything.
 fn bridge_plan(s: &mut Session, p: &Value) -> Result<Value> {
     let gap = find_gap(s, p)?;
-    let (last, first) = export_bridge_frames(s, &gap)?;
+    let (last, first, audio) = export_bridge_frames(s, &gap)?;
     let mode = p.get("mode").and_then(Value::as_str).unwrap_or("flf").to_ascii_lowercase();
     if !matches!(mode.as_str(), "flf" | "r2v" | "i2v") {
         return Err(bad_cmd("nl.bridge.plan", "`mode` must be flf, r2v or i2v"));
@@ -447,18 +530,16 @@ fn bridge_plan(s: &mut Session, p: &Value) -> Result<Value> {
     };
     let references: Vec<String> =
         if mode == "i2v" { vec![last.to_string_lossy().to_string()] } else { vec![last.to_string_lossy().to_string(), first.to_string_lossy().to_string()] };
-    // Optional local vision pass on the incoming frame: the description steers the transition prompt.
-    // It runs before any ComfyUI submission and unloads the vision model at once.
-    let mut prompt = bridge_prompt(p, &mode);
-    let mut incoming_description: Option<String> = None;
-    if p.get("analyzeIncoming").and_then(Value::as_bool).unwrap_or(false) {
-        let model = s.prefs.nl.ollama_model_vision();
-        let url = s.prefs.nl.ollama_url();
-        let description = super::vision::describe_incoming(&url, &model, &first, Duration::from_secs(120))
-            .map_err(|e| bad_cmd("nl.bridge.plan", format!("vision on the incoming frame failed: {e}")))?;
-        prompt = format!("{prompt} The first frame of the incoming shot shows: {description}. Blend from the outgoing last frame into it naturally.");
-        incoming_description = Some(description);
+    // Build the default prompt from the real outgoing/incoming frames, not a canned sentence. A
+    // caller-supplied prompt is kept as-is; the vision pass is best effort so a missing model never
+    // blocks the bridge plan.
+    let prompt_given = p.get("prompt").and_then(Value::as_str).is_some_and(|prompt| !prompt.trim().is_empty());
+    let (mut last_description, mut first_description) = (None, None);
+    if !prompt_given && p.get("analyzeIncoming").and_then(Value::as_bool).unwrap_or(true) {
+        last_description = describe_bridge_frame(s, p, &last);
+        first_description = describe_bridge_frame(s, p, &first);
     }
+    let prompt = bridge_prompt(p, &mode, gap.seconds(), last_description.as_deref(), first_description.as_deref(), audio.is_some());
     Ok(json!({
         "track": gap.track,
         "outgoing": gap.outgoing,
@@ -468,12 +549,14 @@ fn bridge_plan(s: &mut Session, p: &Value) -> Result<Value> {
         "gapSeconds": gap.seconds(),
         "lastFrame": last.to_string_lossy(),
         "firstFrame": first.to_string_lossy(),
+        "audio": audio.as_ref().map(|path| path.to_string_lossy().to_string()),
         "references": references,
         "mode": mode,
         "workflow": workflow.map(|path| path.to_string_lossy().to_string()),
         "prompt": prompt,
-        "incomingDescription": incoming_description,
-        "placement": {"track": gap.track_param, "time": gap.start.0, "duration": gap.end.0 - gap.start.0, "video": true, "audio": true, "transition": bridge_transition(p)},
+        "incomingDescription": first_description,
+        "outgoingDescription": last_description,
+        "placement": {"track": gap.track_param, "time": gap.start.0, "duration": gap.end.0 - gap.start.0, "video": true, "audio": true, "fit": "frame", "transition": bridge_transition(p)},
     }))
 }
 
@@ -515,6 +598,9 @@ fn bridge_generate(s: &mut Session, p: &Value) -> Result<Value> {
         params["width"] = json!(round32(width));
         params["height"] = json!(round32(height));
     }
+    if let Some(audio) = plan["audio"].as_str().filter(|audio| !audio.is_empty()) {
+        params["audio"] = json!(audio);
+    }
     for key in ["wait", "dryRun", "seed", "overrides", "timeoutSeconds", "negative"] {
         if let Some(value) = p.get(key) {
             params[key] = value.clone();
@@ -555,6 +641,10 @@ fn bridge_place(s: &mut Session, p: &Value) -> Result<Value> {
             "audio": true,
         }),
     )?;
+    if let Some(clip) = placed["clips"].as_array().and_then(|clips| clips.first()).and_then(Value::as_u64) {
+        let _ = s.execute("timeline.select", json!({"clips": [clip]}));
+        let _ = s.execute("clip.fillFrame", json!({"clips": [clip]}));
+    }
     let transitions = apply_place_transitions(s, &placed, &bridge_transition(p));
     Ok(json!({"item": item.0, "path": path, "gapSeconds": gap.seconds(), "placement": placed, "transitions": transitions}))
 }

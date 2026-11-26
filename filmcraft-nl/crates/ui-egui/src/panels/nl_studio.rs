@@ -1030,7 +1030,7 @@ pub(super) fn montage_panel(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
 
 // ---------------------------------------------------------------- bridge (generative fill)
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 struct BridgeDraft {
     outgoing: String,
     incoming: String,
@@ -1039,6 +1039,21 @@ struct BridgeDraft {
     analyze: bool,
     prompt: String,
     place_path: String,
+}
+
+impl Default for BridgeDraft {
+    fn default() -> Self {
+        Self {
+            outgoing: String::new(),
+            incoming: String::new(),
+            // Two references + the outgoing audio tail is the mode that keeps both sides and sound.
+            mode: 1,
+            transition: 0,
+            analyze: true,
+            prompt: String::new(),
+            place_path: String::new(),
+        }
+    }
 }
 
 /// NL Bridge: fill the empty gap between two shots with a locally generated transition. The two
@@ -1070,7 +1085,6 @@ pub(super) fn bridge_panel(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
                 ui.selectable_value(&mut d.mode, index, *label);
             }
         });
-        ui.checkbox(&mut d.analyze, RichText::new("Describe incoming frame with vision (Ollama)").size(11.0));
         let transitions = [("cut", "Cut"), ("dissolve", "Dissolve")];
         craft_ui::ComboBox::from_id_salt("nl-bridge-transition").selected_text(transitions[d.transition.min(1)].1).show_ui(ui, |ui| {
             for (index, (_, label)) in transitions.iter().enumerate() {
@@ -1096,7 +1110,7 @@ pub(super) fn bridge_panel(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         }
     };
     let (outgoing, incoming) = ids();
-    let mut params = json!({"mode": modes[d.mode.min(modes.len() - 1)].0.split(' ').next().unwrap_or("flf"), "transition": if d.transition == 1 { "dissolve" } else { "cut" }, "analyzeIncoming": d.analyze});
+    let mut params = json!({"mode": modes[d.mode.min(modes.len() - 1)].0.split(' ').next().unwrap_or("flf"), "transition": if d.transition == 1 { "dissolve" } else { "cut" }, "analyzeIncoming": true});
     if let Some(outgoing) = outgoing {
         params["outgoing"] = json!(outgoing);
     }
