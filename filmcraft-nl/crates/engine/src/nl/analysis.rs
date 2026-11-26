@@ -55,27 +55,53 @@ pub(crate) fn ask_vision(endpoint: &str, model: &str, png: &[u8], prompt: &str) 
         "temperature": 0.2,
     })
     .to_string();
-    let reply = super::http::request(super::http::Method::Post, endpoint, Some(&body), VISION_TIMEOUT)?;
-    let value: Value = serde_json::from_slice(&reply).map_err(|e| format!("{endpoint}: response is not JSON: {e}"))?;
-    let content = &value["choices"][0]["message"]["content"];
-    if let Some(text) = content.as_str() {
-        return Ok(text.trim().to_string());
-    }
-    if let Some(parts) = content.as_array() {
-        let text = parts.iter().filter_map(|part| part["text"].as_str()).collect::<Vec<_>>().join(" ");
-        if !text.trim().is_empty() {
+    let reply = super::http::request(super::http::Method::Post, endpoint, Some(&body), VISION_TIMEOUT);
+    let parsed = reply.and_then(|reply| serde_json::from_slice::<Value>(&reply).map_err(|e| format!("{endpoint}: response is not JSON: {e}")));
+    if let Ok(value) = &parsed {
+        let content = &value["choices"][0]["message"]["content"];
+        if let Some(text) = content.as_str()
+            && !text.trim().is_empty()
+        {
             return Ok(text.trim().to_string());
         }
-    }
-    // Reasoning models (gemma4) put the visible analysis in `reasoning` and may leave `content`
-    // empty when the token budget ends inside the thinking block.
-    if let Some(reasoning) = value["choices"][0]["message"]["reasoning"].as_str() {
-        let text = reasoning.trim();
-        if !text.is_empty() {
-            return Ok(text.chars().take(1200).collect());
+        if let Some(parts) = content.as_array() {
+            let text = parts.iter().filter_map(|part| part["text"].as_str()).collect::<Vec<_>>().join(" ");
+            if !text.trim().is_empty() {
+                return Ok(text.trim().to_string());
+            }
+        }
+        if let Some(reasoning) = value["choices"][0]["message"]["reasoning"].as_str()
+            && !reasoning.trim().is_empty()
+        {
+            return Ok(reasoning.trim().chars().take(1200).collect());
         }
     }
-    Err(format!("{endpoint}: the vision answer has no content"))
+    // Ollama's OpenAI-compatible endpoint rejects some image payloads; its native /api/chat takes
+    // the same model and image with `images: [base64]` and is what lfm3-omni expects.
+    if endpoint.contains("11434") {
+        let base = endpoint.trim_end_matches('/').trim_end_matches("/v1").trim_end_matches("/chat/completions");
+        let body = json!({
+            "model": model,
+            "messages": [{"role": "user", "content": prompt, "images": [image]}],
+            "stream": false,
+            "options": {"num_predict": 900, "temperature": 0.2}
+        })
+        .to_string();
+        let reply = super::http::request(super::http::Method::Post, &format!("{base}/api/chat"), Some(&body), VISION_TIMEOUT)?;
+        let value: Value = serde_json::from_slice(&reply).map_err(|e| format!("{base}: response is not JSON: {e}"))?;
+        if let Some(text) = value["message"]["content"].as_str()
+            && !text.trim().is_empty()
+        {
+            return Ok(text.trim().to_string());
+        }
+        if let Some(text) = value["message"]["thinking"].as_str()
+            && !text.trim().is_empty()
+        {
+            return Ok(text.trim().chars().take(1200).collect());
+        }
+        return Err(format!("{base}: Ollama returned no vision answer"));
+    }
+    Err(parsed.err().unwrap_or_else(|| format!("{endpoint}: the vision answer has no content")))
 }
 
 /// The model the endpoint declares, when the preference is empty.

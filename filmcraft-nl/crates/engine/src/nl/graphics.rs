@@ -48,6 +48,35 @@ fn graphics_add(s: &mut Session, p: &Value) -> Result<Value> {
     Ok(json!({"clip": clip, "kind": kind, "fill": fill}))
 }
 
+
+/// `nl.graphics.palette` — dominant colours of a reference image, for a coherent visual identity
+/// across titles/cards. PNG only (the engine's image decoder ships the PNG codec).
+fn palette(s: &mut Session, p: &Value) -> Result<Value> {
+    let path = p.get("image").and_then(Value::as_str).map(str::trim).filter(|v| !v.is_empty()).ok_or_else(|| bad_cmd("nl.graphics.palette", "serve `image`"))?;
+    let resolved = if std::path::Path::new(path).is_file() { std::path::PathBuf::from(path) } else { super::models::find(s, path).ok_or_else(|| bad_cmd("nl.graphics.palette", format!("image not found: {path}")))? };
+    let img = image::open(&resolved).map_err(|e| bad_cmd("nl.graphics.palette", format!("{}: {e}", resolved.display())))?.to_rgba8();
+    let step = (img.width().max(img.height()) / 160).max(1) as u32;
+    let mut counts: std::collections::HashMap<(u8, u8, u8), u32> = std::collections::HashMap::new();
+    for y in (0..img.height()).step_by(step as usize) {
+        for x in (0..img.width()).step_by(step as usize) {
+            let [r, g, b, a] = img.get_pixel(x, y).0;
+            if a < 32 { continue; }
+            let key = ((r / 16) * 16, (g / 16) * 16, (b / 16) * 16);
+            *counts.entry(key).or_default() += 1;
+        }
+    }
+    let mut colors: Vec<((u8, u8, u8), u32)> = counts.into_iter().collect();
+    colors.sort_by(|a, b| b.1.cmp(&a.1));
+    let hex = |(r, g, b): (u8, u8, u8)| format!("#{r:02x}{g:02x}{b:02x}");
+    let palette: Vec<String> = colors.iter().take(8).map(|(c, _)| hex(*c)).collect();
+    let accent = colors.iter().map(|(c, _)| *c).max_by_key(|(r, g, b)| {
+        let max = *r.max(g).max(b) as i32;
+        let min = *r.min(g).min(b) as i32;
+        max - min
+    }).map(hex).unwrap_or_else(|| "#ffffff".into());
+    Ok(json!({"image": resolved.to_string_lossy(), "palette": palette, "accent": accent}))
+}
+
 pub(crate) fn commands() -> Vec<CommandSpec> {
     vec![CommandSpec {
         id: "nl.graphics.add",
@@ -57,6 +86,17 @@ pub(crate) fn commands() -> Vec<CommandSpec> {
         params: r##"{"kind":"rectangle|ellipse|text"?,"text":str?,"fontSize":f?,"position":[x,y]?,"size":[w,h]?,"fillColor":"#rrggbb"?,"seconds":f?}"##,
         enabled: always,
         run: graphics_add,
+        journal: false,
+        named: crate::commands::NamedKeys::NONE,
+    },
+    CommandSpec {
+        id: "nl.graphics.palette",
+        label: "NL Graphics Palette",
+        menu: &[],
+        shortcut: None,
+        params: r#"{"image":str}"#,
+        enabled: always,
+        run: palette,
         journal: false,
         named: crate::commands::NamedKeys::NONE,
     }]

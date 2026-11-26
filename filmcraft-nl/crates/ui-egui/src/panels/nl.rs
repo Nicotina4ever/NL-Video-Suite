@@ -220,16 +220,100 @@ pub(super) fn title(app: &mut FilmcraftApp, ui: &mut egui::Ui, title: &str, subt
 }
 
 pub(super) fn error_line(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    drain_nl_queue(app, &ui.ctx().clone());
     let status = app.ui.status.clone();
-    if !status.is_empty() {
-        ui.label(RichText::new(status).size(12.0).color(egui::Color32::from_rgb(233, 120, 120)));
-        ui.add_space(4.0);
+    if status.is_empty() {
+        return;
+    }
+    let lower = status.to_ascii_lowercase();
+    let needs_transcript = lower.contains("transcript") || lower.contains("trascriz") || lower.contains("asr");
+    let needs_comfy = lower.contains("comfyui") && (lower.contains("reach") || lower.contains("connect") || lower.contains("not running") || lower.contains("impossibile"));
+    let needs_models = lower.contains("modello") || lower.contains("model") || lower.contains("nodo") || lower.contains("node");
+    let needs_story = lower.contains("story") || lower.contains("storia");
+    let needs_ollama = lower.contains("ollama") || lower.contains("vision model") || lower.contains("llm");
+    ui.horizontal_wrapped(|ui| {
+        ui.label(RichText::new(&status).size(12.0).color(egui::Color32::from_rgb(233, 120, 120)));
+    });
+    if needs_transcript {
+        ui.horizontal_wrapped(|ui| {
+            ui.label(RichText::new("Serve prima la trascrizione.").size(11.0).color(app.tokens.text_dim));
+            if ui.button("Apri Trascrizione / ASR").clicked() {
+                app.show_panel(PanelKind::NlTranscript);
+            }
+            if ui.button("Trascrivi ora").clicked() {
+                run(app, ui, "transcript.transcribeNl", json!({"language": "it", "device": "auto"}));
+            }
+            if ui.button("Poi analizza capitoli").clicked() {
+                app.show_panel(PanelKind::NlLongform);
+            }
+        });
+    } else if needs_comfy || needs_models {
+        ui.horizontal_wrapped(|ui| {
+            ui.label(RichText::new("Controlla servizi e workflow prima di riprovare.").size(11.0).color(app.tokens.text_dim));
+            if ui.button("Apri Servizi NL").clicked() {
+                app.show_panel(PanelKind::NlServices);
+            }
+            if ui.button("Apri Workflow").clicked() {
+                app.show_panel(PanelKind::NlWorkflows);
+            }
+        });
+    } else if needs_ollama {
+        ui.horizontal_wrapped(|ui| {
+            ui.label(RichText::new("Configura il modello/provider.").size(11.0).color(app.tokens.text_dim));
+            if ui.button("Apri Impostazioni NL").clicked() {
+                app.show_panel(PanelKind::NlSettings);
+            }
+        });
+    } else if needs_story {
+        ui.horizontal_wrapped(|ui| {
+            if ui.button("Apri NL Story").clicked() {
+                app.show_panel(PanelKind::NlStory);
+            }
+        });
+    }
+    ui.add_space(4.0);
+}
+
+fn nl_queue_id() -> egui::Id {
+    egui::Id::unique("nl-command-queue")
+}
+
+fn active_jobs(app: &FilmcraftApp) -> usize {
+    app.session.jobs.iter().filter(|job| !job.progress.finished.load(std::sync::atomic::Ordering::Relaxed)).count()
+}
+
+fn drain_nl_queue(app: &mut FilmcraftApp, ctx: &egui::Context) {
+    if active_jobs(app) > 0 {
+        return;
+    }
+    let next = ctx.data_mut(|data| {
+        let mut queue: std::collections::VecDeque<(String, Value)> = data.get_temp(nl_queue_id()).unwrap_or_default();
+        let next = queue.pop_front();
+        data.insert_temp(nl_queue_id(), queue);
+        next
+    });
+    if let Some((id, params)) = next
+        && let Err(error) = crate::menus::invoke(app, ctx, &id, params)
+    {
+        app.ui.status = error;
     }
 }
 
-/// Run one command for a button press, showing a failure in the panel status line.
+/// Run one command for a button press, showing a failure in the panel status line. While another
+/// NL/ComfyUI job is running the command waits in the internal queue instead of being refused.
 pub(super) fn run(app: &mut FilmcraftApp, ui: &egui::Ui, id: &str, params: Value) {
     let ctx = ui.ctx().clone();
+    drain_nl_queue(app, &ctx);
+    if active_jobs(app) > 0 {
+        ctx.data_mut(|data| {
+            let mut queue: std::collections::VecDeque<(String, Value)> = data.get_temp(nl_queue_id()).unwrap_or_default();
+            queue.push_back((id.to_string(), params));
+            data.insert_temp(nl_queue_id(), queue);
+        });
+        let pending = app.session.jobs.iter().filter(|job| !job.progress.finished.load(std::sync::atomic::Ordering::Relaxed)).count();
+        app.ui.status = format!("In coda: {pending} job attivo/i, il comando partirà appena liberi.");
+        return;
+    }
     if let Err(e) = crate::menus::invoke(app, &ctx, id, params) {
         app.ui.status = e;
     }
