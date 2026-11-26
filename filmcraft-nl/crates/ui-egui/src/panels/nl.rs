@@ -111,7 +111,7 @@ pub const PANEL_COMMANDS: &[(PanelKind, &[&str])] = &[
     (PanelKind::NlAlbum, &["nl.album.list", "nl.album.insert"]),
     (PanelKind::NlVersions, &["nl.versions.list", "nl.versions.save", "nl.versions.restore", "nl.versions.delete"]),
     (PanelKind::NlMontage, &["nl.montage.plan", "nl.montage.apply"]),
-    (PanelKind::NlBridge, &["nl.bridge.plan", "nl.bridge.generate", "nl.bridge.place"]),
+    (PanelKind::NlBridge, &["nl.bridge.plan", "nl.bridge.generate", "nl.bridge.place", "nl.agent.gap"]),
     (
         PanelKind::NlStory,
         &[
@@ -128,7 +128,7 @@ pub const PANEL_COMMANDS: &[(PanelKind, &[&str])] = &[
     ),
     (PanelKind::NlQueue, &["nl.queue.list", "nl.queue.add", "nl.queue.prepare", "nl.queue.send", "nl.queue.remove", "nl.queue.free"]),
     (PanelKind::NlSpeech, &["nl.asr.models", "nl.asr.transcribe"]),
-    (PanelKind::NlSettings, &["nl.asr.models", "nl.size.preview"]),
+    (PanelKind::NlSettings, &["nl.asr.models", "nl.size.preview", "nl.models.ollama"]),
     (PanelKind::NlCover, &["nl.cover.prompt", "nl.cover.set"]),
     (
         PanelKind::NlWorkflows,
@@ -3672,6 +3672,63 @@ fn queue(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
 fn settings(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     title(app, ui, "NL Settings", "The same values as Settings ▸ NL Video Suite: endpoints, installed models, resolution profiles and speech recognition.");
     error_line(app, ui);
+    let models_id = egui::Id::unique("nl-ollama-models");
+    ui.horizontal(|ui| {
+        if button(app, ui, "settings.ollama_fetch", "Carica modelli Ollama") {
+            let ctx = ui.ctx().clone();
+            match crate::menus::invoke(app, &ctx, "nl.models.ollama", json!({})) {
+                Ok(value) => {
+                    ui.data_mut(|data| data.insert_temp(models_id, value));
+                }
+                Err(e) => app.ui.status = e,
+            }
+        }
+        if let Some(value) = ui.data(|data| data.get_temp::<Value>(models_id)) {
+            ui.label(
+                RichText::new(format!("{} modelli", value["models"].as_array().map_or(0, Vec::len)))
+                    .size(11.0)
+                    .color(app.tokens.text_faint),
+            );
+        }
+    });
+    if let Some(value) = ui.data(|data| data.get_temp::<Value>(models_id)) {
+        let options: Vec<(String, String)> = value["models"]
+            .as_array()
+            .map(|rows| {
+                rows.iter()
+                    .filter_map(|row| row["name"].as_str().map(|name| (name.to_string(), name.to_string())))
+                    .collect()
+            })
+            .unwrap_or_default();
+        if !options.is_empty() {
+            let mut prompt_index = options.iter().position(|(name, _)| name == &app.session.prefs.nl.ollama_model).or_else(|| options.iter().position(|(name, _)| name.starts_with("lfm3-omni"))).unwrap_or(0);
+            ui.horizontal(|ui| {
+                ui.label(RichText::new("Modello prompt").size(11.0).color(app.tokens.text_dim));
+                let before = prompt_index;
+                combo(app, ui, "settings.ollama_prompt_model", "Modello prompt", &mut prompt_index, &options);
+                if prompt_index != before {
+                    let name = options[prompt_index].0.clone();
+                    if let Err(e) = app.session.execute("prefs.set", json!({"key": "nl.ollamaModel", "value": name})) {
+                        app.ui.status = e.to_string();
+                    }
+                }
+            });
+            let mut vision_index = options.iter().position(|(name, _)| name == &app.session.prefs.nl.ollama_model_vision).or_else(|| options.iter().position(|(name, _)| name.starts_with("gemma4"))).unwrap_or(0);
+            ui.horizontal(|ui| {
+                ui.label(RichText::new("Modello vision").size(11.0).color(app.tokens.text_dim));
+                let before = vision_index;
+                combo(app, ui, "settings.ollama_vision_model", "Modello vision", &mut vision_index, &options);
+                if vision_index != before {
+                    let name = options[vision_index].0.clone();
+                    if let Err(e) = app.session.execute("prefs.set", json!({"key": "nl.ollamaModelVision", "value": name})) {
+                        app.ui.status = e.to_string();
+                    }
+                }
+            });
+        }
+    }
+
+
     let nl = app.session.prefs.nl.clone();
     let rows = [
         ("ComfyUI", nl.comfy_url()),

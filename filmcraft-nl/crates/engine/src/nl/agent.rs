@@ -1663,7 +1663,19 @@ fn gap_placeholder(s: &mut Session, p: &Value) -> Result<Value> {
         Ok(())
     });
     save(s, &plan)?;
-    Ok(json!({"placed": clip, "item": item, "seconds": seconds, "entry": entry_id, "plan": plan, "bridge": planned}))
+    let _ = s.execute("timeline.select", json!({"clips": [clip]}));
+    s.toast(format!(
+        "Ponte AI creato su {track}: {seconds:.1}s. È selezionato: in Properties premi «Genera e sostituisci»."
+    ));
+    Ok(json!({
+        "placed": clip,
+        "item": item,
+        "seconds": seconds,
+        "entry": entry_id,
+        "message": format!("Ponte AI creato: {seconds:.1}s su {track}. Placeholder selezionato; genera il video dalle Properties."),
+        "plan": plan,
+        "bridge": planned
+    }))
 }
 
 /// An image workflow that accepts a reference image, for edit/alternative passes.

@@ -205,6 +205,9 @@ pub(super) fn nl_timeline_menu(app: &mut FilmcraftApp, ctx: &egui::Context, ui: 
             ("timeline.nlMenu.generate", "Genera e sostituisci gli oggetti", "nl.agent.generate", json!({"all": true})),
             ("timeline.nlMenu.collect", "Raccogli gli asset nel progetto", "nl.agent.collect", json!({})),
             ("timeline.nlMenu.gap", "Crea ponte AI nel gap", "nl.agent.gap", json!({})),
+            ("timeline.nlMenu.bridge", "Apri NL Bridge", "window.panel.NlBridge", json!({})),
+            ("timeline.nlMenu.transcript", "Apri Trascrizione / ASR", "window.panel.NlTranscript", json!({})),
+            ("timeline.nlMenu.graphics", "Apri NL Graphics (grafiche e titoli)", "window.panel.NlGraphics", json!({})),
         ];
         for (id, label, command, params) in entries {
             let enabled = command.starts_with("window.") || app.session.is_enabled(command);

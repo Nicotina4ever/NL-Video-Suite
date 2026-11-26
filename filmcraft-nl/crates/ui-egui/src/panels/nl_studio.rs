@@ -1107,7 +1107,17 @@ pub(super) fn bridge_panel(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         params["prompt"] = json!(d.prompt.trim());
     }
     ui.horizontal(|ui| {
-        if button(app, ui, "bridge.plan", "Plan bridge") {
+        if button(app, ui, "bridge.placeholder", "Crea segnaposto nel gap") {
+            let ctx = ui.ctx().clone();
+            match crate::menus::invoke(app, &ctx, "nl.agent.gap", params.clone()) {
+                Ok(value) => {
+                    let msg = value["message"].as_str().unwrap_or("Ponte AI creato nel gap.").to_string();
+                    app.ui.status = msg;
+                }
+                Err(e) => app.ui.status = e,
+            }
+        }
+        if button(app, ui, "bridge.plan", "Anteprima frame (senza generare)") {
             let ctx = ui.ctx().clone();
             match crate::menus::invoke(app, &ctx, "nl.bridge.plan", params.clone()) {
                 Ok(value) => {
