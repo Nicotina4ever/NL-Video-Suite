@@ -11,7 +11,7 @@ use std::net::{TcpStream, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde_json::{Value, json};
 
@@ -1229,6 +1229,93 @@ fn encode(value: &str) -> String {
     out
 }
 
+
+/// `graphics.upscaleVideo` — upscale the media of one timeline clip with the RTX workflow and
+/// replace the footage in place. The old generated file is removed so the project does not keep
+/// both versions; a source outside the project's generated folder is never deleted.
+fn upscale_video(s: &mut Session, p: &Value) -> Result<Value> {
+    let url = p.get("url").and_then(Value::as_str).map(str::trim).filter(|url| !url.is_empty()).map(str::to_string).unwrap_or_else(|| s.prefs.nl.comfy_url());
+    let item = if let Some(item) = p.get("item").and_then(Value::as_u64) {
+        item
+    } else {
+        let clip = p.get("clip").and_then(Value::as_u64).or_else(|| s.state.selection.first().map(|clip| clip.0));
+        let clip = clip.ok_or_else(|| bad("select a timeline clip (or pass `clip`/`item`)"))?;
+        let sequence = s.active_sequence().ok_or(EngineError::NoSequence)?;
+        sequence
+            .video_tracks
+            .iter()
+            .flat_map(|track| track.items.iter())
+            .find(|candidate| candidate.id.0 == clip)
+            .map(|candidate| candidate.item.0)
+            .ok_or_else(|| bad(format!("clip {clip} is not on a video track")))?
+    };
+    let source = crate::nl::agent::media_path(s, item).ok_or_else(|| bad(format!("item {item} has no file media")))?;
+    if !Path::new(&source).is_file() {
+        return Err(bad(format!("media file not found: {source}")));
+    }
+    let workflow_path = match p.get("workflow").and_then(Value::as_str).map(str::trim).filter(|path| !path.is_empty()) {
+        Some(path) => find_workflow(s, path).ok_or_else(|| bad(format!("workflow not found: {path}")))?,
+        None => find_workflow(s, "workflows/rtx_video_full_workflow.json").ok_or_else(|| bad("RTX upscale workflow not found"))?,
+    };
+    let text = std::fs::read_to_string(&workflow_path).map_err(|e| bad(format!("{}: {e}", workflow_path.display())))?;
+    let mut workflow: Value = serde_json::from_str(&text).map_err(|e| bad(format!("{}: {e}", workflow_path.display())))?;
+    let uploaded = upload_file(&url, Path::new(&source))?;
+    let mut patched = 0;
+    if let Some(nodes) = workflow.as_object_mut() {
+        for node in nodes.values_mut() {
+            if node.get("class_type").and_then(Value::as_str) == Some("LoadVideo") {
+                node["inputs"]["file"] = json!(uploaded);
+                patched += 1;
+            }
+            if node.get("class_type").and_then(Value::as_str) == Some("RTXVideoSuperResolution") {
+                if let Some(multiplier) = p.get("multiplier").and_then(Value::as_f64).filter(|value| *value >= 1.0 && *value <= 4.0) {
+                    node["inputs"]["resize_type.scale"] = json!(multiplier);
+                }
+                if let Some(quality) = p.get("quality").and_then(Value::as_str).filter(|quality| matches!(*quality, "LOW" | "MEDIUM" | "HIGH" | "ULTRA")) {
+                    node["inputs"]["quality"] = json!(quality);
+                }
+            }
+        }
+    }
+    if patched == 0 {
+        return Err(bad("the workflow has no LoadVideo node to feed"));
+    }
+    let stamp = SystemTime::now().duration_since(UNIX_EPOCH).map(|elapsed| elapsed.as_millis()).unwrap_or(0);
+    let dir = generated_dir(stamp as u64);
+    std::fs::create_dir_all(&dir).map_err(|e| bad(format!("{}: {e}", dir.display())))?;
+    let timeout = Duration::from_secs(p.get("timeoutSeconds").and_then(Value::as_u64).unwrap_or(1800).clamp(60, 7200));
+    let progress = filmcraft_export::Progress::default();
+    let files = submit_and_download(&url, &workflow, &dir, timeout, &progress).map_err(bad)?;
+    // SaveVideo and the preview path can both emit a video: take the largest one, which is the
+    // upscaled output, not the original LoadVideo passthrough.
+    let output = files
+        .iter()
+        .filter(|path| path.to_ascii_lowercase().ends_with(".mp4") || path.to_ascii_lowercase().ends_with(".mov") || path.to_ascii_lowercase().ends_with(".webm"))
+        .max_by_key(|path| std::fs::metadata(path).map(|meta| meta.len()).unwrap_or(0))
+        .ok_or_else(|| bad("the upscaler returned no video file"))?;
+    // Put the upscaled file next to the project, then point the existing item at it.
+    let project_dir = s.path.as_deref().and_then(|path| Path::new(path).parent()).map(Path::to_path_buf).unwrap_or_else(|| dir.clone());
+    let folder = project_dir.join("generated");
+    std::fs::create_dir_all(&folder).map_err(|e| bad(format!("{}: {e}", folder.display())))?;
+    let stem = Path::new(&source).file_stem().and_then(|stem| stem.to_str()).unwrap_or("clip");
+    let dest = folder.join(format!("{stem}-upscaled-{stamp}.mp4"));
+    std::fs::copy(output, &dest).map_err(|e| bad(format!("{}: {e}", dest.display())))?;
+    s.execute("media.replaceFootage", json!({"item": item, "path": dest.to_string_lossy()}))?;
+    let old = Path::new(&source);
+    if old.starts_with(&folder) && old != dest {
+        let _ = std::fs::remove_file(old);
+    }
+    Ok(json!({
+        "item": item,
+        "oldPath": source,
+        "path": dest.to_string_lossy(),
+        "workflow": workflow_path.to_string_lossy(),
+        "uploaded": uploaded,
+        "scale": p.get("multiplier").cloned().unwrap_or(json!(2)),
+        "notice": "upscaled in place: the clip now points at the new file and the old generated file was removed"
+    }))
+}
+
 pub(crate) fn commands() -> Vec<crate::CommandSpec> {
     vec![
         crate::CommandSpec {
@@ -1239,6 +1326,17 @@ pub(crate) fn commands() -> Vec<crate::CommandSpec> {
             params: r#"{"prompt":str,"workflow":str?,"negative":str?,"lyrics":str?,"seed":n?,"width":n?,"height":n?,"resolutionMode":"image|video"?,"imageScale":f?,"videoScale":"2/3|1/2|1/3"?,"character":str?,"background":str?,"image":str?,"images":[str]?,"video":str?,"videos":[str]?,"audio":str?,"audios":[str]?,"loras":[{"node":str?,"name":str,"strength":f?}]?,"overrides":[{"node":str,"field":str,"value":any}]?,"dryRun":bool?,"url":str?,"wait":bool?,"timeoutSeconds":n?}"#,
             enabled: crate::commands::always,
             run: generate,
+            journal: false,
+            named: crate::commands::NamedKeys::NONE,
+        },
+        crate::CommandSpec {
+            id: "graphics.upscaleVideo",
+            label: "Upscale Generated Video…",
+            menu: &["Graphics and Titles"],
+            shortcut: None,
+            params: r#"{"clip":id?,"item":id?,"workflow":str?,"url":str?,"multiplier":f?,"quality":"LOW|MEDIUM|HIGH|ULTRA"?,"timeoutSeconds":n?}"#,
+            enabled: crate::commands::always,
+            run: upscale_video,
             journal: false,
             named: crate::commands::NamedKeys::NONE,
         },

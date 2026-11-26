@@ -98,7 +98,7 @@ pub const PANEL_COMMANDS: &[(PanelKind, &[&str])] = &[
         &["nl.clipping.propose", "nl.clipping.render", "nl.clipping.sequences", "nl.reframe.sequence", "nl.reframe.active", "nl.subtitles.srt"],
     ),
     (PanelKind::NlSgrossa, &["nl.sgrossa.analyze", "nl.sgrossa.apply", "nl.sgrossa.report"]),
-    (PanelKind::NlAnalyze, &["nl.longform.analyze", "nl.analyze.segment", "nl.search.index", "nl.search.query", "nl.translate.captions", "nl.assistant.ask"]),
+    (PanelKind::NlAnalyze, &["nl.longform.analyze", "nl.analyze.segment", "graphics.upscaleVideo", "nl.search.index", "nl.search.query", "nl.translate.captions", "nl.assistant.ask"]),
     (PanelKind::NlTranscript, &["transcript.transcribeNl", "captions.import", "transcript.createCaptions", "nl.translate.captions", "nl.longform.analyze"]),
     (
         PanelKind::NlSubtitles,
@@ -3442,6 +3442,16 @@ fn analyze(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         "Chapters for a long recording, read from the ASR transcript with the local model; each chapter can become a timeline marker.",
     );
     error_line(app, ui);
+    ui.horizontal(|ui| {
+        if button(app, ui, "analyze.upscale", "Upscale video selezionato (RTX 3×)") {
+            let clip = app.session.state.selection.first().map(|clip| clip.0);
+            match clip {
+                Some(clip) => run(app, ui, "graphics.upscaleVideo", json!({"clip": clip, "multiplier": 3.0, "quality": "ULTRA"})),
+                None => app.ui.status = "Seleziona la clip generata da upscalare.".into(),
+            }
+        }
+        ui.label(RichText::new("Sostituisce il footage nella clip, senza creare un secondo item.").size(10.0).color(app.tokens.text_faint));
+    });
     segment_section(app, ui);
     if button(app, ui, "analyze.run", "Analyze chapters") {
         run(app, ui, "nl.longform.analyze", json!({"wait": false}));
