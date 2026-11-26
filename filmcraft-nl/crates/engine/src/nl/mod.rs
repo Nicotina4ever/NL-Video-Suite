@@ -8,6 +8,7 @@
 pub mod agent;
 pub mod album;
 pub mod analysis;
+pub mod batch;
 pub mod asr_models;
 pub mod assistant;
 pub mod delivery;
@@ -660,6 +661,7 @@ pub fn commands() -> Vec<CommandSpec> {
     .chain(agent::commands())
     .chain(workflow_schema::commands())
     .chain(segment::commands())
+    .chain(batch::commands())
     .collect()
 }
 

@@ -126,7 +126,7 @@ pub const PANEL_COMMANDS: &[(PanelKind, &[&str])] = &[
             "nl.story.placeAudio",
         ],
     ),
-    (PanelKind::NlQueue, &["nl.queue.list", "nl.queue.add", "nl.queue.prepare", "nl.queue.send", "nl.queue.remove", "nl.queue.free"]),
+    (PanelKind::NlQueue, &["nl.queue.list", "nl.queue.add", "nl.queue.prepare", "nl.queue.send", "nl.queue.remove", "nl.queue.free", "nl.batch.add", "nl.batch.list", "nl.batch.remove", "nl.batch.clear", "nl.batch.start"]),
     (PanelKind::NlSpeech, &["nl.asr.models", "nl.asr.transcribe"]),
     (PanelKind::NlSettings, &["nl.asr.models", "nl.size.preview", "nl.models.ollama"]),
     (PanelKind::NlCover, &["nl.cover.prompt", "nl.cover.set"]),
@@ -3635,7 +3635,63 @@ struct QueueDraft {
 }
 
 /// Variants with deterministic seeds: prepare shows the payload, send waits for a second click.
+
+/// Work batch: enqueue internal NL/ComfyUI work while editing, then start it once. Kept separate
+/// from the variation queue, which remains below untouched.
+fn batch_section(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    ui.label(RichText::new("Coda lavori (batch)").size(13.0).strong());
+    ui.label(RichText::new("Accoda le operazioni, continua a montare, poi avvia tutto una volta. ComfyUI gestisce la propria coda.").size(10.0).color(app.tokens.text_faint));
+    let selected = app.session.state.selection.first().map(|clip| clip.0);
+    let range = selected.and_then(|clip| {
+        let sequence = app.session.active_sequence()?;
+        sequence
+            .video_tracks
+            .iter()
+            .flat_map(|track| track.items.iter())
+            .find(|item| item.id.0 == clip)
+            .map(|item| (item.start.0 as f64 / 254_016_000_000.0, (item.start.0 + item.duration.0) as f64 / 254_016_000_000.0))
+    });
+    ui.horizontal(|ui| {
+        if button(app, ui, "batch.add_upscale", "Accoda upscale clip") {
+            match selected {
+                Some(clip) => run(app, ui, "nl.batch.add", json!({"command": "graphics.upscaleVideo", "label": "Upscale clip", "params": {"clip": clip, "multiplier": 3.0, "quality": "ULTRA"}})),
+                None => app.ui.status = "Seleziona una clip da upscalare.".into(),
+            }
+        }
+        if button(app, ui, "batch.add_segment", "Accoda analisi segmento") {
+            match range {
+                Some((start, end)) => run(app, ui, "nl.batch.add", json!({"command": "nl.analyze.segment", "label": "Analisi segmento", "params": {"startSeconds": start, "endSeconds": end}})),
+                None => app.ui.status = "Seleziona una clip per il segmento.".into(),
+            }
+        }
+        if button(app, ui, "batch.clear", "Svuota coda") {
+            run(app, ui, "nl.batch.clear", json!({}));
+        }
+        if button(app, ui, "batch.start", "Avvia coda") {
+            run(app, ui, "nl.batch.start", json!({}));
+        }
+    });
+    let entries = app.session.nl.batch.clone();
+    if entries.is_empty() {
+        ui.label(RichText::new("Coda vuota.").size(11.0).color(app.tokens.text_faint));
+    } else {
+        egui::ScrollArea::vertical().id_salt("nl-batch-entries").max_height(120.0).show(ui, |ui| {
+            for entry in &entries {
+                ui.horizontal(|ui| {
+                    ui.label(RichText::new(format!("{} · {}", entry["id"].as_u64().unwrap_or(0), entry["label"].as_str().unwrap_or(""))).size(11.0));
+                    ui.label(RichText::new(entry["status"].as_str().unwrap_or("")).size(10.0).color(app.tokens.text_faint));
+                    if entry["status"] == "pending" && ui.small_button("Rimuovi").clicked() {
+                        run(app, ui, "nl.batch.remove", json!({"id": entry["id"]}));
+                    }
+                });
+            }
+        });
+    }
+    ui.separator();
+}
+
 fn queue_variants(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    batch_section(app, ui);
     let mut d: QueueDraft = draft(ui, "nl-queue-draft");
     ui.label(RichText::new("Variants").size(13.0).strong());
     let mut prompt = d.prompt.clone();

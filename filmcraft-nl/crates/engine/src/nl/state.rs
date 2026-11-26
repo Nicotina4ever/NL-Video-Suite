@@ -94,6 +94,9 @@ pub struct NlState {
     pub montage: Option<Value>,
     /// Next queue entry id.
     pub queue_next: u64,
+    /// Explicit batch of NL commands started together (separate from the variation queue).
+    pub batch: Vec<Value>,
+    pub batch_next: u64,
     /// A background longform analysis waiting to be applied.
     pub longform_pending: Option<PendingLongform>,
     /// A background project-assistant answer waiting to be offered.
