@@ -1253,6 +1253,10 @@ fn upscale_video(s: &mut Session, p: &Value) -> Result<Value> {
     if !Path::new(&source).is_file() {
         return Err(bad(format!("media file not found: {source}")));
     }
+    let already_upscaled = Path::new(&source).file_stem().and_then(|stem| stem.to_str()).is_some_and(|stem| stem.contains("-upscaled-"));
+    if already_upscaled && !p.get("force").and_then(Value::as_bool).unwrap_or(false) {
+        return Err(bad("this media was already upscaled; pass `force: true` to upscale it again"));
+    }
     let workflow_path = match p.get("workflow").and_then(Value::as_str).map(str::trim).filter(|path| !path.is_empty()) {
         Some(path) => find_workflow(s, path).ok_or_else(|| bad(format!("workflow not found: {path}")))?,
         None => find_workflow(s, "workflows/rtx_video_full_workflow.json").ok_or_else(|| bad("RTX upscale workflow not found"))?,
@@ -1297,7 +1301,7 @@ fn upscale_video(s: &mut Session, p: &Value) -> Result<Value> {
     let project_dir = s.path.as_deref().and_then(|path| Path::new(path).parent()).map(Path::to_path_buf).unwrap_or_else(|| dir.clone());
     let folder = project_dir.join("generated");
     std::fs::create_dir_all(&folder).map_err(|e| bad(format!("{}: {e}", folder.display())))?;
-    let stem = Path::new(&source).file_stem().and_then(|stem| stem.to_str()).unwrap_or("clip");
+    let stem = Path::new(&source).file_stem().and_then(|stem| stem.to_str()).unwrap_or("clip").split("-upscaled-").next().unwrap_or("clip");
     let dest = folder.join(format!("{stem}-upscaled-{stamp}.mp4"));
     std::fs::copy(output, &dest).map_err(|e| bad(format!("{}: {e}", dest.display())))?;
     s.execute("media.replaceFootage", json!({"item": item, "path": dest.to_string_lossy()}))?;
