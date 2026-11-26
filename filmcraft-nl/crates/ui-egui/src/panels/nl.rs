@@ -98,7 +98,7 @@ pub const PANEL_COMMANDS: &[(PanelKind, &[&str])] = &[
         &["nl.clipping.propose", "nl.clipping.render", "nl.clipping.sequences", "nl.reframe.sequence", "nl.reframe.active", "nl.subtitles.srt"],
     ),
     (PanelKind::NlSgrossa, &["nl.sgrossa.analyze", "nl.sgrossa.apply", "nl.sgrossa.report"]),
-    (PanelKind::NlAnalyze, &["nl.longform.analyze", "nl.search.index", "nl.search.query", "nl.translate.captions", "nl.assistant.ask"]),
+    (PanelKind::NlAnalyze, &["nl.longform.analyze", "nl.analyze.segment", "nl.search.index", "nl.search.query", "nl.translate.captions", "nl.assistant.ask"]),
     (PanelKind::NlTranscript, &["transcript.transcribeNl", "captions.import", "transcript.createCaptions", "nl.translate.captions", "nl.longform.analyze"]),
     (
         PanelKind::NlSubtitles,
@@ -3361,6 +3361,79 @@ fn story(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
 
 /// NL Analyze: chapters of a long recording read from its ASR transcript by the local model, with
 /// one click to turn every chapter into a timeline marker.
+#[derive(Clone)]
+struct SegmentDraft {
+    server: String,
+    model: String,
+    mmproj: String,
+    start: String,
+    end: String,
+    prompt: String,
+}
+
+impl Default for SegmentDraft {
+    fn default() -> Self {
+        Self {
+            server: r"K:\AI\LlamaCPP\llama-server.exe".into(),
+            model: r"K:\AI\LlamaCPP\Modello\LFM3\LFM3-Omni-2B-Q8_0.gguf".into(),
+            mmproj: r"K:\AI\LlamaCPP\Modello\LFM3\mmproj-LFM3-Omni-2B-Q8_0.gguf".into(),
+            start: "0".into(),
+            end: "5".into(),
+            prompt: String::new(),
+        }
+    }
+}
+
+fn segment_section(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
+    let mut d: SegmentDraft = draft(ui, "nl-segment-draft");
+    egui::CollapsingHeader::new("Analisi rapida segmento (immagini + audio, llama-server)").default_open(true).show(ui, |ui| {
+        if button(app, ui, "segment.run", "Analizza segmento") {
+            let start: f64 = d.start.trim().parse().unwrap_or(0.0);
+            let end: f64 = d.end.trim().parse().unwrap_or(start + 5.0);
+            let ctx = ui.ctx().clone();
+            let value = crate::menus::invoke(
+                app,
+                &ctx,
+                "nl.analyze.segment",
+                json!({"startSeconds": start, "endSeconds": end, "prompt": d.prompt, "llamaServer": d.server, "model": d.model, "mmproj": d.mmproj}),
+            );
+            match value {
+                Ok(result) => {
+                    ui.data_mut(|data| data.insert_temp(egui::Id::unique("nl-segment-result"), result));
+                }
+                Err(e) => app.ui.status = e,
+            }
+        }
+
+        if let Some(result) = ui.data(|data| data.get_temp::<Value>(egui::Id::unique("nl-segment-result"))) {
+            ui.add_space(4.0);
+            ui.label(RichText::new(format!("Segmento {:.1}–{:.1}s · {}", result["segment"]["startSeconds"].as_f64().unwrap_or(0.0), result["segment"]["endSeconds"].as_f64().unwrap_or(0.0), result["model"].as_str().unwrap_or(""))).size(10.0).color(app.tokens.text_faint));
+            let mut text = result["text"].as_str().unwrap_or("").to_string();
+            ui.add(egui::TextEdit::multiline(&mut text).desired_rows(6).desired_width(f32::INFINITY).interactive(false));
+        }
+
+        let mut start = d.start.clone();
+        field(app, ui, "segment.start", "Da secondi", &mut start);
+        d.start = start;
+        let mut end = d.end.clone();
+        field(app, ui, "segment.end", "A secondi", &mut end);
+        d.end = end;
+        let mut server = d.server.clone();
+        field(app, ui, "segment.server", "llama-server.exe", &mut server);
+        d.server = server;
+        let mut model = d.model.clone();
+        field(app, ui, "segment.model", "Modello GGUF", &mut model);
+        d.model = model;
+        let mut mmproj = d.mmproj.clone();
+        field(app, ui, "segment.mmproj", "mmproj GGUF", &mut mmproj);
+        d.mmproj = mmproj;
+        let mut prompt = d.prompt.clone();
+        field(app, ui, "segment.prompt", "Prompt (opzionale)", &mut prompt);
+        d.prompt = prompt;
+    });
+    save_draft(ui, "nl-segment-draft", d);
+}
+
 fn analyze(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     title(
         app,
@@ -3369,6 +3442,7 @@ fn analyze(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         "Chapters for a long recording, read from the ASR transcript with the local model; each chapter can become a timeline marker.",
     );
     error_line(app, ui);
+    segment_section(app, ui);
     if button(app, ui, "analyze.run", "Analyze chapters") {
         run(app, ui, "nl.longform.analyze", json!({"wait": false}));
     }

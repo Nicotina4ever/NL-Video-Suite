@@ -25,6 +25,7 @@ pub mod prompt;
 pub mod queue;
 pub mod reframe;
 pub mod search;
+pub mod segment;
 pub mod size;
 pub mod state;
 pub mod story;
@@ -658,6 +659,7 @@ pub fn commands() -> Vec<CommandSpec> {
     .chain(montage::commands())
     .chain(agent::commands())
     .chain(workflow_schema::commands())
+    .chain(segment::commands())
     .collect()
 }
 
