@@ -500,7 +500,7 @@ fn draw_field(app: &mut FilmcraftApp, ui: &mut Ui, d: &mut SettingsDraft, f: &Fi
         let list_id = egui::Id::unique("settings-ollama-model-list");
         let mut models = ui.data(|data| data.get_temp::<Vec<(String, String)>>(list_id)).unwrap_or_default();
         if models.is_empty() {
-            if let Ok(value) = app.session.execute("nl.models.ollama", json!({})) {
+            if let Ok(value) = app.session.execute("nl.models.llm", json!({})) {
                 models = value["models"]
                     .as_array()
                     .map(|rows| rows.iter().filter_map(|row| row["name"].as_str().map(|name| (name.to_string(), name.to_string()))).collect())

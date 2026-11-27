@@ -128,7 +128,7 @@ pub const PANEL_COMMANDS: &[(PanelKind, &[&str])] = &[
     ),
     (PanelKind::NlQueue, &["nl.queue.list", "nl.queue.add", "nl.queue.prepare", "nl.queue.send", "nl.queue.remove", "nl.queue.free", "nl.batch.add", "nl.batch.list", "nl.batch.remove", "nl.batch.clear", "nl.batch.start"]),
     (PanelKind::NlSpeech, &["nl.asr.models", "nl.asr.transcribe"]),
-    (PanelKind::NlSettings, &["nl.asr.models", "nl.size.preview", "nl.models.ollama"]),
+    (PanelKind::NlSettings, &["nl.asr.models", "nl.size.preview", "nl.models.llm"]),
     (PanelKind::NlCover, &["nl.cover.prompt", "nl.cover.set"]),
     (
         PanelKind::NlWorkflows,
@@ -3898,9 +3898,9 @@ fn settings(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     error_line(app, ui);
     let models_id = egui::Id::unique("nl-ollama-models");
     ui.horizontal(|ui| {
-        if button(app, ui, "settings.ollama_fetch", "Carica modelli Ollama") {
+        if button(app, ui, "settings.ollama_fetch", "Carica modelli del provider") {
             let ctx = ui.ctx().clone();
-            match crate::menus::invoke(app, &ctx, "nl.models.ollama", json!({})) {
+            match crate::menus::invoke(app, &ctx, "nl.models.llm", json!({})) {
                 Ok(value) => {
                     ui.data_mut(|data| data.insert_temp(models_id, value));
                 }
