@@ -76,7 +76,7 @@ fn ask(s: &mut Session, p: &Value) -> Result<Value> {
         })
         .collect();
     let language = p.get("language").and_then(Value::as_str).unwrap_or("italiano").to_string();
-    let llm = super::llm::LlmConfig::for_session(s, p.get("model").and_then(Value::as_str));
+    let llm = super::llm::LlmConfig::for_role(s, "prompt", p.get("model").and_then(Value::as_str));
     let system = "Sei un assistente che risponde SOLO con un oggetto JSON valido {\"answer\": string}, senza testo attorno. Usa esclusivamente i documenti forniti, cita le fonti con [n] e non inventare nulla: se non bastano, dillo nell'answer.";
     let user = prompt(&question, &results, &language);
     let wait = p.get("wait").and_then(Value::as_bool).unwrap_or(false);

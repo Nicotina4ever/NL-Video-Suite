@@ -190,7 +190,7 @@ fn analyze(s: &mut Session, p: &Value) -> Result<Value> {
             ),
         ));
     }
-    let llm = super::llm::LlmConfig::for_session(s, p.get("model").and_then(Value::as_str));
+    let llm = super::llm::LlmConfig::for_role(s, "story", p.get("model").and_then(Value::as_str));
     let model = llm.model.clone();
     let language = p.get("language").and_then(Value::as_str).unwrap_or("it").to_string();
     let max_chapters = p.get("maxChapters").and_then(Value::as_u64).unwrap_or(10).clamp(1, MAX_CHAPTERS as u64) as usize;

@@ -229,6 +229,7 @@ fn describe_bridge_frame(s: &mut Session, p: &Value, path: &Path) -> Option<Stri
         .and_then(Value::as_str)
         .map(str::to_string)
         .filter(|model| !model.trim().is_empty())
+        .or_else(|| Some(s.prefs.nl.role_model("vision")).filter(|model| !model.is_empty()))
         .or_else(|| Some(s.prefs.nl.vision_model.trim().to_string()).filter(|model| !model.is_empty()))
         .or_else(|| Some(s.prefs.nl.ollama_model_vision()).filter(|model| !model.trim().is_empty()))?;
     let mut candidates = vec![first];

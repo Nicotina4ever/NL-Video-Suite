@@ -233,7 +233,7 @@ fn story_draft(s: &mut Session, p: &Value) -> Result<Value> {
         return Err(bad_cmd("nl.story.draft", "`idea` is too long (4000 characters max)"));
     }
     let language = p.get("language").and_then(Value::as_str).unwrap_or("it").to_string();
-    let llm = super::llm::LlmConfig::for_session(s, p.get("model").and_then(Value::as_str));
+    let llm = super::llm::LlmConfig::for_role(s, "story", p.get("model").and_then(Value::as_str));
     let prompt = format!("Idea del video: {idea}\nScrivi la storia per questo video.");
     let wait = p.get("wait").and_then(Value::as_bool).unwrap_or(false);
     if wait {
@@ -325,7 +325,7 @@ fn story_refine(s: &mut Session, p: &Value) -> Result<Value> {
         .and_then(|scenes| scenes.iter().find(|scene| scene["id"].as_u64() == Some(scene_id)))
         .cloned()
         .ok_or_else(|| bad_cmd("nl.story.refine", format!("no scene {scene_id}")))?;
-    let llm = super::llm::LlmConfig::for_session(s, p.get("model").and_then(Value::as_str));
+    let llm = super::llm::LlmConfig::for_role(s, "story", p.get("model").and_then(Value::as_str));
     let language = p.get("language").and_then(Value::as_str).unwrap_or("it");
     let prompt = format!(
         "Scena attuale (JSON): {scene}\nIstruzione dell'operatore: {instructions}\nRiscrivi SOLO questa scena e rispondi con {{\"scene\": {{...}}}}; mantieni o aggiorna la location in base all'istruzione."

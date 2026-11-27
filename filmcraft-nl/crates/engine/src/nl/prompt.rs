@@ -200,7 +200,7 @@ fn enhance(s: &mut Session, p: &Value) -> Result<Value> {
     let language = p.get("language").and_then(Value::as_str).unwrap_or("it").to_string();
     let workflow = p.get("workflow").and_then(Value::as_str).unwrap_or("").to_string();
     let guide = read_workflow_guide(s, &workflow);
-    let llm = super::llm::LlmConfig::for_session(s, p.get("model").and_then(Value::as_str));
+    let llm = super::llm::LlmConfig::for_role(s, "prompt", p.get("model").and_then(Value::as_str));
     let wait = p.get("wait").and_then(Value::as_bool).unwrap_or(false);
     if wait {
         let answer =
@@ -487,7 +487,7 @@ fn h3(s: &mut Session, p: &Value) -> Result<Value> {
         }
     }
     let system = h3_system(&mode);
-    let llm = super::llm::LlmConfig::for_session(s, p.get("model").and_then(Value::as_str));
+    let llm = super::llm::LlmConfig::for_role(s, "prompt", p.get("model").and_then(Value::as_str));
     let instruction = h3_instruction(&mode, seconds, final_shot);
     let wait = p.get("wait").and_then(Value::as_bool).unwrap_or(false);
     if wait {
@@ -639,7 +639,7 @@ fn ideogram(s: &mut Session, p: &Value) -> std::result::Result<Value, crate::Eng
 \"compositional_deconstruction\":{\"background\":string,\"elements\":[{\"type\":\"text\",\"bbox\":[x1,y1,x2,y2],\"text\":string,\"desc\":string},{\"type\":\"obj\",\"bbox\":[x1,y1,x2,y2],\"desc\":string}]}}. \
 bbox sono interi 0-1000. Massimo 6 elementi. Ogni testo visibile deve essere nel campo text, nella lingua richiesta, senza inventare altre scritte. Non includere markdown, commenti o testo fuori dal JSON.";
     let prompt = format!("Brief: {brief}\nAspect ratio richiesto: {aspect}. Crea una card infografica pulita con testi leggibili.");
-    let llm = super::llm::LlmConfig::for_session(s, p.get("model").and_then(Value::as_str));
+    let llm = super::llm::LlmConfig::for_role(s, "prompt", p.get("model").and_then(Value::as_str));
     let value = llm.auto_json(system, &prompt, Duration::from_secs(240), Some("0")).map_err(|e| bad_cmd("nl.prompt.ideogram", e))?;
     if value.get("aspect_ratio").and_then(Value::as_str).is_none()
         || value.pointer("/compositional_deconstruction/elements").and_then(Value::as_array).is_none()

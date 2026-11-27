@@ -160,6 +160,7 @@ fn analyze(s: &mut Session, p: &Value) -> Result<Value> {
         .map(str::trim)
         .filter(|model| !model.is_empty())
         .map(str::to_string)
+        .or_else(|| Some(s.prefs.nl.role_model("vision")).filter(|model| !model.is_empty()))
         .or_else(|| Some(s.prefs.nl.vision_model.trim().to_string()).filter(|model| !model.is_empty()))
     {
         Some(model) => model,

@@ -327,7 +327,7 @@ fn suggest_lora(s: &mut Session, p: &Value) -> std::result::Result<Value, crate:
     }
     let system = "Sei un direttore della fotografia. Scegli da 1 a 3 LoRA utili per il prompt, SOLO tra i nomi elencati. Rispondi con JSON {\"loras\":[\"nome esatto\",...]} senza altro testo.";
     let brief = format!("Prompt: {prompt}\nLoRA disponibili:\n{}", names.join("\n"));
-    let llm = super::llm::LlmConfig::for_session(s, p.get("model").and_then(Value::as_str));
+    let llm = super::llm::LlmConfig::for_role(s, "prompt", p.get("model").and_then(Value::as_str));
     let answer = llm.auto_json(system, &brief, Duration::from_secs(180), Some("0")).map_err(|e| bad(e))?;
     let chosen: Vec<String> = answer["loras"]
         .as_array()

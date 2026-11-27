@@ -66,7 +66,18 @@ pub struct LlmConfig {
 impl LlmConfig {
     /// The configured provider with an optional model override from the command parameters.
     pub fn for_session(s: &crate::Session, model_override: Option<&str>) -> Self {
-        let model = model_override.map(str::trim).filter(|model| !model.is_empty()).map(str::to_string).unwrap_or_else(|| s.prefs.nl.llm_model());
+        Self::for_role(s, "prompt", model_override)
+    }
+
+    /// The provider with the model chosen for one agent role; an explicit parameter still wins.
+    pub fn for_role(s: &crate::Session, role: &str, model_override: Option<&str>) -> Self {
+        let role_model = s.prefs.nl.role_model(role);
+        let model = model_override
+            .map(str::trim)
+            .filter(|model| !model.is_empty())
+            .map(str::to_string)
+            .or_else(|| (!role_model.is_empty()).then_some(role_model))
+            .unwrap_or_else(|| s.prefs.nl.llm_model());
         Self { provider: s.prefs.nl.llm_provider(), url: s.prefs.nl.llm_url(), model, api_key: s.prefs.nl.llm_api_key() }
     }
 

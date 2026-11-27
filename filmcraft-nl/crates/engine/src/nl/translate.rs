@@ -85,7 +85,7 @@ fn translate_captions(s: &mut Session, p: &Value) -> Result<Value> {
     if cues.is_empty() {
         return Err(bad_cmd("nl.translate.captions", "the caption track has no cues to translate"));
     }
-    let llm = super::llm::LlmConfig::for_session(s, p.get("model").and_then(Value::as_str));
+    let llm = super::llm::LlmConfig::for_role(s, "prompt", p.get("model").and_then(Value::as_str));
     let system = format!(
         "Sei un traduttore di sottotitoli. Traduci i testi in {}. Mantieni tono, significato e brevità da sottotitolo. Rispondi SOLO con un oggetto JSON valido {{\"translations\":[{{\"id\":number,\"text\":string}}]}} con lo stesso id di ogni riga e nessun testo attorno.",
         language_name(&to)
@@ -129,7 +129,7 @@ fn translate_text(s: &mut Session, p: &Value) -> Result<Value> {
         return Err(bad_cmd("nl.translate.text", "`text` is too long (4000 characters max)"));
     }
     let to = validate_target(p.get("to").and_then(Value::as_str).ok_or_else(|| bad_cmd("nl.translate.text", "need `to`"))?)?;
-    let llm = super::llm::LlmConfig::for_session(s, p.get("model").and_then(Value::as_str));
+    let llm = super::llm::LlmConfig::for_role(s, "prompt", p.get("model").and_then(Value::as_str));
     let system = format!(
         "Sei un traduttore. Traduci in {}. Rispondi SOLO con un oggetto JSON valido {{\"translation\":string}}, senza testo attorno.",
         language_name(&to)

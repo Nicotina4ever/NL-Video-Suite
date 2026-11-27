@@ -43,6 +43,10 @@ pub struct NlPrefs {
     pub ollama_model: String,
     /// Ollama model for image analysis; empty = the main model.
     pub ollama_model_vision: String,
+    /// Per-role model overrides. Empty = the global Ollama/LLM model.
+    pub agent_story_model: String,
+    pub agent_prompt_model: String,
+    pub agent_vision_model: String,
     /// Language-model provider: `ollama` or `openai_compatible`.
     pub llm_provider: String,
     /// Base URL of the OpenAI-compatible server (with `/v1`); empty = the built-in default.
@@ -118,6 +122,9 @@ impl Default for NlPrefs {
             ollama_url: DEFAULT_OLLAMA_URL.into(),
             ollama_model: DEFAULT_OLLAMA_MODEL.into(),
             ollama_model_vision: String::new(),
+            agent_story_model: String::new(),
+            agent_prompt_model: String::new(),
+            agent_vision_model: String::new(),
             llm_provider: DEFAULT_LLM_PROVIDER.into(),
             llm_url: String::new(),
             llm_model: String::new(),
@@ -230,6 +237,16 @@ impl NlPrefs {
     }
 
     /// Ollama model for image analysis (falls back to the main model).
+    /// A model override for one agent role (story, prompt, vision), or empty for the global one.
+    pub fn role_model(&self, role: &str) -> String {
+        match role {
+            "story" => self.agent_story_model.trim().to_string(),
+            "prompt" => self.agent_prompt_model.trim().to_string(),
+            "vision" => self.agent_vision_model.trim().to_string(),
+            _ => String::new(),
+        }
+    }
+
     pub fn ollama_model_vision(&self) -> String {
         some(&self.ollama_model_vision).unwrap_or_else(|| self.ollama_model())
     }

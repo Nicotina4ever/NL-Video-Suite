@@ -674,6 +674,14 @@ pub(super) static CATEGORIES: &[Category] = &[
                 ],
             ),
             Row::Group(
+                "Agenti e modelli per ruolo",
+                &[
+                    f("nl.agentStoryModel", "Agente storia (vuoto: modello globale)", Kind::Text, true),
+                    f("nl.agentPromptModel", "Agente prompt (vuoto: modello globale)", Kind::Text, true),
+                    f("nl.agentVisionModel", "Agente vision (vuoto: modello vision globale)", Kind::Text, true),
+                ],
+            ),
+            Row::Group(
                 "Size from the sequence",
                 &[
                     f("nl.imageScale", "Images", Kind::Choice(NL_IMAGE_SCALES), true),

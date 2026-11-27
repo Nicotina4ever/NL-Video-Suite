@@ -64,6 +64,7 @@ fn start_server(server: &Path, model: &Path, mmproj: &Path, port: u16) -> Result
         .arg("127.0.0.1")
         .arg("--port")
         .arg(port.to_string())
+        .arg("--no-ui")
         .arg("-c")
         .arg("16384")
         .arg("-ngl")

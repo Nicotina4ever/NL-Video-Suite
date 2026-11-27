@@ -495,6 +495,33 @@ fn field_enabled(f: &Field, values: &Value) -> bool {
 fn draw_field(app: &mut FilmcraftApp, ui: &mut Ui, d: &mut SettingsDraft, f: &Field) {
     let enabled = field_enabled(f, &d.values);
     let cur = get(&d.values, f.key).clone();
+    // Model fields are fetched from the configured provider instead of typed by hand.
+    if matches!(f.key, "nl.ollamaModel" | "nl.ollamaModelVision" | "nl.agentStoryModel" | "nl.agentPromptModel" | "nl.agentVisionModel") && enabled {
+        let list_id = egui::Id::unique("settings-ollama-model-list");
+        let mut models = ui.data(|data| data.get_temp::<Vec<(String, String)>>(list_id)).unwrap_or_default();
+        if models.is_empty() {
+            if let Ok(value) = app.session.execute("nl.models.ollama", json!({})) {
+                models = value["models"]
+                    .as_array()
+                    .map(|rows| rows.iter().filter_map(|row| row["name"].as_str().map(|name| (name.to_string(), name.to_string()))).collect())
+                    .unwrap_or_default();
+                ui.data_mut(|data| data.insert_temp(list_id, models.clone()));
+            }
+        }
+        if !models.is_empty() {
+            ui.horizontal(|ui| {
+                field_label(ui, f.label);
+                let current = choice_text(&cur);
+                if let Some(chosen) = combo(app, ui, f.key, f.label, &current, &models, 240.0) {
+                    put(&mut d.values, f.key, json!(chosen));
+                }
+                if ui.small_button("⟳").on_hover_text("Aggiorna modelli").clicked() {
+                    ui.data_mut(|data| data.remove_temp::<Vec<(String, String)>>(list_id));
+                }
+            });
+            return;
+        }
+    }
     let drawn = ui.add_enabled_ui(enabled, |ui| {
         ui.horizontal(|ui| {
             if f.indent {

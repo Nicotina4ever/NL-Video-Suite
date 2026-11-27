@@ -3949,6 +3949,24 @@ fn settings(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
                     }
                 }
             });
+            for (label, key, current, pref) in [
+                ("Agente storia", "settings.agent_story_model", app.session.prefs.nl.agent_story_model.clone(), "nl.agentStoryModel"),
+                ("Agente prompt", "settings.agent_prompt_model", app.session.prefs.nl.agent_prompt_model.clone(), "nl.agentPromptModel"),
+                ("Agente vision", "settings.agent_vision_model", app.session.prefs.nl.agent_vision_model.clone(), "nl.agentVisionModel"),
+            ] {
+                let mut index = options.iter().position(|(name, _)| name == &current).unwrap_or(0);
+                ui.horizontal(|ui| {
+                    ui.label(RichText::new(label).size(11.0).color(app.tokens.text_dim));
+                    let before = index;
+                    combo(app, ui, key, label, &mut index, &options);
+                    if index != before {
+                        let name = options[index].0.clone();
+                        if let Err(e) = app.session.execute("prefs.set", json!({"key": pref, "value": name})) {
+                            app.ui.status = e.to_string();
+                        }
+                    }
+                });
+            }
         }
     }
 
