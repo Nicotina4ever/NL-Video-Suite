@@ -315,7 +315,7 @@ fn model_entries(s: &Session, subject: &str, style: &str, count: usize) -> (Vec<
         "Soggetto: {subject}\nStile: {style}\nNumero di oggetti: {count}\nScrivi i prompt in italiano, \
          pronti per un generatore di immagini."
     );
-    let config = super::llm::LlmConfig::for_session(s, None);
+    let config = super::llm::LlmConfig::for_role(s, "story", None);
     match config.auto_json(system, &prompt, Duration::from_secs(120), Some("0")) {
         Ok(value) => {
             let entries = value.get("entries").and_then(Value::as_array).cloned().unwrap_or_default().into_iter().take(count.max(1)).collect();
@@ -617,7 +617,7 @@ fn prompts(s: &mut Session, p: &Value) -> Result<Value> {
         oggetto, in italiano, con inquadratura, soggetto, luce, ambiente e stile. Rispondi SOLO con \
         JSON valido: {\"prompts\":[{\"id\":1,\"prompt\":\"...\"}]}.";
     let prompt = format!("Soggetto: {subject}\nStile: {style}\nOggetti: {}", Value::Array(wanted.clone()));
-    let config = super::llm::LlmConfig::for_session(s, None);
+    let config = super::llm::LlmConfig::for_role(s, "story", None);
     let answer = config.auto_json(system, &prompt, Duration::from_secs(120), Some("0"));
     let (answered, error) = match answer {
         Ok(value) => (value, None),
@@ -938,7 +938,7 @@ fn chat(s: &mut Session, p: &Value) -> Result<Value> {
          Numero massimo di scene/oggetti: {count}\nScrivi in italiano.",
         quality_brief(quality)
     );
-    let config = super::llm::LlmConfig::for_session(s, None);
+    let config = super::llm::LlmConfig::for_role(s, "story", None);
     let answer =
         config.auto_json(system, &prompt, Duration::from_secs(180), Some("0")).map_err(|e| bad_cmd("nl.agent.chat", format!("LLM non disponibile: {e}")))?;
     let reply = text(answer.get("reply"), MAX_TEXT);
