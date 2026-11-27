@@ -30,9 +30,12 @@ impl Drop for ServerGuard {
     }
 }
 
-fn first_path(p: &Value, key: &str, env: &str, default: &str) -> PathBuf {
+fn first_path(p: &Value, key: &str, env: &str, configured: &str, default: &str) -> PathBuf {
     if let Some(path) = p.get(key).and_then(Value::as_str).map(str::trim).filter(|v| !v.is_empty()) {
         return PathBuf::from(path);
+    }
+    if !configured.trim().is_empty() {
+        return PathBuf::from(configured.trim());
     }
     if let Ok(path) = std::env::var(env) {
         if !path.trim().is_empty() {
@@ -47,7 +50,7 @@ fn free_port() -> Result<u16> {
     listener.local_addr().map(|addr| addr.port()).map_err(|e| bad(e.to_string()))
 }
 
-fn start_server(server: &Path, model: &Path, mmproj: &Path, port: u16) -> Result<ServerGuard> {
+fn start_server(server: &Path, model: &Path, mmproj: &Path, port: u16, context: i64) -> Result<ServerGuard> {
     if !server.is_file() {
         return Err(bad(format!("llama-server not found: {}", server.display())));
     }
@@ -66,7 +69,7 @@ fn start_server(server: &Path, model: &Path, mmproj: &Path, port: u16) -> Result
         .arg(port.to_string())
         .arg("--no-ui")
         .arg("-c")
-        .arg("16384")
+        .arg(context.to_string())
         .arg("-ngl")
         .arg("99")
         .stdin(Stdio::null())
@@ -131,9 +134,9 @@ fn analyze(s: &mut Session, p: &Value) -> Result<Value> {
         .filter(|v| !v.is_empty())
         .unwrap_or("Analizza questo segmento video: descrivi le immagini, trascrivi il parlato/audio e suggerisci un prompt video coerente. Rispondi in italiano, conciso.")
         .to_string();
-    let server = first_path(p, "llamaServer", "NL_LLAMA_SERVER", DEFAULT_SERVER);
-    let model = first_path(p, "model", "NL_LLAMA_MODEL", DEFAULT_MODEL);
-    let mmproj = first_path(p, "mmproj", "NL_LLAMA_MMPROJ", DEFAULT_MMPROJ);
+    let server = first_path(p, "llamaServer", "NL_LLAMA_SERVER", &s.prefs.nl.llama_server_path(), DEFAULT_SERVER);
+    let model = first_path(p, "model", "NL_LLAMA_MODEL", &s.prefs.nl.llama_model_path(), DEFAULT_MODEL);
+    let mmproj = first_path(p, "mmproj", "NL_LLAMA_MMPROJ", &s.prefs.nl.llama_mmproj_path(), DEFAULT_MMPROJ);
     let dir = crate::autosave::default_data_dir()
         .unwrap_or_else(std::env::temp_dir)
         .join("nl")
@@ -144,8 +147,9 @@ fn analyze(s: &mut Session, p: &Value) -> Result<Value> {
     if frames.is_empty() && audio.is_none() {
         return Err(bad("nothing to analyse: could not export a frame or the audio of the segment"));
     }
+    let context = p.get("context").and_then(Value::as_i64).unwrap_or(s.prefs.nl.llama_context).clamp(2048, 131072);
     let port = free_port()?;
-    let _guard = start_server(&server, &model, &mmproj, port)?;
+    let _guard = start_server(&server, &model, &mmproj, port, context)?;
     let mut parts: Vec<Value> = vec![json!({"type": "text", "text": prompt})];
     for frame in &frames {
         if let Some(data) = read_base64(frame) {

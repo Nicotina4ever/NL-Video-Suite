@@ -47,6 +47,11 @@ pub struct NlPrefs {
     pub agent_story_model: String,
     pub agent_prompt_model: String,
     pub agent_vision_model: String,
+    /// Short-lived llama-server used for local segment analysis.
+    pub llama_server: String,
+    pub llama_model: String,
+    pub llama_mmproj: String,
+    pub llama_context: i64,
     /// Language-model provider: `ollama` or `openai_compatible`.
     pub llm_provider: String,
     /// Base URL of the OpenAI-compatible server (with `/v1`); empty = the built-in default.
@@ -125,6 +130,10 @@ impl Default for NlPrefs {
             agent_story_model: String::new(),
             agent_prompt_model: String::new(),
             agent_vision_model: String::new(),
+            llama_server: String::new(),
+            llama_model: String::new(),
+            llama_mmproj: String::new(),
+            llama_context: 16384,
             llm_provider: DEFAULT_LLM_PROVIDER.into(),
             llm_url: String::new(),
             llm_model: String::new(),
@@ -237,6 +246,18 @@ impl NlPrefs {
     }
 
     /// Ollama model for image analysis (falls back to the main model).
+    pub fn llama_server_path(&self) -> String {
+        some(&self.llama_server).or_else(|| std::env::var("NL_LLAMA_SERVER").ok()).unwrap_or_default()
+    }
+
+    pub fn llama_model_path(&self) -> String {
+        some(&self.llama_model).or_else(|| std::env::var("NL_LLAMA_MODEL").ok()).unwrap_or_default()
+    }
+
+    pub fn llama_mmproj_path(&self) -> String {
+        some(&self.llama_mmproj).or_else(|| std::env::var("NL_LLAMA_MMPROJ").ok()).unwrap_or_default()
+    }
+
     /// A model override for one agent role (story, prompt, vision), or empty for the global one.
     pub fn role_model(&self, role: &str) -> String {
         match role {

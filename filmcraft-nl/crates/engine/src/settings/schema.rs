@@ -682,6 +682,15 @@ pub(super) static CATEGORIES: &[Category] = &[
                 ],
             ),
             Row::Group(
+                "Llama server per analisi rapida",
+                &[
+                    f("nl.llamaServer", "llama-server.exe", Kind::Path, true),
+                    f("nl.llamaModel", "Modello GGUF", Kind::Path, true),
+                    f("nl.llamaMmproj", "mmproj GGUF", Kind::Path, true),
+                    f("nl.llamaContext", "Contesto token", int(2048.0, 131072.0, "token"), true),
+                ],
+            ),
+            Row::Group(
                 "Size from the sequence",
                 &[
                     f("nl.imageScale", "Images", Kind::Choice(NL_IMAGE_SCALES), true),
