@@ -641,9 +641,9 @@ pub(super) static CATEGORIES: &[Category] = &[
                 ],
             ),
             Row::Group(
-                "Ollama",
+                "Provider LLM (Ollama / OpenAI-compatible)",
                 &[
-                    f("nl.ollamaUrl", "Ollama address", Kind::Text, true),
+                    f("nl.ollamaUrl", "Endpoint del provider", Kind::Text, true),
                     f("nl.ollamaModel", "Model for prompts, ranking and translation", Kind::Text, true),
                     f("nl.ollamaModelVision", "Model for image analysis", Kind::Text, true),
                 ],
@@ -682,12 +682,12 @@ pub(super) static CATEGORIES: &[Category] = &[
                 ],
             ),
             Row::Group(
-                "Llama server per analisi rapida",
+                "Analisi locale (llama.cpp / LFM3)",
                 &[
-                    f("nl.llamaServer", "llama-server.exe", Kind::Path, true),
+                    f("nl.llamaServer", "Eseguibile del server locale", Kind::Path, true),
                     f("nl.llamaModel", "Modello GGUF", Kind::Path, true),
                     f("nl.llamaMmproj", "mmproj GGUF", Kind::Path, true),
-                    f("nl.llamaContext", "Contesto token", int(2048.0, 131072.0, "token"), true),
+                    f("nl.llamaContext", "Contesto token (default 32768)", int(2048.0, 131072.0, "token"), true),
                 ],
             ),
             Row::Group(

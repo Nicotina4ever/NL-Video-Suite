@@ -3374,9 +3374,9 @@ struct SegmentDraft {
 impl Default for SegmentDraft {
     fn default() -> Self {
         Self {
-            server: r"K:\AI\LlamaCPP\llama-server.exe".into(),
-            model: r"K:\AI\LlamaCPP\Modello\LFM3\LFM3-Omni-2B-Q8_0.gguf".into(),
-            mmproj: r"K:\AI\LlamaCPP\Modello\LFM3\mmproj-LFM3-Omni-2B-Q8_0.gguf".into(),
+            server: String::new(),
+            model: String::new(),
+            mmproj: String::new(),
             start: "0".into(),
             end: "5".into(),
             prompt: String::new(),

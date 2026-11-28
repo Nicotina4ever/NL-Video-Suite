@@ -133,7 +133,7 @@ impl Default for NlPrefs {
             llama_server: String::new(),
             llama_model: String::new(),
             llama_mmproj: String::new(),
-            llama_context: 16384,
+            llama_context: 32768,
             llm_provider: DEFAULT_LLM_PROVIDER.into(),
             llm_url: String::new(),
             llm_model: String::new(),

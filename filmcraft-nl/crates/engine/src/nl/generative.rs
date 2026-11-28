@@ -536,9 +536,20 @@ fn bridge_plan(s: &mut Session, p: &Value) -> Result<Value> {
     // blocks the bridge plan.
     let prompt_given = p.get("prompt").and_then(Value::as_str).is_some_and(|prompt| !prompt.trim().is_empty());
     let (mut last_description, mut first_description) = (None, None);
-    if !prompt_given && p.get("analyzeIncoming").and_then(Value::as_bool).unwrap_or(true) {
-        last_description = describe_bridge_frame(s, p, &last);
-        first_description = describe_bridge_frame(s, p, &first);
+    if !prompt_given && p.get("analyzeIncoming").and_then(Value::as_bool).unwrap_or(false) {
+        // Prefer the configured short-lived Llama server (LFM3): one load for both frames. Only if
+        // it is not configured or fails fall back to the global vision provider.
+        match super::segment::describe_frame_pair(s, &last, &first) {
+            Ok((outgoing, incoming)) => {
+                last_description = Some(outgoing);
+                first_description = Some(incoming);
+            }
+            Err(error) => {
+                eprintln!("bridge llama analysis failed: {error}");
+                last_description = describe_bridge_frame(s, p, &last);
+                first_description = describe_bridge_frame(s, p, &first);
+            }
+        }
     }
     let prompt = bridge_prompt(p, &mode, gap.seconds(), last_description.as_deref(), first_description.as_deref(), audio.is_some());
     Ok(json!({

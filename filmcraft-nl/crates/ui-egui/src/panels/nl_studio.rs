@@ -1049,7 +1049,7 @@ impl Default for BridgeDraft {
             // Two references + the outgoing audio tail is the mode that keeps both sides and sound.
             mode: 1,
             transition: 0,
-            analyze: true,
+            analyze: false,
             prompt: String::new(),
             place_path: String::new(),
         }
@@ -1091,6 +1091,7 @@ pub(super) fn bridge_panel(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
                 ui.selectable_value(&mut d.transition, index, *label);
             }
         });
+        ui.checkbox(&mut d.analyze, RichText::new("Analizza i frame per costruire il prompt (più lento)").size(11.0));
         ui.label(RichText::new("Leave the ids empty to use the empty space around the playhead.").size(11.0).color(app.tokens.text_faint));
     });
     let mut prompt = d.prompt.clone();
@@ -1110,7 +1111,7 @@ pub(super) fn bridge_panel(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         }
     };
     let (outgoing, incoming) = ids();
-    let mut params = json!({"mode": modes[d.mode.min(modes.len() - 1)].0.split(' ').next().unwrap_or("flf"), "transition": if d.transition == 1 { "dissolve" } else { "cut" }, "analyzeIncoming": true});
+    let mut params = json!({"mode": modes[d.mode.min(modes.len() - 1)].0.split(' ').next().unwrap_or("flf"), "transition": if d.transition == 1 { "dissolve" } else { "cut" }, "analyzeIncoming": d.analyze});
     if let Some(outgoing) = outgoing {
         params["outgoing"] = json!(outgoing);
     }

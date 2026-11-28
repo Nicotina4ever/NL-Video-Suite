@@ -1567,6 +1567,9 @@ fn nearest_gap(s: &Session) -> Option<(u64, u64)> {
 
 fn gap_placeholder(s: &mut Session, p: &Value) -> Result<Value> {
     let mut plan_params = p.clone();
+    // Creating the placeholder must stay instant: the vision analysis is an explicit preview
+    // action in NL Bridge, never a prerequisite for the gap object.
+    plan_params["analyzeIncoming"] = json!(false);
     if plan_params.get("outgoing").and_then(Value::as_u64).is_none()
         && let Some((outgoing, incoming)) = nearest_gap(s)
     {

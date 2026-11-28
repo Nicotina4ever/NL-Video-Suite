@@ -11,10 +11,6 @@ use serde_json::{Value, json};
 
 use crate::{EngineError, Result, Session};
 
-const DEFAULT_SERVER: &str = r"K:\AI\LlamaCPP\llama-server.exe";
-const DEFAULT_MODEL: &str = r"K:\AI\LlamaCPP\Modello\LFM3\LFM3-Omni-2B-Q8_0.gguf";
-const DEFAULT_MMPROJ: &str = r"K:\AI\LlamaCPP\Modello\LFM3\mmproj-LFM3-Omni-2B-Q8_0.gguf";
-
 fn bad(msg: impl ToString) -> EngineError {
     EngineError::BadParams { cmd: "nl.analyze.segment".into(), msg: msg.to_string() }
 }
@@ -30,19 +26,14 @@ impl Drop for ServerGuard {
     }
 }
 
-fn first_path(p: &Value, key: &str, env: &str, configured: &str, default: &str) -> PathBuf {
+fn first_path(p: &Value, key: &str, env: &str, configured: &str) -> Option<PathBuf> {
     if let Some(path) = p.get(key).and_then(Value::as_str).map(str::trim).filter(|v| !v.is_empty()) {
-        return PathBuf::from(path);
+        return Some(PathBuf::from(path));
     }
     if !configured.trim().is_empty() {
-        return PathBuf::from(configured.trim());
+        return Some(PathBuf::from(configured.trim()));
     }
-    if let Ok(path) = std::env::var(env) {
-        if !path.trim().is_empty() {
-            return PathBuf::from(path);
-        }
-    }
-    PathBuf::from(default)
+    std::env::var(env).ok().filter(|path| !path.trim().is_empty()).map(PathBuf::from)
 }
 
 fn free_port() -> Result<u16> {
@@ -134,9 +125,9 @@ fn analyze(s: &mut Session, p: &Value) -> Result<Value> {
         .filter(|v| !v.is_empty())
         .unwrap_or("Analizza questo segmento video: descrivi le immagini, trascrivi il parlato/audio e suggerisci un prompt video coerente. Rispondi in italiano, conciso.")
         .to_string();
-    let server = first_path(p, "llamaServer", "NL_LLAMA_SERVER", &s.prefs.nl.llama_server_path(), DEFAULT_SERVER);
-    let model = first_path(p, "model", "NL_LLAMA_MODEL", &s.prefs.nl.llama_model_path(), DEFAULT_MODEL);
-    let mmproj = first_path(p, "mmproj", "NL_LLAMA_MMPROJ", &s.prefs.nl.llama_mmproj_path(), DEFAULT_MMPROJ);
+    let server = first_path(p, "llamaServer", "NL_LLAMA_SERVER", &s.prefs.nl.llama_server_path()).ok_or_else(|| bad("configura llama-server in Preferenze ▸ NL Video Suite (o NL_LLAMA_SERVER)"))?;
+    let model = first_path(p, "model", "NL_LLAMA_MODEL", &s.prefs.nl.llama_model_path()).ok_or_else(|| bad("configura il modello GGUF in Preferenze ▸ NL Video Suite (o NL_LLAMA_MODEL)"))?;
+    let mmproj = first_path(p, "mmproj", "NL_LLAMA_MMPROJ", &s.prefs.nl.llama_mmproj_path()).ok_or_else(|| bad("configura mmproj in Preferenze ▸ NL Video Suite (o NL_LLAMA_MMPROJ)"))?;
     let dir = crate::autosave::default_data_dir()
         .unwrap_or_else(std::env::temp_dir)
         .join("nl")
@@ -192,6 +183,37 @@ fn analyze(s: &mut Session, p: &Value) -> Result<Value> {
         "model": model.to_string_lossy(),
         "port": port
     }))
+}
+
+
+/// Describe two bridge frames with the configured Llama server (LFM3). The server is started once,
+/// both images travel in the same request, then it is killed. Returns `(outgoing, incoming)`.
+pub(crate) fn describe_frame_pair(s: &mut Session, outgoing: &Path, incoming: &Path) -> std::result::Result<(String, String), String> {
+    let server = first_path(&serde_json::json!({}), "llamaServer", "NL_LLAMA_SERVER", &s.prefs.nl.llama_server_path()).ok_or("llama-server non configurato")?;
+    let model = first_path(&serde_json::json!({}), "model", "NL_LLAMA_MODEL", &s.prefs.nl.llama_model_path()).ok_or("modello GGUF non configurato")?;
+    let mmproj = first_path(&serde_json::json!({}), "mmproj", "NL_LLAMA_MMPROJ", &s.prefs.nl.llama_mmproj_path()).ok_or("mmproj non configurato")?;
+    let context = s.prefs.nl.llama_context.clamp(2048, 131072);
+    let port = free_port().map_err(|e| e.to_string())?;
+    let _guard = start_server(&server, &model, &mmproj, port, context).map_err(|e| e.to_string())?;
+    let out = read_base64(outgoing).ok_or("outgoing frame non leggibile")?;
+    let inc = read_base64(incoming).ok_or("incoming frame non leggibile")?;
+    let body = json!({
+        "model": "lfm3-omni",
+        "messages": [{"role": "user", "content": [
+            {"type": "text", "text": "Descrivi i due frame per una transizione continua. Rispondi SOLO con JSON: {\"outgoing\":\"...\",\"incoming\":\"...\"}. Ogni descrizione: soggetto, posa, azione, ambiente, luce, camera e colore, in inglese, una frase."},
+            {"type": "image_url", "image_url": {"url": format!("data:image/png;base64,{out}")}},
+            {"type": "image_url", "image_url": {"url": format!("data:image/png;base64,{inc}")}}
+        ]}],
+        "max_tokens": 500,
+        "temperature": 0.2
+    }).to_string();
+    let reply = crate::nl::http::request(crate::nl::http::Method::Post, &format!("http://127.0.0.1:{port}/v1/chat/completions"), Some(&body), Duration::from_secs(300))?;
+    let value: Value = serde_json::from_slice(&reply).map_err(|e| e.to_string())?;
+    let text = value["choices"][0]["message"]["content"].as_str().ok_or("nessuna risposta")?;
+    let parsed = super::llm::json_from_text(text)?;
+    let outgoing = parsed["outgoing"].as_str().unwrap_or("the outgoing frame").to_string();
+    let incoming = parsed["incoming"].as_str().unwrap_or("the incoming frame").to_string();
+    Ok((outgoing, incoming))
 }
 
 pub(crate) fn commands() -> Vec<crate::CommandSpec> {
