@@ -3443,10 +3443,10 @@ fn analyze(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     );
     error_line(app, ui);
     ui.horizontal(|ui| {
-        if button(app, ui, "analyze.upscale", "Upscale video selezionato (RTX 3×)") {
+        if button(app, ui, "analyze.upscale", "Upscale video selezionato") {
             let clip = app.session.state.selection.first().map(|clip| clip.0);
             match clip {
-                Some(clip) => run(app, ui, "graphics.upscaleVideo", json!({"clip": clip, "multiplier": 3.0, "quality": "ULTRA"})),
+                Some(clip) => run(app, ui, "graphics.upscaleVideo", json!({"clip": clip})),
                 None => app.ui.status = "Seleziona la clip generata da upscalare.".into(),
             }
         }
@@ -3654,7 +3654,7 @@ fn batch_section(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     ui.horizontal(|ui| {
         if button(app, ui, "batch.add_upscale", "Accoda upscale clip") {
             match selected {
-                Some(clip) => run(app, ui, "nl.batch.add", json!({"command": "graphics.upscaleVideo", "label": "Upscale clip", "params": {"clip": clip, "multiplier": 3.0, "quality": "ULTRA"}})),
+                Some(clip) => run(app, ui, "nl.batch.add", json!({"command": "graphics.upscaleVideo", "label": "Upscale clip", "params": {"clip": clip}})),
                 None => app.ui.status = "Seleziona una clip da upscalare.".into(),
             }
         }
