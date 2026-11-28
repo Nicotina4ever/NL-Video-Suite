@@ -1074,10 +1074,41 @@ pub(super) fn bridge_panel(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     );
     error_line(app, ui);
     let mut d: BridgeDraft = draft(ui, "nl-bridge-draft");
+    if button(app, ui, "bridge.placeholder_top", "Crea segnaposto nel gap") {
+        let mut args = json!({});
+        let outgoing = d.outgoing.trim().parse::<u64>().unwrap_or(0);
+        let incoming = d.incoming.trim().parse::<u64>().unwrap_or(0);
+        if outgoing > 0 && incoming > 0 {
+            args["outgoing"] = json!(outgoing);
+            args["incoming"] = json!(incoming);
+        }
+        if !d.intent.trim().is_empty() {
+            args["prompt"] = json!(d.intent.trim());
+        }
+        let ctx = ui.ctx().clone();
+        match crate::menus::invoke(app, &ctx, "nl.agent.gap", args) {
+            Ok(value) => app.ui.status = value["message"].as_str().unwrap_or("Ponte AI creato.").to_string(),
+            Err(e) => app.ui.status = e,
+        }
+    }
+    if button(app, ui, "bridge.context_top", "Analizza contesto e aggiorna prompt") {
+        let outgoing = d.outgoing.trim().parse::<u64>().unwrap_or(0);
+        let incoming = d.incoming.trim().parse::<u64>().unwrap_or(0);
+        if outgoing == 0 || incoming == 0 {
+            app.ui.status = "Inserisci gli id delle due clip del gap.".into();
+        } else {
+            let ctx = ui.ctx().clone();
+            let args = json!({"outgoing": outgoing, "incoming": incoming, "beforeSeconds": d.before.trim().parse::<f64>().unwrap_or(10.0), "afterSeconds": d.after.trim().parse::<f64>().unwrap_or(10.0), "intent": d.intent.trim()});
+            match crate::menus::invoke(app, &ctx, "nl.bridge.analyzeContext", args) {
+                Ok(value) => app.ui.status = value["prompt"].as_str().unwrap_or("Contesto analizzato.").to_string(),
+                Err(e) => app.ui.status = e,
+            }
+        }
+    }
     let modes = [
-        ("flf (first/last frame)", "First + last frame (MiniMax H3 FLF)"),
-        ("r2v (2 references)", "Two references (H3 R2V)"),
-        ("i2v (last frame only)", "Last frame only (image→video)"),
+        ("flf", "Primo + ultimo frame"),
+        ("r2v", "Reference immagini + audio"),
+        ("i2v", "Solo ultimo frame (image→video)"),
     ];
     let mut mode = d.mode.min(modes.len() - 1);
     ui.horizontal(|ui| {
@@ -1211,5 +1242,7 @@ pub(super) fn bridge_panel(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
             }
         }
     }
+
+
     save_draft(ui, "nl-bridge-draft", d);
 }

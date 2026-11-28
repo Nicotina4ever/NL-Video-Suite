@@ -52,6 +52,8 @@ pub struct NlPrefs {
     pub llama_model: String,
     pub llama_mmproj: String,
     pub llama_context: i64,
+    /// 0 = a free port chosen at launch; otherwise the preferred port.
+    pub llama_port: i64,
     /// Seconds of outgoing/incoming context analysed when building a bridge prompt.
     pub bridge_context_before: f64,
     pub bridge_context_after: f64,
@@ -137,6 +139,7 @@ impl Default for NlPrefs {
             llama_model: String::new(),
             llama_mmproj: String::new(),
             llama_context: 32768,
+            llama_port: 0,
             bridge_context_before: 10.0,
             bridge_context_after: 10.0,
             llm_provider: DEFAULT_LLM_PROVIDER.into(),

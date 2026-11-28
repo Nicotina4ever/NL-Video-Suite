@@ -272,7 +272,7 @@ fn sgrossa_report(s: &mut Session, p: &Value) -> Result<Value> {
 }
 
 /// The transcript of a media item: stored under the media, or under a sequence clip that reads it.
-fn transcript_for(s: &Session, item: ItemId) -> Option<std::sync::Arc<filmcraft_project::Transcript>> {
+pub(crate) fn transcript_for(s: &Session, item: ItemId) -> Option<std::sync::Arc<filmcraft_project::Transcript>> {
     if let Some(transcript) = s.project.transcripts.get(&item) {
         return Some(transcript.clone());
     }

@@ -1586,6 +1586,19 @@ fn gap_placeholder(s: &mut Session, p: &Value) -> Result<Value> {
     }
     let planned = s.execute("nl.bridge.plan", plan_params)?;
     let start_ticks = planned["gapStartTicks"].as_u64().ok_or_else(|| bad_cmd("nl.agent.gap", "the bridge plan has no gap start"))?;
+    // A second click on the same gap must update the existing bridge, not stack another one.
+    if let Some(sequence) = s.active_sequence() {
+        let existing = sequence
+            .video_tracks
+            .iter()
+            .flat_map(|track| track.items.iter())
+            .find(|item| item.start.0 == start_ticks as i64 && item.name.starts_with("bridge-gap"))
+            .map(|item| item.id.0);
+        if let Some(clip) = existing {
+            let _ = s.execute("timeline.delete", json!({"clips": [clip]}));
+        }
+    }
+
     let seconds = planned["gapSeconds"].as_f64().unwrap_or(0.0);
     if seconds < 1.0 {
         return Err(bad_cmd("nl.agent.gap", "the gap is too short for a bridge object"));

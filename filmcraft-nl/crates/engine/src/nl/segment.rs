@@ -59,6 +59,8 @@ fn start_server(server: &Path, model: &Path, mmproj: &Path, port: u16, context: 
         .arg("--port")
         .arg(port.to_string())
         .arg("--no-ui")
+        .arg("--reasoning")
+        .arg("off")
         .arg("-c")
         .arg(context.to_string())
         .arg("-ngl")
@@ -139,7 +141,8 @@ fn analyze(s: &mut Session, p: &Value) -> Result<Value> {
         return Err(bad("nothing to analyse: could not export a frame or the audio of the segment"));
     }
     let context = p.get("context").and_then(Value::as_i64).unwrap_or(s.prefs.nl.llama_context).clamp(2048, 131072);
-    let port = free_port()?;
+    let configured_port = s.prefs.nl.llama_port.clamp(0, 65535) as u16;
+    let port = if configured_port == 0 { free_port()? } else { configured_port };
     let _guard = start_server(&server, &model, &mmproj, port, context)?;
     let mut parts: Vec<Value> = vec![json!({"type": "text", "text": prompt})];
     for frame in &frames {
@@ -153,7 +156,7 @@ fn analyze(s: &mut Session, p: &Value) -> Result<Value> {
         parts.push(json!({"type": "input_audio", "input_audio": {"data": data, "format": "wav"}}));
     }
     let body = json!({
-        "model": "lfm3-omni",
+        "model": model.file_stem().and_then(|name| name.to_str()).unwrap_or("local"),
         "messages": [{"role": "user", "content": parts}],
         "max_tokens": 700,
         "temperature": 0.2
@@ -172,7 +175,7 @@ fn analyze(s: &mut Session, p: &Value) -> Result<Value> {
         .or_else(|| value["choices"][0]["message"]["reasoning"].as_str())
         .map(str::trim)
         .filter(|text| !text.is_empty())
-        .ok_or_else(|| bad("llama-server returned no text"))?
+        .ok_or_else(|| bad(format!("llama-server returned no text: {}", serde_json::to_string(&value).unwrap_or_default().chars().take(500).collect::<String>())))?
         .to_string();
     Ok(json!({
         "segment": {"startSeconds": start, "endSeconds": end},
@@ -193,12 +196,13 @@ pub(crate) fn describe_frame_pair(s: &mut Session, outgoing: &Path, incoming: &P
     let model = first_path(&serde_json::json!({}), "model", "NL_LLAMA_MODEL", &s.prefs.nl.llama_model_path()).ok_or("modello GGUF non configurato")?;
     let mmproj = first_path(&serde_json::json!({}), "mmproj", "NL_LLAMA_MMPROJ", &s.prefs.nl.llama_mmproj_path()).ok_or("mmproj non configurato")?;
     let context = s.prefs.nl.llama_context.clamp(2048, 131072);
-    let port = free_port().map_err(|e| e.to_string())?;
+    let configured_port = s.prefs.nl.llama_port.clamp(0, 65535) as u16;
+    let port = if configured_port == 0 { free_port().map_err(|e| e.to_string())? } else { configured_port };
     let _guard = start_server(&server, &model, &mmproj, port, context).map_err(|e| e.to_string())?;
     let out = read_base64(outgoing).ok_or("outgoing frame non leggibile")?;
     let inc = read_base64(incoming).ok_or("incoming frame non leggibile")?;
     let body = json!({
-        "model": "lfm3-omni",
+        "model": model.file_stem().and_then(|name| name.to_str()).unwrap_or("local"),
         "messages": [{"role": "user", "content": [
             {"type": "text", "text": "Descrivi i due frame per una transizione continua. Rispondi SOLO con JSON: {\"outgoing\":\"...\",\"incoming\":\"...\"}. Ogni descrizione: soggetto, posa, azione, ambiente, luce, camera e colore, in inglese, una frase."},
             {"type": "image_url", "image_url": {"url": format!("data:image/png;base64,{out}")}},

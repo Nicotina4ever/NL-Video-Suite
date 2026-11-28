@@ -666,26 +666,87 @@ fn bridge_place(s: &mut Session, p: &Value) -> Result<Value> {
     Ok(json!({"item": item.0, "path": path, "gapSeconds": gap.seconds(), "placement": placed, "transitions": transitions}))
 }
 
+
+/// Words of the transcript that fall inside a timeline range, mapped through the clip's source
+/// timing. Returns an empty string when the media has no transcript.
+fn transcript_in_range(s: &Session, track_name: &str, start: f64, end: f64) -> String {
+    let Some(sequence) = s.active_sequence() else { return String::new() };
+    let Some(track) = sequence.video_tracks.iter().find(|track| track.name == track_name) else { return String::new() };
+    let mut words = Vec::new();
+    for clip in &track.items {
+        let clip_start = clip.start.0 as f64 / 254_016_000_000.0;
+        let clip_end = (clip.start.0 + clip.duration.0) as f64 / 254_016_000_000.0;
+        if clip_end <= start || clip_start >= end { continue; }
+        let Some(transcript) = super::transcript_for(s, clip.item) else { continue };
+        let speed = if clip.speed.abs() < 0.01 { 1.0 } else { clip.speed.abs() };
+        for word in &transcript.words {
+            let source = clip.source_in.0 as f64 / 254_016_000_000.0 + (word.start.0 as f64 / 254_016_000_000.0 - clip.source_in.0 as f64 / 254_016_000_000.0) / speed;
+            let at = clip_start + (source - clip.source_in.0 as f64 / 254_016_000_000.0);
+            if at >= start && at <= end {
+                words.push(word.text.trim().to_string());
+            }
+        }
+    }
+    words.join(" ")
+}
+
 /// `nl.bridge.analyzeContext` — read the outgoing/incoming context with the configured local
 /// Llama server (frames + audio), add the operator's intention, and update the bridge placeholder
 /// prompt. Gap creation itself stays instant; this is the explicit analysis step.
 fn bridge_analyze_context(s: &mut Session, p: &Value) -> Result<Value> {
-    let gap = find_gap(s, p)?;
+    // The placeholder already fills the gap, so find_gap cannot see it. With explicit ids build
+    // the same context from the two clips and the placeholder between them.
+    let gap = match (p.get("outgoing").and_then(Value::as_u64), p.get("incoming").and_then(Value::as_u64)) {
+        (Some(outgoing), Some(incoming)) => {
+            let sequence = s.active_sequence().ok_or(EngineError::NoSequence)?;
+            let mut found = None;
+            for (index, track) in sequence.video_tracks.iter().enumerate() {
+                let out = track.items.iter().find(|clip| clip.id.0 == outgoing);
+                let inc = track.items.iter().find(|clip| clip.id.0 == incoming);
+                if let (Some(out), Some(inc)) = (out, inc) {
+                    found = Some(Gap {
+                        track: track.name.clone(),
+                        track_param: format!("V{}", index + 1),
+                        start: Tick(out.start.0 + out.duration.0),
+                        end: inc.start,
+                        outgoing,
+                        incoming,
+                        outgoing_end: Tick(out.start.0 + out.duration.0),
+                        incoming_start: inc.start,
+                    });
+                    break;
+                }
+            }
+            found.ok_or_else(|| bad_cmd("nl.bridge.analyzeContext", "clips are not on the same video track"))?
+        }
+        _ => find_gap(s, p)?,
+    };
     let before = p.get("beforeSeconds").and_then(Value::as_f64).unwrap_or(s.prefs.nl.bridge_context_before).clamp(0.0, 120.0);
     let after = p.get("afterSeconds").and_then(Value::as_f64).unwrap_or(s.prefs.nl.bridge_context_after).clamp(0.0, 120.0);
     let intent = p.get("intent").and_then(Value::as_str).map(str::trim).unwrap_or("");
     let seconds = |ticks: i64| ticks as f64 / 254_016_000_000.0;
-    let outgoing_end = seconds(gap.outgoing_end.0);
+    // Stay strictly inside the two clips: the exact boundary frame belongs to the gap/placeholder
+    // and must not be described as part of the outgoing or incoming action.
+    let guard = 0.05;
+    let outgoing_end = (seconds(gap.outgoing_end.0) - guard).max(0.0);
     let outgoing_start = (outgoing_end - before).max(0.0);
-    let incoming_start = seconds(gap.incoming_start.0);
+    let incoming_start = seconds(gap.incoming_start.0) + guard;
     let incoming_end = incoming_start + after;
     let mut analyses = Vec::new();
     for (name, start, end) in [("outgoing", outgoing_start, outgoing_end), ("incoming", incoming_start, incoming_end)] {
         if end - start < 0.2 { continue; }
-        let result = s.execute("nl.analyze.segment", json!({"startSeconds": start, "endSeconds": end, "prompt": format!("Analizza il contesto {name} prima/dopo il gap: descrivi immagini, azione, dialogo/audio e suggerisci come continuare.")}))?;
+        let result = s.execute("nl.analyze.segment", json!({"startSeconds": start, "endSeconds": end, "prompt": format!("Analizza solo il contesto {name} di questo intervallo: descrivi in massimo 120 parole soggetto, azione, dialogo/audio e continuità. Non descrivere buchi, frame neri o il gap.")}))?;
         if let Some(text) = result["text"].as_str() {
             analyses.push(format!("{name} ({start:.1}-{end:.1}s): {text}"));
         }
+    }
+    let outgoing_words = transcript_in_range(s, &gap.track, outgoing_start, outgoing_end);
+    let incoming_words = transcript_in_range(s, &gap.track, incoming_start, incoming_end);
+    if !outgoing_words.is_empty() {
+        analyses.push(format!("trascrizione outgoing: {outgoing_words}"));
+    }
+    if !incoming_words.is_empty() {
+        analyses.push(format!("trascrizione incoming: {incoming_words}"));
     }
     if analyses.is_empty() {
         return Err(bad_cmd("nl.bridge.analyzeContext", "no context could be analysed"));
@@ -702,8 +763,21 @@ fn bridge_analyze_context(s: &mut Session, p: &Value) -> Result<Value> {
         if intent.is_empty() { "continue the action naturally, matching the surrounding style" } else { intent },
         analyses.join("\n\n")
     );
-    s.execute("nl.agent.update", json!({"id": clip, "prompt": prompt}))?;
-    Ok(json!({"clip": clip, "beforeSeconds": before, "afterSeconds": after, "analyses": analyses, "prompt": prompt}))
+    let item = s
+        .active_sequence()
+        .and_then(|sequence| sequence.find_item(filmcraft_project::ClipId(clip)))
+        .map(|(_, item)| item.item)
+        .ok_or_else(|| bad_cmd("nl.bridge.analyzeContext", "placeholder clip disappeared"))?;
+    let prompt_for_meta = prompt.clone();
+    s.edit("Ponte AI: prompt dal contesto", |project, _| {
+        if let Some(project_item) = project.item_mut(item) {
+            project_item.metadata.insert("nl.prompt".into(), prompt_for_meta);
+            project_item.metadata.insert("nl.role".into(), "agent-placeholder".into());
+            project_item.metadata.insert("nl.kind".into(), "video".into());
+        }
+        Ok(())
+    })?;
+    Ok(json!({"clip": clip, "item": item.0, "beforeSeconds": before, "afterSeconds": after, "analyses": analyses, "prompt": prompt}))
 }
 pub(crate) fn commands() -> Vec<CommandSpec> {
     let spec = |id: &'static str, label: &'static str, params: &'static str, run: fn(&mut Session, &Value) -> Result<Value>| -> CommandSpec {

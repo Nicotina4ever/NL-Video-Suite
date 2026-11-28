@@ -2460,7 +2460,13 @@ fn nl_action_id() -> egui::Id {
 }
 
 pub(crate) fn open_object_action(app: &FilmcraftApp, ctx: &egui::Context, clip: u64) {
-    let mut state = NlObjectAction { clip, vision_url: "http://127.0.0.1:11434/v1".into(), vision_model: "gemma4:e4b".into(), ..Default::default() };
+    let nl = &app.session.prefs.nl;
+    let vision_url = if nl.vision_url.trim().is_empty() { format!("{}/v1", nl.ollama_url().trim_end_matches('/')) } else { nl.vision_url() };
+    let vision_model = [nl.role_model("vision"), nl.ollama_model_vision()]
+        .into_iter()
+        .find(|model| !model.trim().is_empty() && model != "lfm2.5:latest")
+        .unwrap_or_else(|| nl.vision_model.trim().to_string());
+    let mut state = NlObjectAction { clip, vision_url, vision_model, ..Default::default() };
     if let Some((_, item)) = app.session.active_sequence().and_then(|sequence| sequence.find_item(filmcraft_project::ClipId(clip))) {
         state.start = item.start.0 as f64 / 254_016_000_000.0;
         state.end = (item.start.0 + item.duration.0) as f64 / 254_016_000_000.0;
