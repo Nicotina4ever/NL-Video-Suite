@@ -705,8 +705,6 @@ fn reference_section(app: &mut FilmcraftApp, ui: &mut egui::Ui, workflow: &str, 
         }
     }
     if !loras.is_empty() {
-        field(app, ui, "generate.lora", "LoRA extra (nome file)", &mut d.lora);
-        field(app, ui, "generate.lora_strength", "LoRA strength", &mut d.lora_strength);
     }
     if has_refs {
         ui.horizontal_wrapped(|ui| {
@@ -1226,7 +1224,7 @@ fn asr_model_manager(app: &mut FilmcraftApp, ui: &mut egui::Ui, salt: &str) {
     let qwen_aligner = models.iter().find(|m| m["kind"] == "qwen-gguf" && m["role"] == "aligner").cloned();
     let qwen_runner = engines.iter().find(|e| e["engine"] == "qwen3-asr").cloned();
     if let (Some(model), Some(aligner), Some(runner)) = (qwen_model, qwen_aligner, qwen_runner)
-        && button(app, ui, &format!("{salt}.qwen"), "Usa Qwen3-ASR")
+        && button(app, ui, &format!("{salt}.qwen"), "Usa modello ASR rilevato")
     {
         for (key, value) in [
             ("nl.asrProvider", "qwen_gguf"),
@@ -1238,7 +1236,7 @@ fn asr_model_manager(app: &mut FilmcraftApp, ui: &mut egui::Ui, salt: &str) {
                 app.ui.status = e.to_string();
             }
         }
-        app.ui.status = "Qwen3-ASR selezionato.".into();
+        app.ui.status = "Modello ASR rilevato selezionato.".into();
     }
     if let Some(whisper) = models.iter().find(|m| m["kind"] == "whisper-ct2").cloned()
         && button(app, ui, &format!("{salt}.whisper"), "Usa Whisper")
@@ -1871,7 +1869,7 @@ fn speech(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         let qwen_runner = engines.iter().find(|e| e["engine"] == "qwen3-asr").cloned();
         ui.label(RichText::new(format!("{} verificati · {} engine", scan["count"].as_u64().unwrap_or(0), engines.len())).size(11.0));
         if let (Some(model), Some(aligner), Some(runner)) = (qwen_model, qwen_aligner, qwen_runner)
-            && button(app, ui, "speech.use_qwen", "Usa Qwen3-ASR")
+            && button(app, ui, "speech.use_qwen", "Usa modello ASR rilevato")
         {
             for (key, value) in [
                 ("nl.asrProvider", "qwen_gguf"),
@@ -1883,7 +1881,7 @@ fn speech(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
                     app.ui.status = e.to_string();
                 }
             }
-            app.ui.status = "Qwen3-ASR selezionato.".into();
+            app.ui.status = "Modello ASR rilevato selezionato.".into();
         }
         if let Some(whisper) = models.iter().find(|m| m["kind"] == "whisper-ct2").cloned()
             && button(app, ui, "speech.use_whisper", "Usa Whisper")
