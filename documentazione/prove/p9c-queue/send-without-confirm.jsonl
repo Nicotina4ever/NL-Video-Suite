@@ -1,4 +1,0 @@
-{"id":"file.openDemoProject","line":1,"ok":true,"result":{"sequence":21}}
-{"id":"nl.queue.add","line":2,"ok":true,"result":{"added":[{"id":1,"seed":5}],"duplicates":0,"queued":1}}
-{"id":"nl.queue.prepare","line":3,"ok":true,"result":{"entries":[1],"errors":[],"prepared":1}}
-{"error":"invalid parameters for `nl.queue.send`: nothing is sent without `confirm: true`: prepare first, check the payloads, then confirm","id":"nl.queue.send","line":4,"ok":false}

@@ -1,9 +1,0 @@
-{
-  "fixed": true,
-  "fixes": [
-    "node 2: width 1000 → 1008 (multiple of 16)",
-    "node 2: height 1000 → 1008 (multiple of 16)"
-  ],
-  "original": "K:\\AI\\NL_Video_Suite\\workflows\\nl-imports/nl-test-workflow.json",
-  "path": "C:\\Users\\Nicola\\AppData\\Roaming\\NL Video Suite\\nl\\workflows\\fixed\\nl-test-workflow-fixed.json"
-}

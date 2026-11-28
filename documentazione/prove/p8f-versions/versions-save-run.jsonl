@@ -1,5 +1,0 @@
-{"id":"file.openDemoProject","line":1,"ok":true,"result":{"sequence":21}}
-{"id":"file.saveAs","line":2,"ok":true,"result":{"backup":null,"bytes":28291,"ms":2.1807,"path":"C:\\Users\\Nicola\\AppData\\Local\\Temp\\nl-versions-live2\\version-project.fcproj"}}
-{"id":"nl.versions.save","line":3,"ok":true,"result":{"clips":14,"durationSeconds":26.77675,"id":"1795455993-director-cut","name":"Director cut","path":"C:\\Users\\Nicola\\AppData\\Local\\Temp\\nl-versions-live2\\nl\\versions\\1795455993-director-cut.json"}}
-{"id":"nl.versions.list","line":4,"ok":true,"result":{"count":1,"folder":"C:\\Users\\Nicola\\AppData\\Local\\Temp\\nl-versions-live2\\nl\\versions","versions":[{"clips":14,"created":1795455993,"durationSeconds":26.77675,"file":"1795455993-director-cut.json","id":"1795455993-director-cut","name":"Director cut"}]}}
-{"id":"sequence.settings","line":5,"ok":true,"result":{"scaledClips":0}}

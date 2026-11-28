@@ -1038,6 +1038,9 @@ struct BridgeDraft {
     transition: usize,
     analyze: bool,
     prompt: String,
+    before: String,
+    after: String,
+    intent: String,
     place_path: String,
 }
 
@@ -1051,6 +1054,9 @@ impl Default for BridgeDraft {
             transition: 0,
             analyze: false,
             prompt: String::new(),
+            before: "10".into(),
+            after: "10".into(),
+            intent: String::new(),
             place_path: String::new(),
         }
     }
@@ -1094,6 +1100,11 @@ pub(super) fn bridge_panel(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         ui.checkbox(&mut d.analyze, RichText::new("Analizza i frame per costruire il prompt (più lento)").size(11.0));
         ui.label(RichText::new("Leave the ids empty to use the empty space around the playhead.").size(11.0).color(app.tokens.text_faint));
     });
+    ui.horizontal(|ui| {
+        field(app, ui, "bridge.before", "Secondi prima", &mut d.before);
+        field(app, ui, "bridge.after", "Secondi dopo", &mut d.after);
+    });
+    field(app, ui, "bridge.intent", "Cosa vuoi realizzare nel ponte", &mut d.intent);
     let mut prompt = d.prompt.clone();
     ui.label(RichText::new("Prompt (optional)").size(12.0).color(app.tokens.text_dim));
     let r = ui.add(egui::TextEdit::multiline(&mut prompt).desired_rows(3).desired_width(f32::INFINITY).id_salt("nl-bridge-prompt"));
@@ -1120,6 +1131,19 @@ pub(super) fn bridge_panel(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     }
     if !d.prompt.trim().is_empty() {
         params["prompt"] = json!(d.prompt.trim());
+    }
+    if button(app, ui, "bridge.analyze_context", "Analizza contesto e aggiorna prompt") {
+        let mut analysis = json!({});
+        if let Some(outgoing) = outgoing { analysis["outgoing"] = json!(outgoing); }
+        if let Some(incoming) = incoming { analysis["incoming"] = json!(incoming); }
+        analysis["beforeSeconds"] = json!(d.before.trim().parse::<f64>().unwrap_or(10.0));
+        analysis["afterSeconds"] = json!(d.after.trim().parse::<f64>().unwrap_or(10.0));
+        analysis["intent"] = json!(d.intent.trim());
+        let ctx = ui.ctx().clone();
+        match crate::menus::invoke(app, &ctx, "nl.bridge.analyzeContext", analysis) {
+            Ok(value) => app.ui.status = value["prompt"].as_str().unwrap_or("Contesto analizzato.").to_string(),
+            Err(e) => app.ui.status = e,
+        }
     }
     ui.horizontal(|ui| {
         if button(app, ui, "bridge.placeholder", "Crea segnaposto nel gap") {

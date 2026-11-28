@@ -688,6 +688,8 @@ pub(super) static CATEGORIES: &[Category] = &[
                     f("nl.llamaModel", "Modello GGUF", Kind::Path, true),
                     f("nl.llamaMmproj", "mmproj GGUF", Kind::Path, true),
                     f("nl.llamaContext", "Contesto token (default 32768)", int(2048.0, 131072.0, "token"), true),
+                    f("nl.bridgeContextBefore", "Secondi prima del gap da analizzare", int(0.0, 120.0, "seconds"), true),
+                    f("nl.bridgeContextAfter", "Secondi dopo il gap da analizzare", int(0.0, 120.0, "seconds"), true),
                 ],
             ),
             Row::Group(

@@ -1,4 +1,0 @@
-{"id":"file.openDemoProject","line":1,"ok":true,"result":{"sequence":21}}
-{"id":"captions.import","line":2,"ok":true,"result":{"captions":2,"format":"SubRip (SRT)","language":"en","sequence":21,"track":900011,"warnings":[]}}
-{"id":"nl.delivery.social","line":3,"ok":true,"result":{"checks":[{"detail":"1920×1080","id":"aspect","ok":true},{"detail":"26.8 s","id":"duration","ok":true},{"detail":"2 cue(s)","id":"captions","ok":true},{"detail":"7 clip audio","id":"audio","ok":true}],"platform":"youtube","ready":true}}
-{"id":"nl.delivery.social","line":4,"ok":true,"result":{"checks":[{"detail":"1920×1080 (orizzontale)","id":"aspect","ok":false},{"detail":"26.8 s (limite 60 s)","id":"duration","ok":true},{"detail":"2 cue(s)","id":"captions","ok":true},{"detail":"7 clip audio","id":"audio","ok":true}],"platform":"tiktok","ready":false}}

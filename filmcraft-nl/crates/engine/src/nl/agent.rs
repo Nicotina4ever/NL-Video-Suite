@@ -1570,6 +1570,14 @@ fn gap_placeholder(s: &mut Session, p: &Value) -> Result<Value> {
     // Creating the placeholder must stay instant: the vision analysis is an explicit preview
     // action in NL Bridge, never a prerequisite for the gap object.
     plan_params["analyzeIncoming"] = json!(false);
+    plan_params["withAudio"] = json!(false);
+    // The panel may carry only one of the two ids while the operator is still choosing. A partial
+    // pair is not an explicit gap: fall back to the gap around the playhead instead of refusing.
+    let outgoing = plan_params.get("outgoing").and_then(Value::as_u64).unwrap_or(0);
+    let incoming = plan_params.get("incoming").and_then(Value::as_u64).unwrap_or(0);
+    if (outgoing == 0) != (incoming == 0) {
+        plan_params.as_object_mut().map(|object| { object.remove("outgoing"); object.remove("incoming"); });
+    }
     if plan_params.get("outgoing").and_then(Value::as_u64).is_none()
         && let Some((outgoing, incoming)) = nearest_gap(s)
     {

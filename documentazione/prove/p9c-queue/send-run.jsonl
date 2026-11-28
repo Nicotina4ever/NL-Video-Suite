@@ -1,6 +1,0 @@
-{"id":"file.openDemoProject","line":1,"ok":true,"result":{"sequence":21}}
-{"id":"sequence.settings","line":2,"ok":true,"result":{"scaledClips":0}}
-{"id":"nl.queue.add","line":3,"ok":true,"result":{"added":[{"id":1,"seed":4242}],"duplicates":0,"queued":1}}
-{"id":"nl.queue.prepare","line":4,"ok":true,"result":{"entries":[1],"errors":[],"prepared":1}}
-{"id":"nl.queue.send","line":5,"ok":true,"result":{"errors":[],"sent":1,"skipped":0}}
-{"id":"nl.queue.list","line":6,"ok":true,"result":{"entries":[{"error":null,"id":1,"job":1,"kind":"image","overrides":null,"prepared":{"dryRun":true,"nodes":10,"overridden":0,"prompt":"a cinematic portrait of a voice actor at a condenser microphone, warm rim light, shallow depth of field","references":[],"seed":4242,"size":{"height":512,"width":512},"submitted":false,"url":"http://127.0.0.1:8188","workflow":"K:\\AI\\NL_Video_Suite\\workflows\\regista/image/z-image-turbo.json"},"prompt":"a cinematic portrait of a voice actor at a condenser microphone, warm rim light, shallow depth of field","seed":4242,"status":"sent","workflow":"regista/image/z-image-turbo.json"}],"queued":1}}

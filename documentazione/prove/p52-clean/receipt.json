@@ -1,0 +1,27 @@
+{
+  "date": "2026-11-28",
+  "moved_to": "da_eliminare/2026-11-28-clean",
+  "moved": {
+    "build_target": "filmcraft-nl/target",
+    "dev_prototype": "sviluppo",
+    "old_trash": "documentazione/prove/da-eliminare-2026-11-23",
+    "old_proofs": "tutte le prove tranne p33, p46-p51, f4-shorts"
+  },
+  "deleted_from_trash": "vecchie cache target 2026-11-27-finale (23.897,8 MB)",
+  "preserved": [
+    "LogoMioBozza.svg",
+    "ZMateriale",
+    "workflows",
+    "workflows/docs/style/LogoMioBozza.palette.json",
+    "data/projects",
+    "documentazione",
+    "docs/brand",
+    "runtime",
+    "distribuzione",
+    "NL Video Suite.exe",
+    "filmcraft-nl/src"
+  ],
+  "free_gb": 96.81,
+  "da_eliminare_mb": 13712.7,
+  "prove_mb": 52.3
+}

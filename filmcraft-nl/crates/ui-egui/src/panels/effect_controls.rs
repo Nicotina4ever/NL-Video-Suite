@@ -1191,19 +1191,11 @@ pub fn properties_panel(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
                     app.ui.status = error;
                 }
             }
-            if ui.button("Genera e sostituisci").clicked() {
-                let command = if edited_kind == "audio" { "nl.agent.audio" } else { "nl.agent.generate" };
-                if let Err(error) = crate::menus::invoke(app, &ui.ctx().clone(), command, json!({"id": entry})) {
-                    app.ui.status = error;
-                }
-            }
-            if edited_kind != "audio" && ui.button("Anima in video (i2v)").clicked() {
-                if let Err(error) = crate::menus::invoke(app, &ui.ctx().clone(), "nl.agent.animate", json!({"id": entry})) {
-                    app.ui.status = error;
-                }
+            if ui.button("Azioni AI sull'oggetto…").clicked() {
+                let ctx = ui.ctx().clone(); open_object_action(app, &ctx, it.id.0);
             }
         });
-        app.auto.add("properties.nl.generate", bui.max_rect(), "Genera e sostituisci il placeholder");
+        app.auto.add("properties.nl.actions", bui.max_rect(), "Azioni AI sull'oggetto");
         bui.add_space(4.0);
     }
     let row = |ui: &mut egui::Ui, label: &str| -> Rect {

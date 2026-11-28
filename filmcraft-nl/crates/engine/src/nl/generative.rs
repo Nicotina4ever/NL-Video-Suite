@@ -258,7 +258,7 @@ fn describe_bridge_frame(s: &mut Session, p: &Value, path: &Path) -> Option<Stri
 
 /// The two frames of a bridge, plus the outgoing audio tail (audio reference when the workflow
 /// supports it), exported under the suite data folder and kept for the receipt.
-fn export_bridge_frames(s: &mut Session, gap: &Gap) -> Result<(PathBuf, PathBuf, Option<PathBuf>)> {
+fn export_bridge_frames(s: &mut Session, gap: &Gap, with_audio: bool) -> Result<(PathBuf, PathBuf, Option<PathBuf>)> {
     let stamp = SystemTime::now().duration_since(UNIX_EPOCH).map(|elapsed| elapsed.as_millis()).unwrap_or(0);
     let dir = data_dir().join("nl").join("bridge").join(format!("{stamp}"));
     std::fs::create_dir_all(&dir).map_err(|e| bad_cmd("nl.bridge.plan", format!("{}: {e}", dir.display())))?;
@@ -267,15 +267,20 @@ fn export_bridge_frames(s: &mut Session, gap: &Gap) -> Result<(PathBuf, PathBuf,
     let first = dir.join("incoming-first-frame.png");
     export_frame(s, &last, Tick(gap.outgoing_end.0.saturating_sub(one_frame).max(0)))?;
     export_frame(s, &first, gap.incoming_start)?;
-    // Last two seconds before the gap: this is the sound the bridge has to continue.
-    let audio = dir.join("outgoing-audio.wav");
-    let end = gap.start.0 as f64 / 254_016_000_000.0;
-    let start = (end - 2.0).max(0.0);
-    let exported = s.execute(
-        "file.exportMedia",
-        json!({"path": audio.to_string_lossy(), "format": "wav", "range": "custom", "startSeconds": start, "endSeconds": end, "audio": true, "wait": true}),
-    );
-    let audio = exported.is_ok().then_some(audio).filter(|path| path.is_file());
+    // Last two seconds before the gap: the sound the bridge has to continue. Exported only when
+    // the caller is going to generate/analyse, never for an instant placeholder.
+    let audio = if with_audio {
+        let audio = dir.join("outgoing-audio.wav");
+        let end = gap.start.0 as f64 / 254_016_000_000.0;
+        let start = (end - 2.0).max(0.0);
+        let exported = s.execute(
+            "file.exportMedia",
+            json!({"path": audio.to_string_lossy(), "format": "wav", "range": "custom", "startSeconds": start, "endSeconds": end, "audio": true, "wait": true}),
+        );
+        exported.is_ok().then_some(audio).filter(|path| path.is_file())
+    } else {
+        None
+    };
     Ok((last, first, audio))
 }
 
@@ -519,7 +524,7 @@ pub(crate) fn apply_place_transitions(s: &mut Session, placement: &Value, transi
 /// generating anything.
 fn bridge_plan(s: &mut Session, p: &Value) -> Result<Value> {
     let gap = find_gap(s, p)?;
-    let (last, first, audio) = export_bridge_frames(s, &gap)?;
+    let (last, first, audio) = export_bridge_frames(s, &gap, p.get("withAudio").and_then(Value::as_bool).unwrap_or(true))?;
     let mode = p.get("mode").and_then(Value::as_str).unwrap_or("flf").to_ascii_lowercase();
     if !matches!(mode.as_str(), "flf" | "r2v" | "i2v") {
         return Err(bad_cmd("nl.bridge.plan", "`mode` must be flf, r2v or i2v"));
@@ -660,6 +665,46 @@ fn bridge_place(s: &mut Session, p: &Value) -> Result<Value> {
     let transitions = apply_place_transitions(s, &placed, &bridge_transition(p));
     Ok(json!({"item": item.0, "path": path, "gapSeconds": gap.seconds(), "placement": placed, "transitions": transitions}))
 }
+
+/// `nl.bridge.analyzeContext` — read the outgoing/incoming context with the configured local
+/// Llama server (frames + audio), add the operator's intention, and update the bridge placeholder
+/// prompt. Gap creation itself stays instant; this is the explicit analysis step.
+fn bridge_analyze_context(s: &mut Session, p: &Value) -> Result<Value> {
+    let gap = find_gap(s, p)?;
+    let before = p.get("beforeSeconds").and_then(Value::as_f64).unwrap_or(s.prefs.nl.bridge_context_before).clamp(0.0, 120.0);
+    let after = p.get("afterSeconds").and_then(Value::as_f64).unwrap_or(s.prefs.nl.bridge_context_after).clamp(0.0, 120.0);
+    let intent = p.get("intent").and_then(Value::as_str).map(str::trim).unwrap_or("");
+    let seconds = |ticks: i64| ticks as f64 / 254_016_000_000.0;
+    let outgoing_end = seconds(gap.outgoing_end.0);
+    let outgoing_start = (outgoing_end - before).max(0.0);
+    let incoming_start = seconds(gap.incoming_start.0);
+    let incoming_end = incoming_start + after;
+    let mut analyses = Vec::new();
+    for (name, start, end) in [("outgoing", outgoing_start, outgoing_end), ("incoming", incoming_start, incoming_end)] {
+        if end - start < 0.2 { continue; }
+        let result = s.execute("nl.analyze.segment", json!({"startSeconds": start, "endSeconds": end, "prompt": format!("Analizza il contesto {name} prima/dopo il gap: descrivi immagini, azione, dialogo/audio e suggerisci come continuare.")}))?;
+        if let Some(text) = result["text"].as_str() {
+            analyses.push(format!("{name} ({start:.1}-{end:.1}s): {text}"));
+        }
+    }
+    if analyses.is_empty() {
+        return Err(bad_cmd("nl.bridge.analyzeContext", "no context could be analysed"));
+    }
+    let clip = s
+        .active_sequence()
+        .and_then(|sequence| {
+            sequence.video_tracks.iter().flat_map(|track| track.items.iter()).find(|item| item.start == gap.start && item.name.starts_with("bridge-gap"))
+        })
+        .map(|item| item.id.0)
+        .ok_or_else(|| bad_cmd("nl.bridge.analyzeContext", "create the bridge placeholder in the gap first"))?;
+    let prompt = format!(
+        "Objective: create the bridge between the outgoing and incoming shots. Operator intention: {}.\n\nContext analysed with the local model:\n{}\n\nWrite the MiniMax H3 bridge prompt in the full-reference schema: subject_definitions for <Picture 1>, <Picture 2> and <Audio 1> when audio exists; summary [reference generation]; retention_analysis; detailed_description with one continuous shot that starts exactly on Picture 1 and lands exactly on Picture 2; overall_soundscape; non_diegetic_music.",
+        if intent.is_empty() { "continue the action naturally, matching the surrounding style" } else { intent },
+        analyses.join("\n\n")
+    );
+    s.execute("nl.agent.update", json!({"id": clip, "prompt": prompt}))?;
+    Ok(json!({"clip": clip, "beforeSeconds": before, "afterSeconds": after, "analyses": analyses, "prompt": prompt}))
+}
 pub(crate) fn commands() -> Vec<CommandSpec> {
     let spec = |id: &'static str, label: &'static str, params: &'static str, run: fn(&mut Session, &Value) -> Result<Value>| -> CommandSpec {
         CommandSpec { id, label, menu: &[], shortcut: None, params, enabled: always, run, journal: false, named: crate::commands::NamedKeys::NONE }
@@ -678,6 +723,7 @@ pub(crate) fn commands() -> Vec<CommandSpec> {
             r#"{"clip":id?,"seconds":f?,"contextSeconds":f?,"prompt":str?,"workflow":str?,"wait":bool?,"dryRun":bool?,"seed":int?,"overrides":[...]?,"timeoutSeconds":int?}"#,
             generate_extend,
         ),
+        spec("nl.bridge.analyzeContext", "NL Bridge Analyze Context", r#"{"outgoing":id?,"incoming":id?,"track":str?,"beforeSeconds":f?,"afterSeconds":f?,"intent":str?}"#, bridge_analyze_context),
         spec("nl.bridge.place", "NL Bridge Place", r#"{"path":str,"outgoing":id?,"incoming":id?,"track":str?}"#, bridge_place),
         spec(
             "nl.bridge.generate",

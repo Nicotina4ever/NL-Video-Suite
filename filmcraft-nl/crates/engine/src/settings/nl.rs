@@ -52,6 +52,9 @@ pub struct NlPrefs {
     pub llama_model: String,
     pub llama_mmproj: String,
     pub llama_context: i64,
+    /// Seconds of outgoing/incoming context analysed when building a bridge prompt.
+    pub bridge_context_before: f64,
+    pub bridge_context_after: f64,
     /// Language-model provider: `ollama` or `openai_compatible`.
     pub llm_provider: String,
     /// Base URL of the OpenAI-compatible server (with `/v1`); empty = the built-in default.
@@ -134,6 +137,8 @@ impl Default for NlPrefs {
             llama_model: String::new(),
             llama_mmproj: String::new(),
             llama_context: 32768,
+            bridge_context_before: 10.0,
+            bridge_context_after: 10.0,
             llm_provider: DEFAULT_LLM_PROVIDER.into(),
             llm_url: String::new(),
             llm_model: String::new(),

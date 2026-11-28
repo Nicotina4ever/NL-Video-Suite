@@ -111,7 +111,7 @@ pub const PANEL_COMMANDS: &[(PanelKind, &[&str])] = &[
     (PanelKind::NlAlbum, &["nl.album.list", "nl.album.insert"]),
     (PanelKind::NlVersions, &["nl.versions.list", "nl.versions.save", "nl.versions.restore", "nl.versions.delete"]),
     (PanelKind::NlMontage, &["nl.montage.plan", "nl.montage.apply"]),
-    (PanelKind::NlBridge, &["nl.bridge.plan", "nl.bridge.generate", "nl.bridge.place", "nl.agent.gap"]),
+    (PanelKind::NlBridge, &["nl.bridge.plan", "nl.bridge.generate", "nl.bridge.place", "nl.bridge.analyzeContext", "nl.agent.gap"]),
     (
         PanelKind::NlStory,
         &[
