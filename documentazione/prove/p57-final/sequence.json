@@ -1,0 +1,767 @@
+{
+  "audio": [
+    {
+      "enabled": true,
+      "id": 2,
+      "items": [
+        {
+          "clip": 18,
+          "customLabelColor": null,
+          "duration": 1270080000000,
+          "durationFrames": 150,
+          "effects": [
+            {
+              "effect": "volume",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "bypass": {
+                  "keyframes": 0,
+                  "value": "Bool(false)"
+                },
+                "level": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                }
+              }
+            },
+            {
+              "effect": "channel_volume",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "bypass": {
+                  "keyframes": 0,
+                  "value": "Bool(false)"
+                },
+                "left": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                },
+                "right": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                }
+              }
+            },
+            {
+              "effect": "panner",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "balance": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                }
+              }
+            }
+          ],
+          "enabled": true,
+          "end": 1270080000000,
+          "endFrame": 150,
+          "gainDb": 0.0,
+          "item": 4,
+          "label": "Iris",
+          "link": 16,
+          "maintainPitch": false,
+          "name": "Reel Partorito Finito.mp4",
+          "reverse": false,
+          "sourceIn": 0,
+          "sourceOut": 1270080000000,
+          "speed": 1.0,
+          "start": 0,
+          "startFrame": 0
+        },
+        {
+          "clip": 36,
+          "customLabelColor": null,
+          "duration": 762048000000,
+          "durationFrames": 90,
+          "effects": [
+            {
+              "effect": "volume",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "bypass": {
+                  "keyframes": 0,
+                  "value": "Bool(false)"
+                },
+                "level": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                }
+              }
+            },
+            {
+              "effect": "channel_volume",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "bypass": {
+                  "keyframes": 0,
+                  "value": "Bool(false)"
+                },
+                "left": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                },
+                "right": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                }
+              }
+            },
+            {
+              "effect": "panner",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "balance": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                }
+              }
+            }
+          ],
+          "enabled": true,
+          "end": 2032128000000,
+          "endFrame": 240,
+          "gainDb": 0.0,
+          "item": 35,
+          "label": "Caribbean",
+          "link": null,
+          "maintainPitch": false,
+          "name": "audio_minimax_music3_00001.mp3",
+          "reverse": false,
+          "sourceIn": 0,
+          "sourceOut": 762048000000,
+          "speed": 1.0,
+          "start": 1270080000000,
+          "startFrame": 150
+        },
+        {
+          "clip": 21,
+          "customLabelColor": null,
+          "duration": 1270080000000,
+          "durationFrames": 150,
+          "effects": [
+            {
+              "effect": "volume",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "bypass": {
+                  "keyframes": 0,
+                  "value": "Bool(false)"
+                },
+                "level": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                }
+              }
+            },
+            {
+              "effect": "channel_volume",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "bypass": {
+                  "keyframes": 0,
+                  "value": "Bool(false)"
+                },
+                "left": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                },
+                "right": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                }
+              }
+            },
+            {
+              "effect": "panner",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "balance": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                }
+              }
+            }
+          ],
+          "enabled": true,
+          "end": 3302208000000,
+          "endFrame": 390,
+          "gainDb": 0.0,
+          "item": 5,
+          "label": "Iris",
+          "link": 19,
+          "maintainPitch": false,
+          "name": "Reel Partorito Finito.mp4",
+          "reverse": false,
+          "sourceIn": 0,
+          "sourceOut": 1270080000000,
+          "speed": 1.0,
+          "start": 2032128000000,
+          "startFrame": 240
+        },
+        {
+          "clip": 24,
+          "customLabelColor": null,
+          "duration": 1270080000000,
+          "durationFrames": 150,
+          "effects": [
+            {
+              "effect": "volume",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "bypass": {
+                  "keyframes": 0,
+                  "value": "Bool(false)"
+                },
+                "level": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                }
+              }
+            },
+            {
+              "effect": "channel_volume",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "bypass": {
+                  "keyframes": 0,
+                  "value": "Bool(false)"
+                },
+                "left": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                },
+                "right": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                }
+              }
+            },
+            {
+              "effect": "panner",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "balance": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                }
+              }
+            }
+          ],
+          "enabled": true,
+          "end": 5334336000000,
+          "endFrame": 630,
+          "gainDb": 0.0,
+          "item": 6,
+          "label": "Iris",
+          "link": 22,
+          "maintainPitch": false,
+          "name": "Reel Partorito Finito.mp4",
+          "reverse": false,
+          "sourceIn": 0,
+          "sourceOut": 1270080000000,
+          "speed": 1.0,
+          "start": 4064256000000,
+          "startFrame": 480
+        }
+      ],
+      "label": null,
+      "locked": false,
+      "muted": false,
+      "name": "Audio 1",
+      "solo": false,
+      "syncLock": true,
+      "transitions": []
+    }
+  ],
+  "duration": 5334336000000,
+  "durationFrames": 630,
+  "gapSelection": null,
+  "id": 3,
+  "in": null,
+  "markers": [],
+  "name": "s",
+  "out": null,
+  "playhead": null,
+  "selection": [],
+  "settings": {
+    "audio_master": "Stereo",
+    "color": {
+      "auto_tone_map": true,
+      "wide_gamut": false,
+      "working": "Rec709"
+    },
+    "display": "Timecode",
+    "drop_frame": false,
+    "frame_rate": {
+      "den": 1,
+      "num": 30
+    },
+    "height": 1080,
+    "max_bit_depth": false,
+    "max_render_quality": false,
+    "par": [
+      1,
+      1
+    ],
+    "preset": "1920x1080 30",
+    "preview_codec": "ProRes 422",
+    "sample_rate": 48000,
+    "width": 1920,
+    "working_space": "Rec. 709"
+  },
+  "split": {
+    "audioIn": null,
+    "audioOut": null,
+    "videoIn": null,
+    "videoOut": null
+  },
+  "transitionSelection": [],
+  "video": [
+    {
+      "enabled": true,
+      "id": 1,
+      "items": [
+        {
+          "clip": 17,
+          "customLabelColor": null,
+          "duration": 1270080000000,
+          "durationFrames": 150,
+          "effects": [
+            {
+              "effect": "motion",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "anchor": {
+                  "keyframes": 0,
+                  "value": "Vec2(Vec2 { x: 540.0, y: 960.0 })"
+                },
+                "anti_flicker": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                },
+                "position": {
+                  "keyframes": 0,
+                  "value": "Vec2(Vec2 { x: 960.0, y: 540.0 })"
+                },
+                "rotation": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                },
+                "scale": {
+                  "keyframes": 0,
+                  "value": "Float(100.0)"
+                },
+                "scale_width": {
+                  "keyframes": 0,
+                  "value": "Float(100.0)"
+                },
+                "uniform_scale": {
+                  "keyframes": 0,
+                  "value": "Bool(true)"
+                }
+              }
+            },
+            {
+              "effect": "opacity",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "blend": {
+                  "keyframes": 0,
+                  "value": "Choice(0)"
+                },
+                "opacity": {
+                  "keyframes": 0,
+                  "value": "Float(100.0)"
+                }
+              }
+            },
+            {
+              "effect": "time_remap",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "speed": {
+                  "keyframes": 0,
+                  "value": "Float(100.0)"
+                }
+              }
+            }
+          ],
+          "enabled": true,
+          "end": 1270080000000,
+          "endFrame": 150,
+          "gainDb": 0.0,
+          "item": 4,
+          "label": "Iris",
+          "link": 16,
+          "maintainPitch": false,
+          "name": "Reel Partorito Finito.mp4",
+          "reverse": false,
+          "sourceIn": 0,
+          "sourceOut": 1270080000000,
+          "speed": 1.0,
+          "start": 0,
+          "startFrame": 0
+        },
+        {
+          "clip": 31,
+          "customLabelColor": null,
+          "duration": 762048000000,
+          "durationFrames": 90,
+          "effects": [
+            {
+              "effect": "motion",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "anchor": {
+                  "keyframes": 0,
+                  "value": "Vec2(Vec2 { x: 640.0, y: 368.0 })"
+                },
+                "anti_flicker": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                },
+                "position": {
+                  "keyframes": 0,
+                  "value": "Vec2(Vec2 { x: 960.0, y: 540.0 })"
+                },
+                "rotation": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                },
+                "scale": {
+                  "keyframes": 0,
+                  "value": "Float(150.0)"
+                },
+                "scale_width": {
+                  "keyframes": 0,
+                  "value": "Float(100.0)"
+                },
+                "uniform_scale": {
+                  "keyframes": 0,
+                  "value": "Bool(true)"
+                }
+              }
+            },
+            {
+              "effect": "opacity",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "blend": {
+                  "keyframes": 0,
+                  "value": "Choice(0)"
+                },
+                "opacity": {
+                  "keyframes": 0,
+                  "value": "Float(100.0)"
+                }
+              }
+            },
+            {
+              "effect": "time_remap",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "speed": {
+                  "keyframes": 0,
+                  "value": "Float(100.0)"
+                }
+              }
+            }
+          ],
+          "enabled": true,
+          "end": 2032128000000,
+          "endFrame": 240,
+          "gainDb": 0.0,
+          "item": 29,
+          "label": "Iris",
+          "link": 30,
+          "maintainPitch": false,
+          "name": "MiniMax_H3_00075_.mp4",
+          "reverse": false,
+          "sourceIn": 0,
+          "sourceOut": 762048000000,
+          "speed": 1.0,
+          "start": 1270080000000,
+          "startFrame": 150
+        },
+        {
+          "clip": 20,
+          "customLabelColor": null,
+          "duration": 1270080000000,
+          "durationFrames": 150,
+          "effects": [
+            {
+              "effect": "motion",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "anchor": {
+                  "keyframes": 0,
+                  "value": "Vec2(Vec2 { x: 540.0, y: 960.0 })"
+                },
+                "anti_flicker": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                },
+                "position": {
+                  "keyframes": 0,
+                  "value": "Vec2(Vec2 { x: 960.0, y: 540.0 })"
+                },
+                "rotation": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                },
+                "scale": {
+                  "keyframes": 0,
+                  "value": "Float(100.0)"
+                },
+                "scale_width": {
+                  "keyframes": 0,
+                  "value": "Float(100.0)"
+                },
+                "uniform_scale": {
+                  "keyframes": 0,
+                  "value": "Bool(true)"
+                }
+              }
+            },
+            {
+              "effect": "opacity",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "blend": {
+                  "keyframes": 0,
+                  "value": "Choice(0)"
+                },
+                "opacity": {
+                  "keyframes": 0,
+                  "value": "Float(100.0)"
+                }
+              }
+            },
+            {
+              "effect": "time_remap",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "speed": {
+                  "keyframes": 0,
+                  "value": "Float(100.0)"
+                }
+              }
+            }
+          ],
+          "enabled": true,
+          "end": 3302208000000,
+          "endFrame": 390,
+          "gainDb": 0.0,
+          "item": 5,
+          "label": "Iris",
+          "link": 19,
+          "maintainPitch": false,
+          "name": "Reel Partorito Finito.mp4",
+          "reverse": false,
+          "sourceIn": 0,
+          "sourceOut": 1270080000000,
+          "speed": 1.0,
+          "start": 2032128000000,
+          "startFrame": 240
+        },
+        {
+          "clip": 34,
+          "customLabelColor": null,
+          "duration": 762048000000,
+          "durationFrames": 90,
+          "effects": [
+            {
+              "effect": "motion",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "anchor": {
+                  "keyframes": 0,
+                  "value": "Vec2(Vec2 { x: 960.0, y: 540.0 })"
+                },
+                "anti_flicker": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                },
+                "position": {
+                  "keyframes": 0,
+                  "value": "Vec2(Vec2 { x: 960.0, y: 540.0 })"
+                },
+                "rotation": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                },
+                "scale": {
+                  "keyframes": 0,
+                  "value": "Float(100.0)"
+                },
+                "scale_width": {
+                  "keyframes": 0,
+                  "value": "Float(100.0)"
+                },
+                "uniform_scale": {
+                  "keyframes": 0,
+                  "value": "Bool(true)"
+                }
+              }
+            },
+            {
+              "effect": "opacity",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "blend": {
+                  "keyframes": 0,
+                  "value": "Choice(0)"
+                },
+                "opacity": {
+                  "keyframes": 0,
+                  "value": "Float(100.0)"
+                }
+              }
+            },
+            {
+              "effect": "time_remap",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "speed": {
+                  "keyframes": 0,
+                  "value": "Float(100.0)"
+                }
+              }
+            }
+          ],
+          "enabled": true,
+          "end": 4064256000000,
+          "endFrame": 480,
+          "gainDb": 0.0,
+          "item": 33,
+          "label": "Lavender",
+          "link": null,
+          "maintainPitch": false,
+          "name": "z-image_00004_.png",
+          "reverse": false,
+          "sourceIn": 0,
+          "sourceOut": 762048000000,
+          "speed": 1.0,
+          "start": 3302208000000,
+          "startFrame": 390
+        },
+        {
+          "clip": 23,
+          "customLabelColor": null,
+          "duration": 1270080000000,
+          "durationFrames": 150,
+          "effects": [
+            {
+              "effect": "motion",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "anchor": {
+                  "keyframes": 0,
+                  "value": "Vec2(Vec2 { x: 540.0, y: 960.0 })"
+                },
+                "anti_flicker": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                },
+                "position": {
+                  "keyframes": 0,
+                  "value": "Vec2(Vec2 { x: 960.0, y: 540.0 })"
+                },
+                "rotation": {
+                  "keyframes": 0,
+                  "value": "Float(0.0)"
+                },
+                "scale": {
+                  "keyframes": 0,
+                  "value": "Float(100.0)"
+                },
+                "scale_width": {
+                  "keyframes": 0,
+                  "value": "Float(100.0)"
+                },
+                "uniform_scale": {
+                  "keyframes": 0,
+                  "value": "Bool(true)"
+                }
+              }
+            },
+            {
+              "effect": "opacity",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "blend": {
+                  "keyframes": 0,
+                  "value": "Choice(0)"
+                },
+                "opacity": {
+                  "keyframes": 0,
+                  "value": "Float(100.0)"
+                }
+              }
+            },
+            {
+              "effect": "time_remap",
+              "enabled": true,
+              "masks": 0,
+              "params": {
+                "speed": {
+                  "keyframes": 0,
+                  "value": "Float(100.0)"
+                }
+              }
+            }
+          ],
+          "enabled": true,
+          "end": 5334336000000,
+          "endFrame": 630,
+          "gainDb": 0.0,
+          "item": 6,
+          "label": "Iris",
+          "link": 22,
+          "maintainPitch": false,
+          "name": "Reel Partorito Finito.mp4",
+          "reverse": false,
+          "sourceIn": 0,
+          "sourceOut": 1270080000000,
+          "speed": 1.0,
+          "start": 4064256000000,
+          "startFrame": 480
+        }
+      ],
+      "label": null,
+      "locked": false,
+      "muted": false,
+      "name": "Video 1",
+      "solo": false,
+      "syncLock": true,
+      "transitions": []
+    }
+  ]
+}
